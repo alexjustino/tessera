@@ -155,6 +155,20 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of F5, and why
+
+Four things listed under the editor are not in the first version:
+
+- **Drag handle to reorder blocks.** The ready-made extension is paid; a
+  hand-written one is a node-view of its own and belongs in its own slice. The
+  ordering underneath already supports it — `diff` repositions only what moved.
+- **Toggle and columns.** Both are nested layout nodes rather than styling, and
+  each needs its own schema and keyboard behaviour.
+- **Mentions with backlinks.** These are the foundation of the notes space in
+  1.2, and are better designed with it than bolted on before it.
+- **Smart paste from Word and Outlook.** Worth doing properly, with real
+  documents to test against.
+
 ### Deferred out of F4, and why
 
 Three things listed under the board in the scope are **not** in the first board,
