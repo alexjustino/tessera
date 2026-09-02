@@ -70,6 +70,18 @@ document to plain text, rather than being an external-content table bound to a s
 it would mean a web of triggers across four owner tables; writing it explicitly costs one call
 at the point of change and keeps the schema legible.
 
+## One retraction worth knowing about
+
+Migration 001 gave `item` a `status_id` column, on the assumption that status
+would be special. It is not: status is a property like any other, which is
+precisely what lets the board group by _any_ select property rather than by one
+privileged column.
+
+The column was never written to, so migration 003 drops it. Removing a column we
+guessed at is cheaper today than explaining it in a year — and because
+migrations are forward-only, the retraction is itself a migration, applied to
+every existing database exactly once.
+
 ## Migrations
 
 Numbered, forward-only, each applied inside a transaction, each bumping `workspace.schema_version`.
