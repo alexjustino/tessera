@@ -1,5 +1,5 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 /**
  * The application's own title bar.
@@ -16,12 +16,33 @@ import { useEffect, useState } from 'react';
  * not appear yet.
  */
 
-const appWindow = getCurrentWindow();
+/**
+ * Resolved lazily, never at module scope.
+ *
+ * `getCurrentWindow` reads state the Tauri host injects into the page. Calling
+ * it while the module is being imported ties the whole component tree to the
+ * host being present at that instant — which makes the interface impossible to
+ * open anywhere else, including in a browser to check a layout. Resolving it
+ * inside an effect costs nothing and keeps the component honest about when it
+ * needs the host.
+ */
+function useAppWindow() {
+  return useMemo(() => {
+    try {
+      return getCurrentWindow();
+    } catch {
+      return null;
+    }
+  }, []);
+}
 
 export function TitleBar() {
+  const appWindow = useAppWindow();
   const [maximized, setMaximized] = useState(false);
 
   useEffect(() => {
+    if (!appWindow) return;
+
     let active = true;
     const sync = async () => {
       const value = await appWindow.isMaximized();
@@ -33,7 +54,7 @@ export function TitleBar() {
       active = false;
       void unlisten.then((off) => off());
     };
-  }, []);
+  }, [appWindow]);
 
   return (
     <header
@@ -47,12 +68,12 @@ export function TitleBar() {
       <div className="flex">
         <WindowButton
           label="Minimise"
-          onClick={() => void appWindow.minimize()}
+          onClick={() => void appWindow?.minimize()}
           path="M 0,5 H 10"
         />
         <WindowButton
           label={maximized ? 'Restore' : 'Maximise'}
-          onClick={() => void appWindow.toggleMaximize()}
+          onClick={() => void appWindow?.toggleMaximize()}
           path={
             maximized
               ? 'M 2,0.5 H 9.5 V 8 M 0.5,2.5 H 7.5 V 9.5 H 0.5 Z'
@@ -61,7 +82,7 @@ export function TitleBar() {
         />
         <WindowButton
           label="Close"
-          onClick={() => void appWindow.close()}
+          onClick={() => void appWindow?.close()}
           path="M 0,0 L 10,10 M 10,0 L 0,10"
           danger
         />
