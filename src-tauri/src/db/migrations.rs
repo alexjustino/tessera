@@ -18,6 +18,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "002_default_collection",
         include_str!("../../migrations/002_default_collection.sql"),
     ),
+    (
+        "003_properties",
+        include_str!("../../migrations/003_properties.sql"),
+    ),
 ];
 
 /// The schema version this build expects.

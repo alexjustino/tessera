@@ -7,6 +7,7 @@
 pub mod items;
 pub mod migrations;
 pub mod models;
+pub mod properties;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
