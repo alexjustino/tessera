@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Views**: a saved query — filters, sorting, grouping — shown as a list or a
+  table, switchable from a tab strip and saved on demand. Sorting headers on the
+  table; a third click clears the sort.
+- **Query engine** in the domain layer, measured at fifty thousand items: a
+  filter runs in 20 ms against a 50 ms target (see ADR-004 for the full table).
+- `TabStrip` design system primitive.
 - **Typed properties**: eleven types (text, number, checkbox, link, select,
   multi-select, status, priority, date, date and time, duration), edited inline
   on a row or in a detail panel, with the same editor in both places.
