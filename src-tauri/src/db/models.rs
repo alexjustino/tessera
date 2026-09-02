@@ -48,3 +48,38 @@ pub struct NewItem {
     pub title: String,
     pub position: String,
 }
+
+/// A typed field a collection declares.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Property {
+    pub id: String,
+    pub collection_id: String,
+    /// Stable across renames. What saved views refer to.
+    pub key: String,
+    pub name: String,
+    pub r#type: String,
+    /// Per-type configuration. The host stores it and does not interpret it —
+    /// the shape is the domain layer's business (ADR-003).
+    pub config: serde_json::Value,
+    pub position: String,
+    /// Seeded by a migration: renameable, not deletable.
+    pub is_system: bool,
+}
+
+/// What the interface sends to declare a property.
+#[derive(Debug, Clone, Deserialize)]
+pub struct NewProperty {
+    pub collection_id: String,
+    pub name: String,
+    pub r#type: String,
+    pub config: serde_json::Value,
+    pub position: String,
+}
+
+/// One stored value, flat. Joined to its item in the interface.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct PropertyValueRow {
+    pub item_id: String,
+    pub property_id: String,
+    pub value: serde_json::Value,
+}

@@ -5,4 +5,5 @@
 //! system lives in `os`.
 
 pub mod items;
+pub mod properties;
 pub mod system;

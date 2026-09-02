@@ -7,8 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `item.status_id` is gone. Status is a property like any other; the column was
+  speculative and was never written to.
+
 ### Added
 
+- **Typed properties**: eleven types (text, number, checkbox, link, select,
+  multi-select, status, priority, date, date and time, duration), edited inline
+  on a row or in a detail panel, with the same editor in both places.
+- Property management: declare, rename and remove properties, and edit the
+  options of a select.
+- `Select`, `Chip` and `Drawer` design system primitives.
 - **Tasks**: create, complete, rename, reorder and delete, stored in SQLite and
   still there after a restart. The first feature that crosses every layer.
 - Item repository with transactional writes that keep the full-text index in step.
