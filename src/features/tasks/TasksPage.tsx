@@ -10,14 +10,17 @@ import {
   usePropertyValues,
   useRenameItem,
   useSetItemCompleted,
+  useMoveOnBoard,
   useSetPropertyValue,
   useUpdateView,
   useViews,
 } from '@/data/hooks';
+import { EMPTY_BOARD_CONFIG, type BoardConfig } from '@/domain/board';
 import { checkTitle, positionForNewItem } from '@/domain/item';
 import type { Property, PropertyValue } from '@/domain/property';
 import { EMPTY_QUERY, run, type Query, type Row } from '@/domain/query';
 import { PropertyManager } from '@/features/properties/PropertyManager';
+import { BoardView } from '@/features/views/BoardView';
 import { ListView } from '@/features/views/ListView';
 import { QueryBar } from '@/features/views/QueryBar';
 import { TableView } from '@/features/views/TableView';
@@ -52,6 +55,8 @@ export function TasksPage() {
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   /** The query as it is being edited. Null means "whatever the view saved". */
   const [draftQuery, setDraftQuery] = useState<Query | null>(null);
+  /** The board settings as they are being edited, on the same terms. */
+  const [draftBoard, setDraftBoard] = useState<BoardConfig | null>(null);
 
   const items = useItems(COLLECTION, true);
   const properties = useProperties(COLLECTION);
@@ -63,6 +68,7 @@ export function TasksPage() {
   const rename = useRenameItem();
   const remove = useDeleteItem();
   const setValue = useSetPropertyValue();
+  const moveOnBoard = useMoveOnBoard();
   const saveView = useUpdateView();
 
   const view = useMemo(() => {
@@ -71,7 +77,8 @@ export function TasksPage() {
   }, [views.data, activeViewId]);
 
   const query = draftQuery ?? view?.query ?? EMPTY_QUERY;
-  const dirty = draftQuery !== null && view !== null;
+  const board = draftBoard ?? view?.board ?? EMPTY_BOARD_CONFIG;
+  const dirty = (draftQuery !== null || draftBoard !== null) && view !== null;
 
   const rows: Row[] = useMemo(
     () =>
@@ -129,6 +136,7 @@ export function TasksPage() {
     remove.error ??
     rename.error ??
     setValue.error ??
+    moveOnBoard.error ??
     saveView.error;
 
   const readFailed = items.isError || properties.isError || values.isError || views.isError;
@@ -208,6 +216,7 @@ export function TasksPage() {
             // across. Silently applying one view's filters to another is the
             // kind of surprise that makes a person distrust the whole screen.
             setDraftQuery(null);
+            setDraftBoard(null);
           }}
         />
       )}
@@ -215,20 +224,28 @@ export function TasksPage() {
       {view !== null && (
         <QueryBar
           query={query}
+          board={board}
+          columns={result.groups}
+          isBoard={view.kind === 'board'}
           properties={properties.data ?? []}
           onChange={setDraftQuery}
+          onBoardChange={setDraftBoard}
           matched={result.matched}
           total={result.total}
           open={editingQuery}
           onOpenChange={setEditingQuery}
           dirty={dirty}
-          onSave={() => {
-            if (draftQuery === null) return;
+          onSave={() =>
             saveView.mutate(
-              { id: view.id, name: view.name, kind: view.kind, query: draftQuery },
-              { onSuccess: () => setDraftQuery(null) },
-            );
-          }}
+              { id: view.id, name: view.name, kind: view.kind, query, board },
+              {
+                onSuccess: () => {
+                  setDraftQuery(null);
+                  setDraftBoard(null);
+                },
+              },
+            )
+          }
         />
       )}
 
@@ -253,6 +270,19 @@ export function TasksPage() {
             title="No item matches this view"
             description="The items are still there — this view's filters just do not include any of them."
             action={<Button onClick={() => setEditingQuery(true)}>Change the filters</Button>}
+          />
+        ) : view?.kind === 'board' ? (
+          <BoardView
+            groups={result.groups}
+            properties={properties.data ?? []}
+            query={query}
+            board={board}
+            onQueryChange={(nextQuery, nextBoard) => {
+              setDraftQuery(nextQuery);
+              setDraftBoard(nextBoard);
+            }}
+            onMove={(move) => moveOnBoard.mutate(move)}
+            onOpen={(row) => setDetailId(row.item.id)}
           />
         ) : view?.kind === 'table' ? (
           <TableView

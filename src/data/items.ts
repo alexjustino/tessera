@@ -99,6 +99,20 @@ export async function moveItem(
   return toItem(await invoke<RawItem>('item_move', { id, position, collectionId }));
 }
 
+/**
+ * Move a card on a board: its position and the field the columns group by, in
+ * one host transaction.
+ */
+export async function moveOnBoard(
+  id: string,
+  position: string,
+  propertyId: string | null,
+  value: unknown,
+): Promise<Item> {
+  const raw = await invoke<RawItem>('item_move_on_board', { id, position, propertyId, value });
+  return toItem(raw);
+}
+
 export async function deleteItem(id: string): Promise<void> {
   await invoke<void>('item_delete', { id });
 }

@@ -1,5 +1,6 @@
 import { Add20Regular, Delete20Regular, Filter20Regular } from '@fluentui/react-icons';
 
+import { columnKeyToStorage, type BoardConfig } from '@/domain/board';
 import { optionsOf, type Property, type PropertyValue } from '@/domain/property';
 import {
   BUILTIN_FIELDS,
@@ -10,6 +11,7 @@ import {
   VALUELESS,
   type FieldRef,
   type Filter,
+  type Group,
   type Operator,
   type Query,
   type Sort,
@@ -32,8 +34,12 @@ import { Select } from '@/ui/Select';
  */
 export function QueryBar({
   query,
+  board,
+  columns,
+  isBoard,
   properties,
   onChange,
+  onBoardChange,
   matched,
   total,
   open,
@@ -42,8 +48,12 @@ export function QueryBar({
   dirty,
 }: {
   query: Query;
+  board: BoardConfig;
+  columns: readonly Group[];
+  isBoard: boolean;
   properties: Property[];
   onChange: (query: Query) => void;
+  onBoardChange: (board: BoardConfig) => void;
   matched: number;
   total: number;
   open: boolean;
@@ -211,6 +221,79 @@ export function QueryBar({
                 ))}
             </Select>
           </section>
+
+          {isBoard && (
+            <section>
+              <Heading>Board</Heading>
+
+              <p className="mb-2 text-caption text-fg-tertiary">
+                A limit does not stop a card being moved. It makes a column that is too full look
+                too full, which is the point &mdash; a limit that blocks the work only teaches
+                people to route around it.
+              </p>
+
+              <div className="flex flex-col gap-2">
+                {columns.map((column) => {
+                  const key = columnKeyToStorage(column.key);
+                  return (
+                    <div key={key} className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-body text-fg-secondary">
+                        {column.label === '' ? 'No value' : column.label}
+                      </span>
+                      <Input
+                        type="number"
+                        min={0}
+                        className="w-24"
+                        aria-label={'Work-in-progress limit for ' + column.label}
+                        placeholder="No limit"
+                        value={board.wipLimits[key] ?? ''}
+                        onChange={(event) => {
+                          const text = event.target.value;
+                          const next = { ...board.wipLimits };
+                          if (text === '') delete next[key];
+                          else next[key] = Math.max(0, Number(text));
+                          onBoardChange({ ...board, wipLimits: next });
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <h4 className="mt-4 mb-2 text-caption font-semibold text-fg-tertiary uppercase">
+                On the card
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {properties.map((property) => {
+                  const on = board.cardProperties.includes(property.id);
+                  return (
+                    <button
+                      key={property.id}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() =>
+                        onBoardChange({
+                          ...board,
+                          cardProperties: on
+                            ? board.cardProperties.filter((id) => id !== property.id)
+                            : [...board.cardProperties, property.id],
+                        })
+                      }
+                      className={[
+                        'rounded-sm border px-2 py-1 text-caption font-semibold',
+                        'transition-colors duration-100 ease-easy',
+                        on
+                          ? 'border-accent/30 bg-accent-subtle text-accent'
+                          : 'border-stroke-subtle bg-card text-fg-secondary hover:bg-card-hover',
+                      ].join(' ')}
+                    >
+                      {property.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           <section>
             <Heading>Completed</Heading>
