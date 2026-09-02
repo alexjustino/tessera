@@ -39,9 +39,12 @@
     "@tiptap/react": "^3.31.0",
     "@tiptap/starter-kit": "^3.31.0",
     "@tiptap/suggestion": "^3.31.0",
+    "date-fns": "^4.4.0",
+    "date-fns-tz": "^3.2.0",
     "lowlight": "^3.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "rrule": "^2.8.1",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
