@@ -23,7 +23,10 @@ export function App() {
       <div className="flex min-h-0 flex-1">
         <Sidebar active={destination} onNavigate={setDestination} />
         <main className="min-w-0 flex-1 overflow-y-auto bg-layer">
-          {destination === 'tasks' && <TasksPage />}
+          {/* Today is the same page opened on a different saved view — it is
+              a query over the same items, not a second screen. */}
+          {destination === 'tasks' && <TasksPage key="tasks" />}
+          {destination === 'today' && <TasksPage key="today" initialViewId="view.today" />}
           {destination === 'diagnostics' && <FoundationPage />}
           {destination === 'about' && <AboutPage />}
         </main>
