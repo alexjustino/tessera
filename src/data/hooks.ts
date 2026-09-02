@@ -22,6 +22,7 @@ import type { Query } from '@/domain/query';
 import * as api from './items';
 import * as propertyApi from './properties';
 import * as blockApi from './blocks';
+import * as calendarApi from './calendar';
 import * as viewApi from './views';
 
 export const keys = {
@@ -328,4 +329,67 @@ export function useApplyBlocks() {
       client.setQueryData(blockKeys.blocks(variables.ownerKind, variables.ownerId), blocks);
     },
   });
+}
+
+// ── Time ────────────────────────────────────────────────────────────────────
+
+export const calendarKeys = {
+  calendars: ['calendars'] as const,
+  workHours: ['work-hours'] as const,
+  events: (from: string, to: string) => ['events', from, to] as const,
+  exceptions: ['event-exceptions'] as const,
+};
+
+export function useCalendars() {
+  return useQuery({ queryKey: calendarKeys.calendars, queryFn: calendarApi.listCalendars });
+}
+
+export function useWorkHours() {
+  return useQuery({ queryKey: calendarKeys.workHours, queryFn: calendarApi.listWorkHours });
+}
+
+export function useEvents(from: string, to: string, calendars: calendarApi.Calendar[]) {
+  return useQuery({
+    queryKey: calendarKeys.events(from, to),
+    queryFn: () => calendarApi.listEvents(from, to, calendars),
+    enabled: calendars.length > 0,
+  });
+}
+
+export function useEventExceptions() {
+  return useQuery({ queryKey: calendarKeys.exceptions, queryFn: calendarApi.listExceptions });
+}
+
+function useInvalidateCalendar() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: ['events'] });
+    void client.invalidateQueries({ queryKey: ['event-exceptions'] });
+    // Reserving time for a task touches the task's own row too.
+    void client.invalidateQueries({ queryKey: ['items'] });
+  };
+}
+
+export function useMoveEvent() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({
+    mutationFn: ({ id, startsAt, endsAt }: { id: string; startsAt: string; endsAt: string }) =>
+      calendarApi.moveEvent(id, startsAt, endsAt),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteEvent() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: calendarApi.deleteEvent, onSuccess: invalidate });
+}
+
+export function useSetException() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: calendarApi.setException, onSuccess: invalidate });
+}
+
+export function useCreateTimeBlock() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: calendarApi.createTimeBlock, onSuccess: invalidate });
 }

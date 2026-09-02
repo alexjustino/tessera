@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Calendar**: day, work week, week, month and agenda over the same items and
+  events, with a now line, working-hours shading, an all-day lane and events
+  that can be dragged to another time.
+- **Time blocking**: drag a task from the side panel onto the grid and it
+  becomes reserved time while staying the same task.
 - **Dates and recurrence**: due and start dates with a time, repetition by RRULE
   in two modes — on the calendar, or counted from when you actually finish it.
   Ticking a repeating task advances it instead of closing it.
