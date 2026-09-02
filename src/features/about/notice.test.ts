@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { thirdParty } from './AboutPage';
+import { thirdParty } from './notice';
 
 /**
  * The About screen reads its credits from NOTICE, so there is exactly one list
