@@ -6,7 +6,7 @@
 
 use tauri::State;
 
-use crate::db::models::{Collection, Item, NewItem};
+use crate::db::models::{Collection, Item, ItemSchedule, NewItem};
 use crate::db::{items, Db};
 use crate::error::Result;
 
@@ -72,4 +72,22 @@ pub fn item_move_on_board(
 ) -> Result<Item> {
     let mut conn = db.0.lock().expect("the database lock was poisoned");
     items::move_on_board(&mut conn, &id, &position, property_id.as_deref(), &value)
+}
+
+/// Set an item's dates and repetition.
+#[tauri::command]
+pub fn item_set_schedule(db: State<'_, Db>, id: String, schedule: ItemSchedule) -> Result<Item> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    items::set_schedule(&conn, &id, schedule)
+}
+
+/// Complete one occurrence of a repeating item, moving it to its next date.
+#[tauri::command]
+pub fn item_complete_occurrence(
+    db: State<'_, Db>,
+    id: String,
+    next_due_at: Option<String>,
+) -> Result<Item> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    items::complete_occurrence(&mut conn, &id, next_due_at.as_deref())
 }

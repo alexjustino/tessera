@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
  * going, and nothing pretends to work when it does not.
  */
 
-export type Destination = 'tasks' | 'diagnostics' | 'about';
+export type Destination = 'tasks' | 'today' | 'diagnostics' | 'about';
 
 interface Entry {
   id: string;
@@ -27,7 +27,7 @@ interface Entry {
 }
 
 const ENTRIES: Entry[] = [
-  { id: 'today', label: 'Today', icon: <Home20Regular />, ready: false },
+  { id: 'today', label: 'Today', icon: <Home20Regular />, ready: true },
   { id: 'tasks', label: 'Tasks', icon: <TaskListSquareLtr20Regular />, ready: true },
   { id: 'board', label: 'Board', icon: <Board20Regular />, ready: false },
   { id: 'calendar', label: 'Calendar', icon: <Calendar20Regular />, ready: false },

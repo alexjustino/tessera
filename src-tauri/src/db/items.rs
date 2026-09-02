@@ -15,7 +15,7 @@ use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension, Row};
 use uuid::Uuid;
 
-use super::models::{Collection, Item, NewItem};
+use super::models::{Collection, Item, ItemSchedule, NewItem};
 use crate::error::{Error, Result};
 
 /// The longest title the interface will store. Long enough for any real title,
@@ -85,6 +85,11 @@ fn read_item(row: &Row<'_>) -> rusqlite::Result<Item> {
         parent_item_id: row.get("parent_item_id")?,
         title: row.get("title")?,
         position: row.get("position")?,
+        start_at: row.get("start_at")?,
+        due_at: row.get("due_at")?,
+        remind_at: row.get("remind_at")?,
+        recurrence_rrule: row.get("recurrence_rrule")?,
+        recurrence_mode: row.get("recurrence_mode")?,
         completed_at: row.get("completed_at")?,
         created_at: row.get("created_at")?,
         updated_at: row.get("updated_at")?,
@@ -114,6 +119,7 @@ pub fn list_items(
 ) -> Result<Vec<Item>> {
     let sql = format!(
         "SELECT id, collection_id, parent_item_id, title, position,
+                start_at, due_at, remind_at, recurrence_rrule, recurrence_mode,
                 completed_at, created_at, updated_at
          FROM item
          WHERE archived_at IS NULL
@@ -136,6 +142,7 @@ pub fn list_items(
 pub fn get_item(conn: &Connection, id: &str) -> Result<Item> {
     conn.query_row(
         "SELECT id, collection_id, parent_item_id, title, position,
+                start_at, due_at, remind_at, recurrence_rrule, recurrence_mode,
                 completed_at, created_at, updated_at
          FROM item WHERE id = ?1",
         params![id],
@@ -331,6 +338,96 @@ pub fn move_on_board(
     get_item(conn, id)
 }
 
+/// The modes a repeating item may use. Anything else is refused rather than
+/// stored, because a mode the interface cannot read is an item that silently
+/// stops repeating.
+const RECURRENCE_MODES: [&str; 2] = ["schedule", "after_completion"];
+
+/// Set an item's dates and repetition.
+///
+/// The rule is stored as given. Expanding it — and every hour of timezone
+/// arithmetic that goes with it — belongs to `src/domain/schedule.ts`, where it
+/// is a pure function with a daylight-saving test (ADR-003).
+pub fn set_schedule(conn: &Connection, id: &str, schedule: ItemSchedule) -> Result<Item> {
+    if let Some(mode) = schedule.recurrence_mode.as_deref() {
+        if !RECURRENCE_MODES.contains(&mode) {
+            return Err(Error::InvalidInput("that is not a way of repeating"));
+        }
+    }
+    // A rule with no date to anchor it would repeat from nowhere.
+    if schedule.recurrence_rrule.is_some() && schedule.due_at.is_none() {
+        return Err(Error::InvalidInput(
+            "a repeating item needs a date to repeat from",
+        ));
+    }
+
+    let changed = conn.execute(
+        "UPDATE item
+         SET start_at = ?2, due_at = ?3, remind_at = ?4,
+             recurrence_rrule = ?5, recurrence_mode = ?6, updated_at = ?7
+         WHERE id = ?1",
+        params![
+            id,
+            schedule.start_at,
+            schedule.due_at,
+            schedule.remind_at,
+            schedule.recurrence_rrule,
+            schedule.recurrence_mode,
+            now()
+        ],
+    )?;
+
+    if changed == 0 {
+        return Err(Error::NotFound);
+    }
+    get_item(conn, id)
+}
+
+/// Complete one occurrence of a repeating item.
+///
+/// A repeating task is not finished when you do it once — it comes back. So the
+/// completion is recorded in the activity log and the due date moves on, and the
+/// item stays open. Marking it completed instead would make "every Monday"
+/// disappear the first Monday somebody did it.
+///
+/// `next_due_at` is computed by the domain layer, which owns the calendar.
+pub fn complete_occurrence(
+    conn: &mut Connection,
+    id: &str,
+    next_due_at: Option<&str>,
+) -> Result<Item> {
+    let timestamp = now();
+    let transaction = conn.transaction()?;
+
+    let changed = match next_due_at {
+        // The series ended: there is no next date, so the item really is done.
+        None => transaction.execute(
+            "UPDATE item SET completed_at = ?2, updated_at = ?2 WHERE id = ?1",
+            params![id, timestamp],
+        )?,
+        Some(next) => transaction.execute(
+            "UPDATE item SET due_at = ?2, updated_at = ?3 WHERE id = ?1",
+            params![id, next, timestamp],
+        )?,
+    };
+    if changed == 0 {
+        return Err(Error::NotFound);
+    }
+
+    transaction.execute(
+        "INSERT INTO activity (owner_kind, owner_id, kind, payload_json, at)
+         VALUES ('item', ?1, 'occurrence_completed', ?2, ?3)",
+        params![
+            id,
+            serde_json::json!({ "next_due_at": next_due_at }).to_string(),
+            timestamp
+        ],
+    )?;
+
+    transaction.commit()?;
+    get_item(conn, id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -489,6 +586,172 @@ mod tests {
             .query_row("SELECT count(*) FROM search_fts", [], |r| r.get(0))
             .unwrap_or(-1);
         assert_eq!(orphaned, 0, "a cascaded child left its index entry behind");
+    }
+
+    #[test]
+    fn setting_a_schedule_stores_every_field() {
+        let mut conn = workspace();
+        let item = add(&mut conn, "recurring", "V");
+
+        let updated = set_schedule(
+            &conn,
+            &item.id,
+            ItemSchedule {
+                start_at: Some("2026-09-01T12:00:00.000Z".into()),
+                due_at: Some("2026-09-07T12:00:00.000Z".into()),
+                remind_at: Some("2026-09-07T11:00:00.000Z".into()),
+                recurrence_rrule: Some("FREQ=WEEKLY".into()),
+                recurrence_mode: Some("schedule".into()),
+            },
+        )
+        .expect("set");
+
+        assert_eq!(updated.due_at.as_deref(), Some("2026-09-07T12:00:00.000Z"));
+        assert_eq!(updated.recurrence_rrule.as_deref(), Some("FREQ=WEEKLY"));
+        assert_eq!(updated.recurrence_mode.as_deref(), Some("schedule"));
+    }
+
+    #[test]
+    fn a_schedule_survives_being_cleared() {
+        let mut conn = workspace();
+        let item = add(&mut conn, "recurring", "V");
+        set_schedule(
+            &conn,
+            &item.id,
+            ItemSchedule {
+                start_at: None,
+                due_at: Some("2026-09-07T12:00:00.000Z".into()),
+                remind_at: None,
+                recurrence_rrule: Some("FREQ=WEEKLY".into()),
+                recurrence_mode: Some("schedule".into()),
+            },
+        )
+        .expect("set");
+
+        let cleared = set_schedule(
+            &conn,
+            &item.id,
+            ItemSchedule {
+                start_at: None,
+                due_at: None,
+                remind_at: None,
+                recurrence_rrule: None,
+                recurrence_mode: None,
+            },
+        )
+        .expect("clear");
+
+        assert!(cleared.due_at.is_none());
+        assert!(cleared.recurrence_rrule.is_none());
+    }
+
+    #[test]
+    fn refuses_a_repetition_with_nothing_to_repeat_from() {
+        let mut conn = workspace();
+        let item = add(&mut conn, "recurring", "V");
+
+        let result = set_schedule(
+            &conn,
+            &item.id,
+            ItemSchedule {
+                start_at: None,
+                due_at: None,
+                remind_at: None,
+                recurrence_rrule: Some("FREQ=WEEKLY".into()),
+                recurrence_mode: Some("schedule".into()),
+            },
+        );
+        assert!(matches!(result, Err(Error::InvalidInput(_))));
+    }
+
+    #[test]
+    fn refuses_a_way_of_repeating_it_does_not_know() {
+        let mut conn = workspace();
+        let item = add(&mut conn, "recurring", "V");
+
+        let result = set_schedule(
+            &conn,
+            &item.id,
+            ItemSchedule {
+                start_at: None,
+                due_at: Some("2026-09-07T12:00:00.000Z".into()),
+                remind_at: None,
+                recurrence_rrule: Some("FREQ=WEEKLY".into()),
+                recurrence_mode: Some("whenever".into()),
+            },
+        );
+        assert!(matches!(result, Err(Error::InvalidInput(_))));
+    }
+
+    #[test]
+    fn completing_an_occurrence_moves_the_date_and_leaves_the_item_open() {
+        // A repeating task is not finished when you do it once. Marking it
+        // completed would make "every Monday" vanish the first Monday somebody
+        // did it.
+        let mut conn = workspace();
+        let item = add(&mut conn, "weekly", "V");
+
+        let after = complete_occurrence(&mut conn, &item.id, Some("2026-09-14T12:00:00.000Z"))
+            .expect("complete");
+
+        assert_eq!(after.due_at.as_deref(), Some("2026-09-14T12:00:00.000Z"));
+        assert!(
+            after.completed_at.is_none(),
+            "the series was closed by one completion"
+        );
+    }
+
+    #[test]
+    fn completing_the_last_occurrence_really_completes_the_item() {
+        let mut conn = workspace();
+        let item = add(&mut conn, "twice", "V");
+
+        let after = complete_occurrence(&mut conn, &item.id, None).expect("complete");
+        assert!(after.completed_at.is_some());
+    }
+
+    #[test]
+    fn every_completed_occurrence_is_recorded() {
+        // Without the log, "what did I finish this week" cannot see a repeating
+        // task at all — it only ever shows one due date.
+        let mut conn = workspace();
+        let item = add(&mut conn, "weekly", "V");
+
+        complete_occurrence(&mut conn, &item.id, Some("2026-09-14T12:00:00.000Z")).expect("one");
+        complete_occurrence(&mut conn, &item.id, Some("2026-09-21T12:00:00.000Z")).expect("two");
+
+        let logged: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM activity
+                 WHERE owner_id = ?1 AND kind = 'occurrence_completed'",
+                params![item.id],
+                |row| row.get(0),
+            )
+            .unwrap_or(-1);
+        assert_eq!(logged, 2);
+    }
+
+    #[test]
+    fn reports_a_missing_item_when_scheduling() {
+        let mut conn = workspace();
+        assert!(matches!(
+            set_schedule(
+                &conn,
+                "nope",
+                ItemSchedule {
+                    start_at: None,
+                    due_at: None,
+                    remind_at: None,
+                    recurrence_rrule: None,
+                    recurrence_mode: None,
+                },
+            ),
+            Err(Error::NotFound)
+        ));
+        assert!(matches!(
+            complete_occurrence(&mut conn, "nope", None),
+            Err(Error::NotFound)
+        ));
     }
 
     #[test]

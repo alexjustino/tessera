@@ -9,6 +9,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import type { Collection, Item } from '@/domain/item';
+import type { Schedule } from '@/domain/schedule';
 
 interface RawItem {
   id: string;
@@ -16,6 +17,11 @@ interface RawItem {
   parent_item_id: string | null;
   title: string;
   position: string;
+  start_at: string | null;
+  due_at: string | null;
+  remind_at: string | null;
+  recurrence_rrule: string | null;
+  recurrence_mode: string | null;
   completed_at: string | null;
   created_at: string;
   updated_at: string;
@@ -36,6 +42,13 @@ function toItem(raw: RawItem): Item {
     parentItemId: raw.parent_item_id,
     title: raw.title,
     position: raw.position,
+    startAt: raw.start_at,
+    dueAt: raw.due_at,
+    remindAt: raw.remind_at,
+    recurrenceRule: raw.recurrence_rrule,
+    // An unrecognised mode reads as the ordinary one rather than failing the
+    // row: a schedule is a better guess than no item at all.
+    recurrenceMode: raw.recurrence_mode === 'after_completion' ? 'after_completion' : 'schedule',
     completedAt: raw.completed_at,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
@@ -115,4 +128,31 @@ export async function moveOnBoard(
 
 export async function deleteItem(id: string): Promise<void> {
   await invoke<void>('item_delete', { id });
+}
+
+/** Set an item's dates and repetition. */
+export async function setSchedule(id: string, schedule: Schedule): Promise<Item> {
+  const raw = await invoke<RawItem>('item_set_schedule', {
+    id,
+    schedule: {
+      start_at: schedule.startAt,
+      due_at: schedule.dueAt,
+      remind_at: schedule.remindAt,
+      recurrence_rrule: schedule.rule,
+      recurrence_mode: schedule.rule === null ? null : schedule.mode,
+    },
+  });
+  return toItem(raw);
+}
+
+/**
+ * Complete one occurrence of a repeating item.
+ *
+ * `nextDueAt` is computed here, in the domain layer, and passed down. The host
+ * owns storage; the calendar arithmetic — and every daylight-saving edge in it
+ * — stays in one tested place (ADR-003).
+ */
+export async function completeOccurrence(id: string, nextDueAt: string | null): Promise<Item> {
+  const raw = await invoke<RawItem>('item_complete_occurrence', { id, nextDueAt });
+  return toItem(raw);
 }

@@ -80,6 +80,8 @@ pub fn run() {
             commands::items::item_move,
             commands::items::item_delete,
             commands::items::item_move_on_board,
+            commands::items::item_set_schedule,
+            commands::items::item_complete_occurrence,
             commands::properties::properties_list,
             commands::properties::property_create,
             commands::properties::property_update,

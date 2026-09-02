@@ -5,6 +5,8 @@ import type { Property } from './property';
 import {
   accepts,
   EMPTY_QUERY,
+  isRelative,
+  resolveRelative,
   fieldKey,
   flatten,
   operatorsFor,
@@ -91,6 +93,11 @@ function row(
     parentItemId: null,
     title,
     position,
+    startAt: null,
+    dueAt: null,
+    remindAt: null,
+    recurrenceRule: null,
+    recurrenceMode: 'schedule',
     completedAt: completed ? '2026-09-09T10:00:00.000Z' : null,
     createdAt: stamp,
     updatedAt: stamp,
@@ -112,7 +119,9 @@ const ROWS: Row[] = [
 
 const query = (overrides: Partial<Query> = {}): Query => ({ ...EMPTY_QUERY, ...overrides });
 const prop = (id: string): FieldRef => ({ kind: 'property', propertyId: id });
-const builtin = (field: 'title' | 'completed' | 'createdAt' | 'updatedAt'): FieldRef => ({
+const builtin = (
+  field: 'title' | 'completed' | 'dueAt' | 'startAt' | 'createdAt' | 'updatedAt',
+): FieldRef => ({
   kind: 'builtin',
   field,
 });
@@ -479,5 +488,132 @@ describe('an empty collection', () => {
     expect(result.total).toBe(0);
     expect(result.matched).toBe(0);
     expect(result.groups.length).toBeGreaterThan(0);
+  });
+});
+
+// ── Dates ──────────────────────────────────────────────────────────────────
+
+describe('filtering on dates', () => {
+  // 09:00 in São Paulo, which is where a naive UTC comparison goes wrong.
+  const NOW = '2026-09-05T12:00:00.000Z';
+  const ZONE = 'America/Sao_Paulo';
+
+  const dated = (id: string, position: string, dueAt: string | null): Row => {
+    const base = row(id, id, position);
+    return { ...base, item: { ...base.item, dueAt } };
+  };
+
+  const ROWS_WITH_DATES = [
+    dated('late', 'a', '2026-09-04T12:00:00.000Z'),
+    dated('today', 'b', '2026-09-05T22:00:00.000Z'),
+    dated('tomorrow', 'c', '2026-09-06T22:00:00.000Z'),
+    dated('next-week', 'd', '2026-09-11T12:00:00.000Z'),
+    dated('far', 'e', '2026-12-01T12:00:00.000Z'),
+    dated('undated', 'f', null),
+  ];
+
+  const dateRun = (query: Query) =>
+    idsOf(run({ rows: ROWS_WITH_DATES, properties: PROPERTIES, query, now: NOW, zone: ZONE }));
+
+  it('knows which tokens are relative', () => {
+    expect(isRelative('@todayEnd')).toBe(true);
+    expect(isRelative('@never')).toBe(false);
+    expect(isRelative('2026-09-05')).toBe(false);
+    expect(isRelative(null)).toBe(false);
+  });
+
+  it('resolves a token against the clock it is given, in the zone it is given', () => {
+    // The whole point: a saved view called Today means today on the day it is
+    // opened, not on the day it was saved.
+    expect(resolveRelative('@now', NOW, ZONE)).toBe(NOW);
+    expect(resolveRelative('@todayStart', NOW, ZONE)).toBe('2026-09-05T03:00:00.000Z');
+    expect(resolveRelative('@todayEnd', NOW, ZONE)).toBe('2026-09-06T03:00:00.000Z');
+    expect(resolveRelative('@in7d', NOW, ZONE)).toBe('2026-09-13T03:00:00.000Z');
+  });
+
+  it('resolves the same token differently in a different zone', () => {
+    expect(resolveRelative('@todayEnd', NOW, 'UTC')).toBe('2026-09-06T00:00:00.000Z');
+  });
+
+  it('finds what is due today, and what was already late', () => {
+    // This is the Today view. Overdue work belongs in it: a task that was due
+    // yesterday is still today's problem.
+    expect(dateRun(query({ filters: [filter(builtin('dueAt'), 'lt', '@todayEnd')] }))).toEqual([
+      'late',
+      'today',
+    ]);
+  });
+
+  it('finds only what is actually late', () => {
+    expect(dateRun(query({ filters: [filter(builtin('dueAt'), 'lt', '@now')] }))).toEqual(['late']);
+  });
+
+  it('finds the coming week', () => {
+    expect(
+      dateRun(
+        query({
+          filters: [
+            { ...filter(builtin('dueAt'), 'lt', '@in7d'), id: 'window' },
+            { ...filter(builtin('dueAt'), 'is_not_empty', null), id: 'dated' },
+          ],
+        }),
+      ),
+      // 'next-week' is six days out, which is inside a seven-day window. The
+      // name is a label, not an assertion.
+    ).toEqual(['late', 'today', 'tomorrow', 'next-week']);
+  });
+
+  it('never sweeps an undated task into a date filter', () => {
+    // "Due before Friday" must not quietly include everything that has no date
+    // at all — which is what a naive comparison against null does.
+    for (const token of ['@now', '@todayEnd', '@in7d'] as const) {
+      expect(dateRun(query({ filters: [filter(builtin('dueAt'), 'lt', token)] }))).not.toContain(
+        'undated',
+      );
+    }
+  });
+
+  it('separates the dated from the undated', () => {
+    expect(dateRun(query({ filters: [filter(builtin('dueAt'), 'is_empty', null)] }))).toEqual([
+      'undated',
+    ]);
+  });
+
+  it('sorts by date, with the undated last', () => {
+    expect(dateRun(query({ sorts: [{ field: builtin('dueAt'), direction: 'asc' }] }))).toEqual([
+      'late',
+      'today',
+      'tomorrow',
+      'next-week',
+      'far',
+      'undated',
+    ]);
+  });
+
+  it('answers differently at a different moment, from the same saved query', () => {
+    // The same stored filter, run a week later, returns a different answer.
+    // That is the promise a relative value makes.
+    const today = query({ filters: [filter(builtin('dueAt'), 'lt', '@todayEnd')] });
+
+    const nextWeek = idsOf(
+      run({
+        rows: ROWS_WITH_DATES,
+        properties: PROPERTIES,
+        query: today,
+        now: '2026-09-12T12:00:00.000Z',
+        zone: ZONE,
+      }),
+    );
+
+    expect(nextWeek).toEqual(['late', 'today', 'tomorrow', 'next-week']);
+  });
+
+  it('lets accepts be asked about one row at a chosen moment', () => {
+    const late = ROWS_WITH_DATES[0]!;
+    const rule = filter(builtin('dueAt'), 'lt', '@now');
+
+    expect(accepts(late, rule, PROPERTIES, NOW, ZONE)).toBe(true);
+    // Rewind to before it was due, and it is no longer late.
+    expect(accepts(late, rule, PROPERTIES, '2026-09-03T12:00:00.000Z', ZONE)).toBe(false);
   });
 });

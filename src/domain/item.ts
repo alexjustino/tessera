@@ -18,6 +18,13 @@ export interface Item {
   parentItemId: string | null;
   title: string;
   position: string;
+  /** ISO-8601 UTC, all of them (ADR-013). */
+  startAt: string | null;
+  dueAt: string | null;
+  remindAt: string | null;
+  /** An RFC 5545 rule without DTSTART, or null when the item does not repeat. */
+  recurrenceRule: string | null;
+  recurrenceMode: 'schedule' | 'after_completion';
   /** ISO-8601 UTC, or null while the item is open. */
   completedAt: string | null;
   createdAt: string;

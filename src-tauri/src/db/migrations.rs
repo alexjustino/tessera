@@ -30,6 +30,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "005_board_view",
         include_str!("../../migrations/005_board_view.sql"),
     ),
+    (
+        "006_date_views",
+        include_str!("../../migrations/006_date_views.sql"),
+    ),
 ];
 
 /// The schema version this build expects.
