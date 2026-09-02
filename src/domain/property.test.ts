@@ -284,8 +284,11 @@ describe('compareValues', () => {
     ).toBeLessThan(0);
   });
 
-  it('sorts a ticked checkbox before an unticked one', () => {
-    expect(compareValues(property('checkbox'), true, false)).toBeLessThan(0);
+  it('sorts an unticked checkbox before a ticked one, the way 0 sorts before 1', () => {
+    // Ascending on a "Done" column puts the unfinished work at the top, which
+    // is the whole reason somebody sorts by it.
+    expect(compareValues(property('checkbox'), false, true)).toBeLessThan(0);
+    expect(compareValues(property('checkbox'), true, false)).toBeGreaterThan(0);
   });
 });
 

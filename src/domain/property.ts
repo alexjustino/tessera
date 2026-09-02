@@ -355,46 +355,96 @@ export function formatDuration(minutes: number): string {
  * Options compare by their declared order, not alphabetically — Urgent comes
  * before High because that is what the property says, not because U precedes H.
  */
-export function compareValues(property: Property, a: PropertyValue, b: PropertyValue): number {
-  const aEmpty = isEmpty(a);
-  const bEmpty = isEmpty(b);
-  if (aEmpty && bEmpty) return 0;
-  if (aEmpty) return 1;
-  if (bEmpty) return -1;
+/**
+ * Build a comparator for a property, doing the per-property work once.
+ *
+ * The expensive part of comparing two options is knowing their declared order,
+ * and that does not change between comparisons. Rebuilding it inside the
+ * comparator costs an allocation and two linear scans *per pair* — invisible in
+ * a unit test, and the dominant cost when sorting fifty thousand rows.
+ *
+ * `compareValues` remains the one-shot form for the places that compare a
+ * single pair. Anything that sorts should ask for the comparator once.
+ */
+export function comparatorFor(property: Property): (a: PropertyValue, b: PropertyValue) => number {
+  const compare = rawComparatorFor(property);
+  return (a, b) => {
+    const aEmpty = isEmpty(a);
+    const bEmpty = isEmpty(b);
+    if (aEmpty || bEmpty) return aEmpty && bEmpty ? 0 : aEmpty ? 1 : -1;
+    return compare(a, b);
+  };
+}
 
+/**
+ * A comparator for two values that are both known to be present.
+ *
+ * Emptiness is a property of a row, not of a pair, so deciding it inside the
+ * comparator re-decides it on every comparison — and `isEmpty` trims strings,
+ * which allocates. At fifty thousand rows that was 1.6 million trims and the
+ * single largest cost in a sort.
+ *
+ * A caller that sorts should read emptiness once per row and use this; a caller
+ * comparing one pair should use `comparatorFor`, which handles it.
+ */
+export function rawComparatorFor(
+  property: Property,
+): (a: PropertyValue, b: PropertyValue) => number {
   switch (property.type) {
     case 'number':
     case 'duration':
-      return Number(a) - Number(b);
+      return (a, b) => Number(a) - Number(b);
 
     case 'checkbox':
-      return Number(b === true) - Number(a === true);
+      // False before true, the way 0 sorts before 1. Ascending on a "Done"
+      // column therefore puts the unfinished work at the top, which is the
+      // whole reason somebody sorts by it.
+      return (a, b) => Number(a === true) - Number(b === true);
 
     case 'select':
     case 'status':
     case 'priority': {
-      const order = optionsOf(property).map((option) => option.id);
-      const rank = (value: PropertyValue) => {
-        const index = order.indexOf(String(value));
-        // An option the property no longer offers sorts after the ones it does.
-        return index === -1 ? order.length : index;
-      };
-      return rank(a) - rank(b);
+      // Built once. An option the property no longer offers ranks after every
+      // one it does.
+      const rank = new Map<string, number>();
+      const options = optionsOf(property);
+      options.forEach((option, index) => rank.set(option.id, index));
+      const unknown = options.length;
+
+      return (a, b) => (rank.get(a as string) ?? unknown) - (rank.get(b as string) ?? unknown);
     }
 
-    case 'multi_select': {
-      const left = (a as readonly string[]).length;
-      const right = (b as readonly string[]).length;
-      return left - right;
-    }
+    case 'multi_select':
+      return (a, b) => (a as readonly string[]).length - (b as readonly string[]).length;
 
     case 'date':
     case 'datetime':
       // Both formats sort correctly as strings, which is why they are stored
-      // this way (ADR-013).
-      return String(a).localeCompare(String(b));
+      // this way (ADR-013). A plain comparison beats localeCompare by an order
+      // of magnitude and the answer is identical for an ISO-8601 string.
+      return (a, b) => {
+        // Both are ISO-8601 strings by construction; the cast records that this
+        // comparator is only ever handed present values.
+        const left = a as string;
+        const right = b as string;
+        return left < right ? -1 : left > right ? 1 : 0;
+      };
 
     default:
-      return String(a).localeCompare(String(b), undefined, { numeric: true });
+      return (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true });
   }
+}
+
+/**
+ * Compare two values of the same property.
+ *
+ * Empty always sorts last, whichever direction the caller asked for: a row with
+ * nothing in the column is not "the smallest", it is "not answered", and
+ * burying it under the answered rows is what a person expects.
+ *
+ * Options compare by their declared order, not alphabetically — Urgent comes
+ * before High because that is what the property says, not because U precedes H.
+ */
+export function compareValues(property: Property, a: PropertyValue, b: PropertyValue): number {
+  return comparatorFor(property)(a, b);
 }
