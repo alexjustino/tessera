@@ -162,12 +162,15 @@ mod tests {
     }
 
     #[test]
-    fn a_new_workspace_starts_with_a_list_a_table_and_a_board() {
+    fn a_new_workspace_starts_with_its_views_in_a_deliberate_order() {
         let conn = workspace();
         let views = list_views(&conn, Some("tasks")).expect("list");
 
-        let kinds: Vec<_> = views.iter().map(|view| view.kind.as_str()).collect();
-        assert_eq!(kinds, ["list", "table", "board"]);
+        let names: Vec<_> = views.iter().map(|view| view.name.as_str()).collect();
+        assert_eq!(
+            names,
+            ["List", "Table", "Board", "Today", "Overdue", "Next 7 days"]
+        );
     }
 
     #[test]
@@ -184,7 +187,7 @@ mod tests {
     fn seeding_the_default_views_is_idempotent() {
         let conn = workspace();
         migrations::apply(&conn).expect("re-apply");
-        assert_eq!(list_views(&conn, Some("tasks")).expect("list").len(), 3);
+        assert_eq!(list_views(&conn, Some("tasks")).expect("list").len(), 6);
     }
 
     #[test]
@@ -221,7 +224,6 @@ mod tests {
         // Today, Inbox and Overdue belong to no collection. They are the same
         // engine with no collection filter, which is why they need no second one.
         let conn = workspace();
-        a_view(&conn, "Today", "list", None);
 
         let names: Vec<_> = list_views(&conn, Some("tasks"))
             .expect("list")
@@ -230,12 +232,14 @@ mod tests {
             .collect();
         assert!(names.contains(&"Today".to_string()));
 
+        // The cross-collection views follow every collection, because they
+        // belong to none.
         let elsewhere: Vec<_> = list_views(&conn, Some("something-else"))
             .expect("list")
             .into_iter()
             .map(|view| view.name)
             .collect();
-        assert_eq!(elsewhere, ["Today"]);
+        assert!(elsewhere.contains(&"Today".to_string()));
     }
 
     #[test]
