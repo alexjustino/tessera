@@ -13,7 +13,10 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import type { PropertyConfig } from '@/domain/property';
+
 import * as api from './items';
+import * as propertyApi from './properties';
 
 export const keys = {
   collections: ['collections'] as const,
@@ -75,6 +78,88 @@ export function useDeleteItem() {
   const invalidate = useInvalidateItems();
   return useMutation({
     mutationFn: (id: string) => api.deleteItem(id),
+    onSuccess: invalidate,
+  });
+}
+
+// ── Properties ──────────────────────────────────────────────────────────────
+
+export const propertyKeys = {
+  properties: (collectionId: string) => ['properties', collectionId] as const,
+  values: (collectionId: string) => ['property-values', collectionId] as const,
+};
+
+export function useProperties(collectionId: string) {
+  return useQuery({
+    queryKey: propertyKeys.properties(collectionId),
+    queryFn: () => propertyApi.listProperties(collectionId),
+  });
+}
+
+export function usePropertyValues(collectionId: string) {
+  return useQuery({
+    queryKey: propertyKeys.values(collectionId),
+    queryFn: () => propertyApi.listValues(collectionId),
+  });
+}
+
+function useInvalidateProperties() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: ['properties'] });
+    void client.invalidateQueries({ queryKey: ['property-values'] });
+  };
+}
+
+export function useSetPropertyValue() {
+  const invalidate = useInvalidateProperties();
+  return useMutation({
+    mutationFn: ({
+      itemId,
+      propertyId,
+      value,
+    }: {
+      itemId: string;
+      propertyId: string;
+      value: unknown;
+    }) => propertyApi.setValue(itemId, propertyId, value),
+    onSuccess: invalidate,
+  });
+}
+
+export function useCreateProperty() {
+  const invalidate = useInvalidateProperties();
+  return useMutation({
+    mutationFn: ({
+      collectionId,
+      name,
+      type,
+      config,
+      position,
+    }: {
+      collectionId: string;
+      name: string;
+      type: string;
+      config: PropertyConfig;
+      position: string;
+    }) => propertyApi.createProperty(collectionId, name, type, config, position),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateProperty() {
+  const invalidate = useInvalidateProperties();
+  return useMutation({
+    mutationFn: ({ id, name, config }: { id: string; name: string; config: PropertyConfig }) =>
+      propertyApi.updateProperty(id, name, config),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteProperty() {
+  const invalidate = useInvalidateProperties();
+  return useMutation({
+    mutationFn: (id: string) => propertyApi.deleteProperty(id),
     onSuccess: invalidate,
   });
 }
