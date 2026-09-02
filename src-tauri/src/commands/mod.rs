@@ -4,6 +4,7 @@
 //! `src/domain/` (TypeScript, pure); storage lives in `db`; the operating
 //! system lives in `os`.
 
+pub mod blocks;
 pub mod items;
 pub mod properties;
 pub mod system;

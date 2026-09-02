@@ -9,11 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Deleting an item now removes its document and its search-index rows. They key
+  on owner rather than a foreign key, so nothing cascaded on its own and the
+  database leaked a row per paragraph.
 - `item.status_id` is gone. Status is a property like any other; the column was
   speculative and was never written to.
 
 ### Added
 
+- **Block editor**: every item is a document. Headings, lists, to-dos, quotes,
+  callouts, code with syntax highlighting, tables, images, links and dividers,
+  by markdown shorthand or the `/` menu. Saved incrementally — an edited
+  paragraph writes one row.
 - **Kanban board**: columns from any select, status or priority property, drag
   between and within them by pointer _or keyboard_, work-in-progress limits,
   collapsible columns, and a choice of which properties appear on a card.

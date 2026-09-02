@@ -260,9 +260,18 @@ pub fn delete_item(conn: &mut Connection, id: &str) -> Result<()> {
         return Err(Error::NotFound);
     }
 
+    // Neither the search index nor the document cascades on its own: both key
+    // on owner_kind/owner_id rather than a foreign key, because one editor and
+    // one index serve items, events and pages alike. So both are swept here,
+    // for the item and every descendant, or the database leaks a row per
+    // paragraph forever.
     for descendant in &descendants {
         transaction.execute(
             "DELETE FROM search_fts WHERE owner_kind = 'item' AND owner_id = ?1",
+            params![descendant],
+        )?;
+        transaction.execute(
+            "DELETE FROM block WHERE owner_kind = 'item' AND owner_id = ?1",
             params![descendant],
         )?;
     }

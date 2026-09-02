@@ -15,10 +15,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { PropertyConfig } from '@/domain/property';
 import type { BoardConfig, Move } from '@/domain/board';
+import type { BlockChanges } from '@/domain/document';
 import type { Query } from '@/domain/query';
 
 import * as api from './items';
 import * as propertyApi from './properties';
+import * as blockApi from './blocks';
 import * as viewApi from './views';
 
 export const keys = {
@@ -257,5 +259,47 @@ export function useDeleteView() {
   return useMutation({
     mutationFn: (id: string) => viewApi.deleteView(id),
     onSuccess: invalidate,
+  });
+}
+
+// ── Documents ───────────────────────────────────────────────────────────────
+
+export const blockKeys = {
+  blocks: (ownerKind: string, ownerId: string) => ['blocks', ownerKind, ownerId] as const,
+};
+
+export function useBlocks(ownerKind: string, ownerId: string | null) {
+  return useQuery({
+    queryKey: blockKeys.blocks(ownerKind, ownerId ?? ''),
+    queryFn: () => blockApi.listBlocks(ownerKind, ownerId ?? ''),
+    enabled: ownerId !== null,
+  });
+}
+
+/**
+ * Save a document change set.
+ *
+ * The editor holds the authoritative document while it is open, so a successful
+ * save writes the result straight into the cache rather than refetching. A
+ * refetch would replace the document under the cursor mid-sentence, which is
+ * the one thing an editor must never do.
+ */
+export function useApplyBlocks() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      ownerKind,
+      ownerId,
+      changes,
+      plainText,
+    }: {
+      ownerKind: string;
+      ownerId: string;
+      changes: BlockChanges;
+      plainText: string;
+    }) => blockApi.applyBlocks(ownerKind, ownerId, changes, plainText),
+    onSuccess: (blocks, variables) => {
+      client.setQueryData(blockKeys.blocks(variables.ownerKind, variables.ownerId), blocks);
+    },
   });
 }

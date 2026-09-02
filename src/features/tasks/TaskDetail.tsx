@@ -1,6 +1,7 @@
 import { useSetPropertyValue } from '@/data/hooks';
 import { type Item } from '@/domain/item';
 import { type Property, type PropertyValue } from '@/domain/property';
+import { Editor } from '@/features/editor/Editor';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
 import { Drawer } from '@/ui/Drawer';
 import { EmptyState } from '@/ui/EmptyState';
@@ -54,6 +55,15 @@ export function TaskDetail({
             </div>
           ))}
         </dl>
+      )}
+
+      {task !== null && (
+        <section className="mt-6 border-t border-stroke-subtle pt-4">
+          <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Notes</h3>
+          {/* Keyed on the item, so opening a different task builds a fresh
+              editor rather than pouring one document into another's state. */}
+          <Editor key={task.id} ownerKind="item" ownerId={task.id} />
+        </section>
       )}
 
       {task !== null && (

@@ -1,0 +1,219 @@
+/*
+ * The document surface.
+ *
+ * Every value is a token. The editor is the one place in the product where a
+ * person stares at prose for minutes at a time, so the measure, the leading and
+ * the space between blocks are the whole design — and none of it may be a
+ * number typed into a component.
+ */
+
+.tessera-prose {
+  color: var(--fg-primary);
+  font-size: var(--text-body-lg);
+  line-height: 1.65;
+  /* Text is selectable here, unlike the application chrome. */
+  user-select: text;
+  cursor: auto;
+}
+
+.tessera-prose:focus {
+  outline: none;
+}
+
+.tessera-prose > * + * {
+  margin-top: 0.75em;
+}
+
+.tessera-prose h1,
+.tessera-prose h2,
+.tessera-prose h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.5em;
+}
+
+.tessera-prose h1 {
+  font-size: var(--text-title);
+}
+.tessera-prose h2 {
+  font-size: var(--text-subtitle);
+}
+.tessera-prose h3 {
+  font-size: var(--text-body-lg);
+}
+
+.tessera-prose ul,
+.tessera-prose ol {
+  padding-left: 1.4em;
+}
+.tessera-prose ul {
+  list-style: disc;
+}
+.tessera-prose ol {
+  list-style: decimal;
+}
+.tessera-prose li > p {
+  margin: 0;
+}
+
+.tessera-prose blockquote {
+  border-left: 2px solid var(--stroke-strong);
+  padding-left: 1em;
+  color: var(--fg-secondary);
+}
+
+.tessera-prose pre {
+  background: var(--surface-card-hover);
+  border: 1px solid var(--stroke-subtle);
+  border-radius: var(--radius-lg);
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-body);
+  line-height: 1.5;
+}
+
+.tessera-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.tessera-prose :not(pre) > code {
+  background: var(--surface-card-hover);
+  border: 1px solid var(--stroke-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.1em 0.3em;
+}
+
+.tessera-prose hr {
+  border: none;
+  border-top: 1px solid var(--stroke-subtle);
+  margin: 1.5em 0;
+}
+
+.tessera-prose a {
+  color: var(--accent-base);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tessera-prose img {
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+}
+
+/* ── Task list ─────────────────────────────────────────────────────────── */
+.tessera-prose ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.tessera-prose ul[data-type='taskList'] li {
+  display: flex;
+  gap: 0.6em;
+  align-items: flex-start;
+}
+
+.tessera-prose ul[data-type='taskList'] li > label {
+  margin-top: 0.28em;
+}
+
+.tessera-prose ul[data-type='taskList'] li[data-checked='true'] > div {
+  color: var(--fg-tertiary);
+  text-decoration: line-through;
+}
+
+/* ── Callout ───────────────────────────────────────────────────────────── */
+.tessera-prose aside[data-callout] {
+  border: 1px solid;
+  border-radius: var(--radius-lg);
+  padding: 0.75em 1em;
+}
+
+.tessera-prose aside[data-tone='info'] {
+  background: var(--state-info-subtle);
+  border-color: var(--state-info);
+}
+.tessera-prose aside[data-tone='success'] {
+  background: var(--state-success-subtle);
+  border-color: var(--state-success);
+}
+.tessera-prose aside[data-tone='caution'] {
+  background: var(--state-caution-subtle);
+  border-color: var(--state-caution);
+}
+.tessera-prose aside[data-tone='danger'] {
+  background: var(--state-danger-subtle);
+  border-color: var(--state-danger);
+}
+
+/* ── Table ─────────────────────────────────────────────────────────────── */
+.tessera-prose table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.tessera-prose th,
+.tessera-prose td {
+  border: 1px solid var(--stroke-subtle);
+  padding: 0.4em 0.6em;
+  vertical-align: top;
+}
+
+.tessera-prose th {
+  background: var(--surface-card-hover);
+  font-weight: 600;
+  text-align: left;
+}
+
+.tessera-prose .selectedCell::after {
+  background: var(--accent-subtle);
+  content: '';
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.tessera-prose .tableWrapper {
+  overflow-x: auto;
+}
+
+/* ── Placeholder ───────────────────────────────────────────────────────── */
+.tessera-prose p.is-editor-empty:first-child::before {
+  color: var(--fg-disabled);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ── Syntax highlighting ───────────────────────────────────────────────────
+   Mapped to state tokens rather than a theme's own palette, so code reads the
+   same way in both themes and introduces no colour the product does not own. */
+.tessera-prose .hljs-comment,
+.tessera-prose .hljs-quote {
+  color: var(--fg-tertiary);
+  font-style: italic;
+}
+.tessera-prose .hljs-keyword,
+.tessera-prose .hljs-selector-tag,
+.tessera-prose .hljs-literal {
+  color: var(--state-info);
+}
+.tessera-prose .hljs-string,
+.tessera-prose .hljs-attr {
+  color: var(--state-success);
+}
+.tessera-prose .hljs-number,
+.tessera-prose .hljs-built_in {
+  color: var(--state-caution);
+}
+.tessera-prose .hljs-title,
+.tessera-prose .hljs-name {
+  color: var(--accent-base);
+}
+.tessera-prose .hljs-deletion {
+  color: var(--state-danger);
+}
