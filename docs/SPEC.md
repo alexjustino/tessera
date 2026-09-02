@@ -155,6 +155,27 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of F7, and why
+
+The calendar ships with its grid, its layout and its time-blocking. What is
+listed in the scope and is not in the first version:
+
+- **Resize to change duration.** Moving works; stretching needs a second drag
+  affordance and its own snapping.
+- **Drag on empty space to create.** The same machinery as resize.
+- **The mini navigator.** Navigation works by arrows and Today; a month-strip
+  navigator is presentation on top of that.
+- **Categories, multiple overlaid calendars, and a secondary timezone.** The
+  schema carries all three — one calendar is seeded, and its colour already
+  flows through — but the interface for managing them does not exist yet.
+- **The "this occurrence / this and following / all" dialog.** The exceptions
+  behind it are built and tested; what is missing is the question.
+- **Year view with a workload heat map**, which the release train puts in 1.1.
+
+Two of those are worth separating from the rest: the exception model and the
+calendar colour are already complete underneath. What is missing there is a
+screen, not a mechanism.
+
 ### Deferred out of F5, and why
 
 Four things listed under the editor are not in the first version:
