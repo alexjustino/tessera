@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Tasks**: create, complete, rename, reorder and delete, stored in SQLite and
+  still there after a restart. The first feature that crosses every layer.
+- Item repository with transactional writes that keep the full-text index in step.
+- `Input`, `Checkbox` and `EmptyState` design system primitives.
 - Project foundation: Tauri 2 + React + TypeScript + Vite + Tailwind skeleton.
 - Apache-2.0 licence, NOTICE with trademark statement, contributor documentation.
 - Fluent design token layer, Mica window material, system accent colour, custom title bar.
