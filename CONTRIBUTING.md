@@ -37,12 +37,18 @@ window effects.
 
 ## Branches
 
-| Branch            | Meaning                                                |
-| ----------------- | ------------------------------------------------------ |
-| `main`            | always releasable, tagged; never committed to directly |
-| `develop`         | integration branch; pull requests target this          |
-| `feat/*`, `fix/*` | one slice or one fix                                   |
-| `release/vX.Y`    | release stabilisation                                  |
+| Branch            | Meaning                                              |
+| ----------------- | ---------------------------------------------------- |
+| `main`            | always releasable, tagged; updated only at a release |
+| `develop`         | integration branch; pull requests target this        |
+| `feat/*`, `fix/*` | one slice or one fix                                 |
+| `release/vX.Y`    | release stabilisation                                |
+
+**Both `main` and `develop` are protected on GitHub**, and the protection says
+what this document says: a pull request is required, the gates and the dependency
+audit must be green before it can be merged, and neither branch can be
+force-pushed or deleted. A rule with no gate is a rule that eventually gets
+bypassed — including by the person who wrote it.
 
 Tags follow SemVer: `vMAJOR.MINOR.PATCH`. See [`VERSIONING.md`](VERSIONING.md).
 
