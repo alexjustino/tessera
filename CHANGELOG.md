@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Kanban board**: columns from any select, status or priority property, drag
+  between and within them by pointer _or keyboard_, work-in-progress limits,
+  collapsible columns, and a choice of which properties appear on a card.
+  Dropping a card writes its position and its field in one transaction.
 - **Views**: a saved query — filters, sorting, grouping — shown as a list or a
   table, switchable from a tab strip and saved on demand. Sorting headers on the
   table; a third click clears the sort.
