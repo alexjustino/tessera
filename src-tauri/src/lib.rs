@@ -94,6 +94,16 @@ pub fn run() {
             commands::views::view_delete,
             commands::blocks::blocks_list,
             commands::blocks::blocks_apply,
+            commands::calendar::calendars_list,
+            commands::calendar::work_hours_list,
+            commands::calendar::events_list,
+            commands::calendar::event_exceptions_list,
+            commands::calendar::event_create,
+            commands::calendar::event_move,
+            commands::calendar::event_rename,
+            commands::calendar::event_delete,
+            commands::calendar::event_set_exception,
+            commands::calendar::time_block_create,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");

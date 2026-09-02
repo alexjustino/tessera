@@ -5,6 +5,7 @@
 //! transactions, full-text search, migrations and the operating system.
 
 pub mod blocks;
+pub mod calendar;
 pub mod items;
 pub mod migrations;
 pub mod models;

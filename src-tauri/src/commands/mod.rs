@@ -5,6 +5,7 @@
 //! system lives in `os`.
 
 pub mod blocks;
+pub mod calendar;
 pub mod items;
 pub mod properties;
 pub mod system;
