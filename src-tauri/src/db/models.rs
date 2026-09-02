@@ -26,6 +26,14 @@ pub struct Item {
     pub parent_item_id: Option<String>,
     pub title: String,
     pub position: String,
+    /// All UTC instants (ADR-013).
+    pub start_at: Option<String>,
+    pub due_at: Option<String>,
+    pub remind_at: Option<String>,
+    /// An RFC 5545 rule without DTSTART. The host stores it; expanding it is
+    /// the domain layer's job, where the timezone arithmetic lives.
+    pub recurrence_rrule: Option<String>,
+    pub recurrence_mode: Option<String>,
     pub completed_at: Option<String>,
     pub created_at: String,
     pub updated_at: String,
@@ -35,6 +43,16 @@ impl Item {
     pub fn is_completed(&self) -> bool {
         self.completed_at.is_some()
     }
+}
+
+/// The dates and repetition of one item.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ItemSchedule {
+    pub start_at: Option<String>,
+    pub due_at: Option<String>,
+    pub remind_at: Option<String>,
+    pub recurrence_rrule: Option<String>,
+    pub recurrence_mode: Option<String>,
 }
 
 /// What the interface sends to create an item.
