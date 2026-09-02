@@ -35,9 +35,15 @@ About screen.
   Vite ........................... MIT
   TypeScript ..................... Apache-2.0
   Tailwind CSS ................... MIT
+  TanStack Query ................. MIT
   Fluent UI System Icons ......... MIT
+  TipTap, ProseMirror ............ MIT
+  lowlight, highlight.js ......... BSD-3-Clause
+  dnd kit ........................ MIT
   rusqlite / SQLite .............. MIT / Public Domain
   serde, serde_json .............. Apache-2.0 OR MIT
+  chrono ......................... Apache-2.0 OR MIT
+  uuid ........................... Apache-2.0 OR MIT
   tokio .......................... MIT
 
 Full license texts of the above are retained in the dependency lockfiles and

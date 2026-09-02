@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { AboutPage } from '@/features/about/AboutPage';
 import { FoundationPage } from '@/features/foundation/FoundationPage';
 import { TasksPage } from '@/features/tasks/TasksPage';
 import { Sidebar, type Destination } from '@/features/shell/Sidebar';
@@ -23,7 +24,8 @@ export function App() {
         <Sidebar active={destination} onNavigate={setDestination} />
         <main className="min-w-0 flex-1 overflow-y-auto bg-layer">
           {destination === 'tasks' && <TasksPage />}
-          {destination === 'foundation' && <FoundationPage />}
+          {destination === 'diagnostics' && <FoundationPage />}
+          {destination === 'about' && <AboutPage />}
         </main>
       </div>
     </div>
