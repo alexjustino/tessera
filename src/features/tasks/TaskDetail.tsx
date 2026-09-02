@@ -1,7 +1,10 @@
-import { useSetPropertyValue } from '@/data/hooks';
+import { useSetPropertyValue, useSetSchedule } from '@/data/hooks';
 import { type Item } from '@/domain/item';
+import { type Schedule } from '@/domain/schedule';
 import { type Property, type PropertyValue } from '@/domain/property';
 import { Editor } from '@/features/editor/Editor';
+
+import { ScheduleEditor } from './ScheduleEditor';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
 import { Drawer } from '@/ui/Drawer';
 import { EmptyState } from '@/ui/EmptyState';
@@ -25,14 +28,38 @@ export function TaskDetail({
   onClose: () => void;
 }) {
   const setValue = useSetPropertyValue();
+  const setSchedule = useSetSchedule();
+  const now = new Date().toISOString();
 
   const commit = (property: Property, value: PropertyValue) => {
     if (task === null) return;
     setValue.mutate({ itemId: task.id, propertyId: property.id, value });
   };
 
+  const schedule: Schedule =
+    task === null
+      ? { startAt: null, dueAt: null, remindAt: null, rule: null, mode: 'schedule' }
+      : {
+          startAt: task.startAt,
+          dueAt: task.dueAt,
+          remindAt: task.remindAt,
+          rule: task.recurrenceRule,
+          mode: task.recurrenceMode,
+        };
+
   return (
     <Drawer open={task !== null} title={task?.title ?? ''} onClose={onClose}>
+      {task !== null && (
+        <section className="mb-5 border-b border-stroke-subtle pb-5">
+          <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Schedule</h3>
+          <ScheduleEditor
+            schedule={schedule}
+            now={now}
+            onChange={(next) => setSchedule.mutate({ id: task.id, schedule: next })}
+          />
+        </section>
+      )}
+
       {properties.length === 0 ? (
         <EmptyState
           title="No properties yet"

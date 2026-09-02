@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState, type FormEvent } from 'react';
 
 import { describeError } from '@/data/errors';
 import {
+  useCompleteOccurrence,
   useCreateItem,
   useDeleteItem,
   useItems,
@@ -17,6 +18,7 @@ import {
 } from '@/data/hooks';
 import { EMPTY_BOARD_CONFIG, type BoardConfig } from '@/domain/board';
 import { checkTitle, positionForNewItem } from '@/domain/item';
+import { nextOccurrence, systemZone } from '@/domain/schedule';
 import type { Property, PropertyValue } from '@/domain/property';
 import { EMPTY_QUERY, run, type Query, type Row } from '@/domain/query';
 import { PropertyManager } from '@/features/properties/PropertyManager';
@@ -46,13 +48,13 @@ const INLINE_LIMIT = 2;
 /** The types that fit in a row: one tap, one choice, no typing. */
 const INLINE_TYPES = new Set(['status', 'priority', 'select']);
 
-export function TasksPage() {
+export function TasksPage({ initialViewId = null }: { initialViewId?: string | null }) {
   const [draft, setDraft] = useState('');
   const [managingProperties, setManagingProperties] = useState(false);
   const [editingQuery, setEditingQuery] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  const [activeViewId, setActiveViewId] = useState<string | null>(null);
+  const [activeViewId, setActiveViewId] = useState<string | null>(initialViewId);
   /** The query as it is being edited. Null means "whatever the view saved". */
   const [draftQuery, setDraftQuery] = useState<Query | null>(null);
   /** The board settings as they are being edited, on the same terms. */
@@ -69,6 +71,7 @@ export function TasksPage() {
   const remove = useDeleteItem();
   const setValue = useSetPropertyValue();
   const moveOnBoard = useMoveOnBoard();
+  const completeOccurrence = useCompleteOccurrence();
   const saveView = useUpdateView();
 
   const view = useMemo(() => {
@@ -137,12 +140,48 @@ export function TasksPage() {
     rename.error ??
     setValue.error ??
     moveOnBoard.error ??
+    completeOccurrence.error ??
     saveView.error;
 
   const readFailed = items.isError || properties.isError || values.isError || views.isError;
 
   const setRowValue = (row: Row, property: Property, value: PropertyValue) =>
     setValue.mutate({ itemId: row.item.id, propertyId: property.id, value });
+
+  /**
+   * Ticking a task.
+   *
+   * A repeating task is not finished when you do it once: the occurrence is
+   * recorded and the due date moves on, and the item stays open. Closing it
+   * instead would make "every Monday" disappear the first Monday it got done.
+   *
+   * The next date is computed here, in the domain layer, because that is where
+   * the timezone and daylight-saving arithmetic lives.
+   */
+  const toggleRow = (row: Row, completed: boolean) => {
+    const task = row.item;
+    const repeats = task.recurrenceRule !== null && task.dueAt !== null;
+
+    if (completed && repeats) {
+      const at = new Date().toISOString();
+      const next = nextOccurrence(
+        {
+          startAt: task.startAt,
+          dueAt: task.dueAt,
+          remindAt: task.remindAt,
+          rule: task.recurrenceRule,
+          mode: task.recurrenceMode,
+        },
+        at,
+        systemZone(),
+        at,
+      );
+      completeOccurrence.mutate({ id: task.id, nextDueAt: next });
+      return;
+    }
+
+    setCompleted.mutate({ id: task.id, completed });
+  };
 
   return (
     <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-3 p-6">
@@ -290,7 +329,7 @@ export function TasksPage() {
             properties={properties.data ?? []}
             query={query}
             onQueryChange={setDraftQuery}
-            onToggle={(row, completed) => setCompleted.mutate({ id: row.item.id, completed })}
+            onToggle={toggleRow}
             onSetValue={setRowValue}
             onOpen={(row) => setDetailId(row.item.id)}
           />
@@ -299,7 +338,7 @@ export function TasksPage() {
             groups={result.groups}
             grouped={query.groupBy !== null}
             inlineProperties={inlineProperties}
-            onToggle={(row, completed) => setCompleted.mutate({ id: row.item.id, completed })}
+            onToggle={toggleRow}
             onRename={(row, title) => rename.mutate({ id: row.item.id, title })}
             onDelete={(row) => remove.mutate(row.item.id)}
             onOpen={(row) => setDetailId(row.item.id)}

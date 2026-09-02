@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PropertyConfig } from '@/domain/property';
 import type { BoardConfig, Move } from '@/domain/board';
 import type { BlockChanges } from '@/domain/document';
+import type { Schedule } from '@/domain/schedule';
 import type { Query } from '@/domain/query';
 
 import * as api from './items';
@@ -101,6 +102,31 @@ export function useMoveOnBoard() {
       invalidate();
       void client.invalidateQueries({ queryKey: ['property-values'] });
     },
+  });
+}
+
+export function useSetSchedule() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({ id, schedule }: { id: string; schedule: Schedule }) =>
+      api.setSchedule(id, schedule),
+    onSuccess: invalidate,
+  });
+}
+
+/**
+ * Tick one occurrence of a repeating item.
+ *
+ * Separate from completing a plain task on purpose: a repeating task is not
+ * finished when you do it once, so this records the occurrence and moves the
+ * date on rather than closing the item.
+ */
+export function useCompleteOccurrence() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({ id, nextDueAt }: { id: string; nextDueAt: string | null }) =>
+      api.completeOccurrence(id, nextDueAt),
+    onSuccess: invalidate,
   });
 }
 

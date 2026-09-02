@@ -1,11 +1,17 @@
-import { Delete20Regular, PanelRightExpand20Regular } from '@fluentui/react-icons';
+import {
+  ArrowRepeatAll16Regular,
+  Delete20Regular,
+  PanelRightExpand20Regular,
+} from '@fluentui/react-icons';
 import { useState } from 'react';
 
 import { checkTitle, type Item } from '@/domain/item';
 import type { Property, PropertyValue } from '@/domain/property';
 import type { Group, Row } from '@/domain/query';
+import { bucketOf, formatDue, systemZone } from '@/domain/schedule';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
 import { Checkbox } from '@/ui/Checkbox';
+import { Chip } from '@/ui/Chip';
 import { IconButton } from '@/ui/IconButton';
 
 /**
@@ -143,6 +149,8 @@ function TaskRow({
         </button>
       )}
 
+      <DueChip task={task} />
+
       {properties.map((property) => (
         <span key={property.id} className="hidden shrink-0 sm:block">
           <PropertyValueEditor
@@ -170,5 +178,32 @@ function TaskRow({
         className="opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-100 focus-visible:opacity-100 hover:text-danger"
       />
     </li>
+  );
+}
+
+/**
+ * When a task is due, said the way a person would say it.
+ *
+ * Overdue is red, today is amber, everything else is quiet. A due date that
+ * shouts at you three weeks early is a due date you learn to ignore.
+ */
+function DueChip({ task }: { task: Item }) {
+  if (task.dueAt === null) return null;
+
+  const now = new Date().toISOString();
+  const zone = systemZone();
+  const bucket = bucketOf(task.dueAt, now, zone);
+  const repeats = task.recurrenceRule !== null;
+
+  return (
+    <span className="hidden shrink-0 sm:block">
+      <Chip
+        tone={bucket === 'overdue' ? 'danger' : bucket === 'today' ? 'caution' : 'neutral'}
+        title={new Date(task.dueAt).toLocaleString()}
+      >
+        {repeats && <ArrowRepeatAll16Regular aria-hidden="true" />}
+        {formatDue(task.dueAt, now, zone)}
+      </Chip>
+    </span>
   );
 }
