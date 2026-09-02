@@ -44,6 +44,11 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(
             tauri_plugin_log::Builder::new()
+                // `Builder::new` arrives with a default target set. Adding to it
+                // rather than replacing it writes every line twice — which is
+                // exactly what happened, and was found by reading the log file
+                // of a release build rather than by any test.
+                .clear_targets()
                 // Logs stay on this machine. There is no remote sink, by design.
                 .target(tauri_plugin_log::Target::new(
                     tauri_plugin_log::TargetKind::LogDir { file_name: None },
