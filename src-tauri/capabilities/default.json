@@ -12,7 +12,8 @@
     "core:window:allow-close",
     "core:window:allow-set-theme",
     "core:window:allow-theme",
+    "log:default",
     "opener:default",
-    "log:default"
+    "opener:allow-open-url"
   ]
 }

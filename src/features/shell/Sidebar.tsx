@@ -1,5 +1,6 @@
 import {
   Board20Regular,
+  Info20Regular,
   Calendar20Regular,
   Home20Regular,
   Settings20Regular,
@@ -16,7 +17,7 @@ import type { ReactNode } from 'react';
  * going, and nothing pretends to work when it does not.
  */
 
-export type Destination = 'tasks' | 'foundation';
+export type Destination = 'tasks' | 'diagnostics' | 'about';
 
 interface Entry {
   id: string;
@@ -31,7 +32,8 @@ const ENTRIES: Entry[] = [
   { id: 'board', label: 'Board', icon: <Board20Regular />, ready: false },
   { id: 'calendar', label: 'Calendar', icon: <Calendar20Regular />, ready: false },
   { id: 'settings', label: 'Settings', icon: <Settings20Regular />, ready: false },
-  { id: 'foundation', label: 'Foundation', icon: <Wrench20Regular />, ready: true },
+  { id: 'diagnostics', label: 'Diagnostics', icon: <Wrench20Regular />, ready: true },
+  { id: 'about', label: 'About', icon: <Info20Regular />, ready: true },
 ];
 
 export function Sidebar({
