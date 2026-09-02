@@ -16,7 +16,7 @@ import type { ReactNode } from 'react';
  * going, and nothing pretends to work when it does not.
  */
 
-export type Destination = 'foundation';
+export type Destination = 'tasks' | 'foundation';
 
 interface Entry {
   id: string;
@@ -26,12 +26,12 @@ interface Entry {
 }
 
 const ENTRIES: Entry[] = [
-  { id: 'foundation', label: 'Foundation', icon: <Wrench20Regular />, ready: true },
   { id: 'today', label: 'Today', icon: <Home20Regular />, ready: false },
-  { id: 'tasks', label: 'Tasks', icon: <TaskListSquareLtr20Regular />, ready: false },
+  { id: 'tasks', label: 'Tasks', icon: <TaskListSquareLtr20Regular />, ready: true },
   { id: 'board', label: 'Board', icon: <Board20Regular />, ready: false },
   { id: 'calendar', label: 'Calendar', icon: <Calendar20Regular />, ready: false },
   { id: 'settings', label: 'Settings', icon: <Settings20Regular />, ready: false },
+  { id: 'foundation', label: 'Foundation', icon: <Wrench20Regular />, ready: true },
 ];
 
 export function Sidebar({
