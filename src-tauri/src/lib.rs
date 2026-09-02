@@ -79,6 +79,12 @@ pub fn run() {
             commands::items::item_rename,
             commands::items::item_move,
             commands::items::item_delete,
+            commands::properties::properties_list,
+            commands::properties::property_create,
+            commands::properties::property_update,
+            commands::properties::property_delete,
+            commands::properties::property_values_list,
+            commands::properties::property_value_set,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");
