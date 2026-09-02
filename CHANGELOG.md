@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dates and recurrence**: due and start dates with a time, repetition by RRULE
+  in two modes — on the calendar, or counted from when you actually finish it.
+  Ticking a repeating task advances it instead of closing it.
+- **Today, Overdue and Next 7 days**: saved queries that belong to no collection
+  and hold relative dates, so they mean today on the day you open them.
 - **Block editor**: every item is a document. Headings, lists, to-dos, quotes,
   callouts, code with syntax highlighting, tables, images, links and dividers,
   by markdown shorthand or the `/` menu. Saved incrementally — an edited
