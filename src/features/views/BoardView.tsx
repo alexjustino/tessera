@@ -20,6 +20,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   ChevronDown16Regular,
   ChevronRight16Regular,
+  Stack16Filled,
   Warning16Regular,
 } from '@fluentui/react-icons';
 import { useMemo, useState } from 'react';
@@ -164,6 +165,57 @@ export function BoardView({
   );
 }
 
+/**
+ * How full a column is, at a glance.
+ *
+ * The count alone is a number among other numbers: on a board of five columns,
+ * "0" and "3" look alike until you read them. The icon appears only when there
+ * is something in the column, so a glance down the row shows which columns hold
+ * work without reading a single digit — and it stays visible when the column is
+ * collapsed to a rail, which is exactly when the digit is hardest to read.
+ *
+ * The icon never carries the meaning alone: the count is always beside it, and
+ * the accessible name spells the whole thing out.
+ */
+function ColumnCount({ column }: { column: Column }) {
+  const wip = wipState(column);
+  const occupied = column.rows.length > 0;
+  const label =
+    column.wipLimit === null
+      ? `${column.rows.length} in ${column.label}`
+      : `${column.rows.length} of ${column.wipLimit} in ${column.label}`;
+
+  const body = (
+    <>
+      {occupied && (
+        <Stack16Filled
+          aria-hidden="true"
+          className={wip === 'over' ? 'text-danger' : wip === 'at' ? 'text-caution' : 'text-accent'}
+        />
+      )}
+      {column.wipLimit === null ? column.rows.length : `${column.rows.length}/${column.wipLimit}`}
+    </>
+  );
+
+  if (column.wipLimit !== null) {
+    return (
+      <span title={label} aria-label={label}>
+        <Chip tone={wip === 'over' ? 'danger' : wip === 'at' ? 'caution' : 'neutral'}>{body}</Chip>
+      </span>
+    );
+  }
+
+  return (
+    <span
+      title={label}
+      aria-label={label}
+      className="inline-flex items-center gap-1 text-caption text-fg-tertiary"
+    >
+      {body}
+    </span>
+  );
+}
+
 function BoardColumn({
   column,
   properties,
@@ -189,11 +241,12 @@ function BoardColumn({
           icon={<ChevronRight16Regular />}
           onClick={onToggleCollapsed}
         />
+        <ColumnCount column={column} />
         <span
           className="text-caption font-semibold whitespace-nowrap text-fg-secondary"
           style={{ writingMode: 'vertical-rl' }}
         >
-          {column.label} · {column.rows.length}
+          {column.label}
         </span>
       </section>
     );
@@ -216,14 +269,8 @@ function BoardColumn({
         />
         <h3 className="min-w-0 flex-1 truncate text-body font-semibold text-fg">{column.label}</h3>
 
-        {column.wipLimit === null ? (
-          <span className="text-caption text-fg-tertiary">{column.rows.length}</span>
-        ) : (
-          <Chip tone={wip === 'over' ? 'danger' : wip === 'at' ? 'caution' : 'neutral'}>
-            {wip === 'over' && <Warning16Regular />}
-            {column.rows.length}/{column.wipLimit}
-          </Chip>
-        )}
+        {wip === 'over' && <Warning16Regular aria-hidden="true" className="text-danger" />}
+        <ColumnCount column={column} />
       </header>
 
       {!droppable && (
