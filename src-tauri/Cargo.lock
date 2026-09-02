@@ -3816,6 +3816,7 @@ dependencies = [
 name = "tessera"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "log",
  "rusqlite",
  "serde",
@@ -3827,6 +3828,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-winrt-notification",
  "thiserror 2.0.20",
+ "uuid",
  "windows 0.58.0",
 ]
 

@@ -2,6 +2,7 @@ import { Alert20Regular, Database20Regular } from '@fluentui/react-icons';
 import { useCallback, useEffect, useState } from 'react';
 
 import { applyAccent, applyDensity, applyTheme, type Density, type ThemeChoice } from '@/app/theme';
+import { describeError } from '@/data/errors';
 import {
   fetchAccentRamp,
   fetchSystemInfo,
@@ -45,7 +46,7 @@ export function FoundationPage() {
         applyAccent(accentRamp);
       } catch (error) {
         if (!active) return;
-        setFailure(error instanceof Error ? error.message : String(error));
+        setFailure(describeError(error));
       }
     })();
     return () => {

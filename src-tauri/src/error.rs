@@ -19,6 +19,12 @@ pub enum Error {
 
     #[error("the system accent colour could not be read")]
     Accent,
+
+    #[error("that item no longer exists")]
+    NotFound,
+
+    #[error("{0}")]
+    InvalidInput(&'static str),
 }
 
 /// What the frontend receives. `kind` is stable and machine-readable; `message`
@@ -41,6 +47,8 @@ impl Serialize for Error {
             Error::DataDir => "data_dir",
             Error::Notification => "notification",
             Error::Accent => "accent",
+            Error::NotFound => "not_found",
+            Error::InvalidInput(_) => "invalid_input",
         };
         // The detail goes to the log; the frontend gets the sentence.
         log::error!("{kind}: {self:?}");
