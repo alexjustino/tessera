@@ -1,10 +1,4 @@
-import {
-  Add20Regular,
-  Delete20Regular,
-  Options20Regular,
-  PanelRightExpand20Regular,
-  TaskListSquareLtr24Regular,
-} from '@fluentui/react-icons';
+import { Add20Regular, Options20Regular, TaskListSquareLtr24Regular } from '@fluentui/react-icons';
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
 
 import { describeError } from '@/data/errors';
@@ -17,29 +11,32 @@ import {
   useRenameItem,
   useSetItemCompleted,
   useSetPropertyValue,
+  useUpdateView,
+  useViews,
 } from '@/data/hooks';
-import { checkTitle, partitionByCompletion, positionForNewItem, type Item } from '@/domain/item';
+import { checkTitle, positionForNewItem } from '@/domain/item';
 import type { Property, PropertyValue } from '@/domain/property';
+import { EMPTY_QUERY, run, type Query, type Row } from '@/domain/query';
 import { PropertyManager } from '@/features/properties/PropertyManager';
-import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
+import { ListView } from '@/features/views/ListView';
+import { QueryBar } from '@/features/views/QueryBar';
+import { TableView } from '@/features/views/TableView';
 import { Button } from '@/ui/Button';
-import { Checkbox } from '@/ui/Checkbox';
 import { EmptyState } from '@/ui/EmptyState';
-import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { Input } from '@/ui/Input';
+import { TabStrip } from '@/ui/TabStrip';
 
 import { TaskDetail } from './TaskDetail';
 
-/** The collection seeded by migration 002. One list, until F3 brings views. */
+/** The collection seeded by migration 002. */
 const COLLECTION = 'tasks';
 
 /**
- * How many properties are edited straight from the row.
+ * How many properties are edited straight from a list row.
  *
- * Two. A row is a glance, not a form: past that the line stops being scannable
- * and starts being a spreadsheet nobody asked for. Everything else lives one
- * click away, in the detail panel, using the same editors.
+ * Two. A row is a glance, not a form. The table view exists for the rest, which
+ * is why it is a separate kind rather than a wider list.
  */
 const INLINE_LIMIT = 2;
 
@@ -48,21 +45,47 @@ const INLINE_TYPES = new Set(['status', 'priority', 'select']);
 
 export function TasksPage() {
   const [draft, setDraft] = useState('');
-  const [showCompleted, setShowCompleted] = useState(true);
   const [managingProperties, setManagingProperties] = useState(false);
+  const [editingQuery, setEditingQuery] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
+  /** The query as it is being edited. Null means "whatever the view saved". */
+  const [draftQuery, setDraftQuery] = useState<Query | null>(null);
 
   const items = useItems(COLLECTION, true);
   const properties = useProperties(COLLECTION);
   const values = usePropertyValues(COLLECTION);
+  const views = useViews(COLLECTION);
 
   const create = useCreateItem();
   const setCompleted = useSetItemCompleted();
   const rename = useRenameItem();
   const remove = useDeleteItem();
   const setValue = useSetPropertyValue();
+  const saveView = useUpdateView();
 
-  const { open, completed } = useMemo(() => partitionByCompletion(items.data ?? []), [items.data]);
+  const view = useMemo(() => {
+    const all = views.data ?? [];
+    return all.find((candidate) => candidate.id === activeViewId) ?? all[0] ?? null;
+  }, [views.data, activeViewId]);
+
+  const query = draftQuery ?? view?.query ?? EMPTY_QUERY;
+  const dirty = draftQuery !== null && view !== null;
+
+  const rows: Row[] = useMemo(
+    () =>
+      (items.data ?? []).map((item) => ({
+        item,
+        values: values.data?.[item.id] ?? {},
+      })),
+    [items.data, values.data],
+  );
+
+  const result = useMemo(
+    () => run({ rows, properties: properties.data ?? [], query }),
+    [rows, properties.data, query],
+  );
 
   const inlineProperties = useMemo(
     () => (properties.data ?? []).filter((p) => INLINE_TYPES.has(p.type)).slice(0, INLINE_LIMIT),
@@ -100,61 +123,42 @@ export function TasksPage() {
     items.error ??
     properties.error ??
     values.error ??
+    views.error ??
     create.error ??
     setCompleted.error ??
     remove.error ??
     rename.error ??
-    setValue.error;
+    setValue.error ??
+    saveView.error;
 
-  const readFailed = items.isError || properties.isError || values.isError;
+  const readFailed = items.isError || properties.isError || values.isError || views.isError;
 
-  const renderRow = (task: Item) => (
-    <TaskRow
-      key={task.id}
-      task={task}
-      properties={inlineProperties}
-      values={values.data?.[task.id] ?? {}}
-      onToggle={(completedNow) => setCompleted.mutate({ id: task.id, completed: completedNow })}
-      onRename={(title) => rename.mutate({ id: task.id, title })}
-      onDelete={() => remove.mutate(task.id)}
-      onOpen={() => setDetailId(task.id)}
-      onSetValue={(property, value) =>
-        setValue.mutate({ itemId: task.id, propertyId: property.id, value })
-      }
-    />
-  );
+  const setRowValue = (row: Row, property: Property, value: PropertyValue) =>
+    setValue.mutate({ itemId: row.item.id, propertyId: property.id, value });
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-4 p-6">
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-3 p-6">
       <header className="flex items-baseline justify-between gap-4">
         <div>
           <h1 className="text-title font-semibold text-fg">Tasks</h1>
-          {/* The count is only stated once the list has actually been read.
-              Saying "nothing open" when the read failed would be the interface
-              asserting something it does not know. */}
+          {/* Stated only once the list has actually been read. Saying "nothing
+              open" when the read failed would be the interface asserting
+              something it does not know. */}
           {items.isSuccess && (
             <p className="mt-1 text-body text-fg-secondary">
-              {open.length === 0
-                ? 'Nothing open.'
-                : `${open.length} open${completed.length > 0 ? `, ${completed.length} done` : ''}`}
+              {result.matched === 0
+                ? 'Nothing to show.'
+                : `${result.matched} item${result.matched === 1 ? '' : 's'}`}
             </p>
           )}
         </div>
-
-        <div className="flex shrink-0 items-center gap-1">
-          {completed.length > 0 && (
-            <Button appearance="subtle" onClick={() => setShowCompleted((value) => !value)}>
-              {showCompleted ? 'Hide done' : `Show done (${completed.length})`}
-            </Button>
-          )}
-          <Button
-            appearance="subtle"
-            icon={<Options20Regular />}
-            onClick={() => setManagingProperties(true)}
-          >
-            Properties
-          </Button>
-        </div>
+        <Button
+          appearance="subtle"
+          icon={<Options20Regular />}
+          onClick={() => setManagingProperties(true)}
+        >
+          Properties
+        </Button>
       </header>
 
       <form onSubmit={submit} className="flex gap-2">
@@ -191,32 +195,86 @@ export function TasksPage() {
         </InfoBar>
       )}
 
+      {(views.data ?? []).length > 0 && (
+        <TabStrip
+          tabs={(views.data ?? []).map((candidate) => ({
+            id: candidate.id,
+            label: candidate.name,
+          }))}
+          active={view?.id ?? ''}
+          onSelect={(id) => {
+            setActiveViewId(id);
+            // Switching views abandons an unsaved query rather than carrying it
+            // across. Silently applying one view's filters to another is the
+            // kind of surprise that makes a person distrust the whole screen.
+            setDraftQuery(null);
+          }}
+        />
+      )}
+
+      {view !== null && (
+        <QueryBar
+          query={query}
+          properties={properties.data ?? []}
+          onChange={setDraftQuery}
+          matched={result.matched}
+          total={result.total}
+          open={editingQuery}
+          onOpenChange={setEditingQuery}
+          dirty={dirty}
+          onSave={() => {
+            if (draftQuery === null) return;
+            saveView.mutate(
+              { id: view.id, name: view.name, kind: view.kind, query: draftQuery },
+              { onSuccess: () => setDraftQuery(null) },
+            );
+          }}
+        />
+      )}
+
       <div className="min-h-0 flex-1 overflow-y-auto">
         {readFailed ? null : items.isPending ? (
           <div className="flex flex-col gap-1" aria-hidden="true">
-            {[0, 1, 2].map((row) => (
-              <div key={row} className="h-(--density-row) animate-pulse rounded-md bg-card-hover" />
+            {[0, 1, 2].map((skeleton) => (
+              <div
+                key={skeleton}
+                className="h-(--density-row) animate-pulse rounded-md bg-card-hover"
+              />
             ))}
           </div>
-        ) : open.length === 0 && completed.length === 0 ? (
+        ) : result.total === 0 ? (
           <EmptyState
             icon={<TaskListSquareLtr24Regular />}
             title="Nothing here yet"
             description="Everything you write is stored on this machine, in a file you own. Type above to add the first task."
           />
+        ) : result.matched === 0 ? (
+          <EmptyState
+            title="No item matches this view"
+            description="The items are still there — this view's filters just do not include any of them."
+            action={<Button onClick={() => setEditingQuery(true)}>Change the filters</Button>}
+          />
+        ) : view?.kind === 'table' ? (
+          <TableView
+            groups={result.groups}
+            properties={properties.data ?? []}
+            query={query}
+            onQueryChange={setDraftQuery}
+            onToggle={(row, completed) => setCompleted.mutate({ id: row.item.id, completed })}
+            onSetValue={setRowValue}
+            onOpen={(row) => setDetailId(row.item.id)}
+          />
         ) : (
-          <ul className="flex flex-col gap-0.5">
-            {open.map(renderRow)}
-
-            {showCompleted && completed.length > 0 && (
-              <>
-                <li className="mt-4 mb-1 px-1 text-caption font-semibold text-fg-tertiary uppercase">
-                  Done
-                </li>
-                {completed.map(renderRow)}
-              </>
-            )}
-          </ul>
+          <ListView
+            groups={result.groups}
+            grouped={query.groupBy !== null}
+            inlineProperties={inlineProperties}
+            onToggle={(row, completed) => setCompleted.mutate({ id: row.item.id, completed })}
+            onRename={(row, title) => rename.mutate({ id: row.item.id, title })}
+            onDelete={(row) => remove.mutate(row.item.id)}
+            onOpen={(row) => setDetailId(row.item.id)}
+            onSetValue={setRowValue}
+          />
         )}
       </div>
 
@@ -234,106 +292,5 @@ export function TasksPage() {
         onClose={() => setDetailId(null)}
       />
     </div>
-  );
-}
-
-function TaskRow({
-  task,
-  properties,
-  values,
-  onToggle,
-  onRename,
-  onDelete,
-  onOpen,
-  onSetValue,
-}: {
-  task: Item;
-  properties: Property[];
-  values: Readonly<Record<string, unknown>>;
-  onToggle: (completed: boolean) => void;
-  onRename: (title: string) => void;
-  onDelete: () => void;
-  onOpen: () => void;
-  onSetValue: (property: Property, value: PropertyValue) => void;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(task.title);
-  const done = task.completedAt !== null;
-
-  const commit = () => {
-    setEditing(false);
-    const result = checkTitle(draft);
-    // An emptied title reverts rather than deleting: losing a row because a
-    // field was cleared is never what the person meant.
-    if (result.status !== 'ok') {
-      setDraft(task.title);
-      return;
-    }
-    if (result.title !== task.title) onRename(result.title);
-  };
-
-  return (
-    <li className="group flex min-h-(--density-row) items-center gap-2 rounded-md px-2 hover:bg-card-hover">
-      <Checkbox checked={done} onChange={onToggle} label={`Complete ${task.title}`} />
-
-      {editing ? (
-        <input
-          value={draft}
-          autoFocus
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={commit}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') commit();
-            if (event.key === 'Escape') {
-              setDraft(task.title);
-              setEditing(false);
-            }
-          }}
-          aria-label={`Rename ${task.title}`}
-          className="min-w-0 flex-1 bg-transparent py-1.5 text-body text-fg outline-none"
-        />
-      ) : (
-        <button
-          type="button"
-          onClick={() => {
-            setDraft(task.title);
-            setEditing(true);
-          }}
-          className={[
-            'min-w-0 flex-1 truncate py-1.5 text-left text-body',
-            done ? 'text-fg-tertiary line-through' : 'text-fg',
-          ].join(' ')}
-        >
-          {task.title}
-        </button>
-      )}
-
-      {properties.map((property) => (
-        <span key={property.id} className="hidden shrink-0 sm:block">
-          <PropertyValueEditor
-            property={property}
-            raw={values[property.id]}
-            onCommit={(value) => onSetValue(property, value)}
-            compact
-          />
-        </span>
-      ))}
-
-      <IconButton
-        label={`Open ${task.title}`}
-        icon={<PanelRightExpand20Regular />}
-        onClick={onOpen}
-        // Hidden until the row is hovered or something inside it has focus, so
-        // the list stays quiet — but never hidden from the keyboard.
-        className="opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-100 focus-visible:opacity-100"
-      />
-
-      <IconButton
-        label={`Delete ${task.title}`}
-        icon={<Delete20Regular />}
-        onClick={onDelete}
-        className="opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-100 focus-visible:opacity-100 hover:text-danger"
-      />
-    </li>
   );
 }

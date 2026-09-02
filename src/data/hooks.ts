@@ -14,9 +14,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { PropertyConfig } from '@/domain/property';
+import type { Query } from '@/domain/query';
 
 import * as api from './items';
 import * as propertyApi from './properties';
+import * as viewApi from './views';
 
 export const keys = {
   collections: ['collections'] as const,
@@ -160,6 +162,70 @@ export function useDeleteProperty() {
   const invalidate = useInvalidateProperties();
   return useMutation({
     mutationFn: (id: string) => propertyApi.deleteProperty(id),
+    onSuccess: invalidate,
+  });
+}
+
+// ── Views ───────────────────────────────────────────────────────────────────
+
+export const viewKeys = {
+  views: (collectionId: string | null) => ['views', collectionId] as const,
+};
+
+export function useViews(collectionId: string | null) {
+  return useQuery({
+    queryKey: viewKeys.views(collectionId),
+    queryFn: () => viewApi.listViews(collectionId),
+  });
+}
+
+function useInvalidateViews() {
+  const client = useQueryClient();
+  return () => client.invalidateQueries({ queryKey: ['views'] });
+}
+
+export function useCreateView() {
+  const invalidate = useInvalidateViews();
+  return useMutation({
+    mutationFn: ({
+      collectionId,
+      name,
+      kind,
+      query,
+      position,
+    }: {
+      collectionId: string | null;
+      name: string;
+      kind: viewApi.ViewKind;
+      query: Query;
+      position: string;
+    }) => viewApi.createView(collectionId, name, kind, query, position),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateView() {
+  const invalidate = useInvalidateViews();
+  return useMutation({
+    mutationFn: ({
+      id,
+      name,
+      kind,
+      query,
+    }: {
+      id: string;
+      name: string;
+      kind: viewApi.ViewKind;
+      query: Query;
+    }) => viewApi.updateView(id, name, kind, query),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteView() {
+  const invalidate = useInvalidateViews();
+  return useMutation({
+    mutationFn: (id: string) => viewApi.deleteView(id),
     onSuccess: invalidate,
   });
 }
