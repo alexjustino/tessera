@@ -21,6 +21,7 @@ import { checkTitle, positionForNewItem } from '@/domain/item';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
 import type { Property, PropertyValue } from '@/domain/property';
 import { EMPTY_QUERY, run, type Query, type Row } from '@/domain/query';
+import { CalendarView } from '@/features/calendar/CalendarView';
 import { PropertyManager } from '@/features/properties/PropertyManager';
 import { BoardView } from '@/features/views/BoardView';
 import { ListView } from '@/features/views/ListView';
@@ -309,6 +310,13 @@ export function TasksPage({ initialViewId = null }: { initialViewId?: string | n
             title="No item matches this view"
             description="The items are still there — this view's filters just do not include any of them."
             action={<Button onClick={() => setEditingQuery(true)}>Change the filters</Button>}
+          />
+        ) : view?.kind === 'calendar' ? (
+          <CalendarView
+            // Work with no time reserved for it. The panel exists so a person
+            // can drag it onto the grid, which is the whole point of the slice.
+            unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
+            onOpenItem={(item) => setDetailId(item.id)}
           />
         ) : view?.kind === 'board' ? (
           <BoardView
