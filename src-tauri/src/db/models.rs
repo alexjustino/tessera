@@ -83,3 +83,26 @@ pub struct PropertyValueRow {
     pub property_id: String,
     pub value: serde_json::Value,
 }
+
+/// A saved query, given a name and a shape.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct View {
+    pub id: String,
+    /// None for a cross-collection view: Today, Inbox, Overdue.
+    pub collection_id: Option<String>,
+    pub name: String,
+    pub kind: String,
+    /// Filters, sorts, grouping and visible fields. Stored, not interpreted.
+    pub config: serde_json::Value,
+    pub position: String,
+}
+
+/// What the interface sends to save a new view.
+#[derive(Debug, Clone, Deserialize)]
+pub struct NewView {
+    pub collection_id: Option<String>,
+    pub name: String,
+    pub kind: String,
+    pub config: serde_json::Value,
+    pub position: String,
+}

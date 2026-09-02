@@ -7,3 +7,4 @@
 pub mod items;
 pub mod properties;
 pub mod system;
+pub mod views;
