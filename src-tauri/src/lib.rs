@@ -72,6 +72,13 @@ pub fn run() {
             commands::system::system_info,
             commands::system::accent_ramp,
             commands::system::probe_notification,
+            commands::items::collections_list,
+            commands::items::items_list,
+            commands::items::item_create,
+            commands::items::item_set_completed,
+            commands::items::item_rename,
+            commands::items::item_move,
+            commands::items::item_delete,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");
