@@ -23,6 +23,7 @@
 import { compareValues, isEmpty, optionsOf, parseValueOrEmpty, rawComparatorFor } from './property';
 import type { Property, PropertyValue } from './property';
 import { isCompleted, type Item } from './item';
+import { endOfLocalDay, startOfLocalDay, systemZone } from './schedule';
 
 // ── What a query can point at ──────────────────────────────────────────────
 
@@ -38,15 +39,61 @@ export type FieldRef =
   | { readonly kind: 'builtin'; readonly field: BuiltinField }
   | { readonly kind: 'property'; readonly propertyId: string };
 
-export const BUILTIN_FIELDS = ['title', 'completed', 'createdAt', 'updatedAt'] as const;
+export const BUILTIN_FIELDS = [
+  'title',
+  'completed',
+  'dueAt',
+  'startAt',
+  'createdAt',
+  'updatedAt',
+] as const;
 export type BuiltinField = (typeof BUILTIN_FIELDS)[number];
 
 export const BUILTIN_LABELS: Record<BuiltinField, string> = {
   title: 'Title',
   completed: 'Completed',
+  dueAt: 'Due',
+  startAt: 'Start',
   createdAt: 'Created',
   updatedAt: 'Updated',
 };
+
+/**
+ * Values that mean "whenever this view is opened".
+ *
+ * A saved view called Today has to mean today every day, not the day it was
+ * saved. Storing an instant would freeze it; storing a token and resolving it
+ * against the clock at read time is what makes the view keep its promise.
+ */
+export const RELATIVE_VALUES = {
+  '@now': 'this moment',
+  '@todayStart': 'the start of today',
+  '@todayEnd': 'the end of today',
+  '@tomorrowEnd': 'the end of tomorrow',
+  '@in7d': 'seven days from now',
+} as const;
+
+export type RelativeValue = keyof typeof RELATIVE_VALUES;
+
+export function isRelative(value: unknown): value is RelativeValue {
+  return typeof value === 'string' && value in RELATIVE_VALUES;
+}
+
+/** Turn a relative token into the instant it stands for. */
+export function resolveRelative(value: RelativeValue, now: string, zone: string): string {
+  switch (value) {
+    case '@now':
+      return now;
+    case '@todayStart':
+      return startOfLocalDay(now, zone);
+    case '@todayEnd':
+      return endOfLocalDay(now, zone);
+    case '@tomorrowEnd':
+      return endOfLocalDay(now, zone, 1);
+    case '@in7d':
+      return endOfLocalDay(now, zone, 7);
+  }
+}
 
 export function fieldKey(field: FieldRef): string {
   return field.kind === 'builtin' ? `builtin:${field.field}` : `property:${field.propertyId}`;
@@ -128,6 +175,9 @@ export function operatorsFor(property: Property | null, builtin?: BuiltinField):
         return ['contains', 'does_not_contain', 'is', 'is_not', 'is_empty', 'is_not_empty'];
       case 'completed':
         return ['is'];
+      case 'dueAt':
+      case 'startAt':
+        return ['lt', 'gt', 'is_empty', 'is_not_empty'];
       case 'createdAt':
       case 'updatedAt':
         return ['gt', 'lt'];
@@ -204,6 +254,10 @@ function readField(row: Row, field: FieldRef, properties: readonly Property[]): 
         return row.item.title;
       case 'completed':
         return isCompleted(row.item);
+      case 'dueAt':
+        return row.item.dueAt;
+      case 'startAt':
+        return row.item.startAt;
       case 'createdAt':
         return row.item.createdAt;
       case 'updatedAt':
@@ -232,41 +286,53 @@ function textOf(value: PropertyValue): string {
  * That single decision is the difference between a filter builder that feels
  * alive and one that flashes an empty screen at every keystroke.
  */
-export function accepts(row: Row, filter: Filter, properties: readonly Property[]): boolean {
+export function accepts(
+  row: Row,
+  filter: Filter,
+  properties: readonly Property[],
+  now: string = new Date().toISOString(),
+  zone: string = systemZone(),
+): boolean {
   const actual = readField(row, filter.field, properties);
 
   if (filter.operator === 'is_empty') return isEmpty(actual);
   if (filter.operator === 'is_not_empty') return !isEmpty(actual);
 
-  if (isEmpty(filter.value)) return true;
+  // A relative token becomes an instant here, at read time, which is what lets
+  // a saved view mean "today" on the day it is opened.
+  const wanted: PropertyValue = isRelative(filter.value)
+    ? resolveRelative(filter.value, now, zone)
+    : filter.value;
+
+  if (isEmpty(wanted)) return true;
 
   const property =
     filter.field.kind === 'property' ? propertyOf(properties, filter.field.propertyId) : null;
 
   switch (filter.operator) {
     case 'is':
-      return equal(actual, filter.value);
+      return equal(actual, wanted);
     case 'is_not':
-      return !equal(actual, filter.value);
+      return !equal(actual, wanted);
 
     case 'contains':
-      return textOf(actual).toLowerCase().includes(textOf(filter.value).toLowerCase());
+      return textOf(actual).toLowerCase().includes(textOf(wanted).toLowerCase());
     case 'does_not_contain':
-      return !textOf(actual).toLowerCase().includes(textOf(filter.value).toLowerCase());
+      return !textOf(actual).toLowerCase().includes(textOf(wanted).toLowerCase());
 
     case 'gt':
     case 'lt': {
       if (isEmpty(actual)) return false;
       const order = property
-        ? compareValues(property, actual, filter.value)
-        : String(actual).localeCompare(String(filter.value));
+        ? compareValues(property, actual, wanted)
+        : String(actual).localeCompare(String(wanted));
       return filter.operator === 'gt' ? order > 0 : order < 0;
     }
 
     case 'has_any_of': {
       const held = new Set(Array.isArray(actual) ? actual : []);
-      const wanted = Array.isArray(filter.value) ? filter.value : [String(filter.value)];
-      return wanted.some((candidate) => held.has(candidate));
+      const chosen = Array.isArray(wanted) ? wanted : [String(wanted)];
+      return chosen.some((candidate) => held.has(candidate));
     }
   }
 }
@@ -415,6 +481,15 @@ export interface RunInput {
   readonly rows: readonly Row[];
   readonly properties: readonly Property[];
   readonly query: Query;
+  /**
+   * The moment relative values are resolved against.
+   *
+   * Passed in rather than read here, so a test can choose the day a month ends
+   * or the hour a clock goes back. The default exists for the interface, which
+   * genuinely does mean "now"; anywhere determinism matters, supply it.
+   */
+  readonly now?: string;
+  readonly zone?: string;
 }
 
 /**
@@ -423,7 +498,13 @@ export interface RunInput {
  * The result always holds at least one group. A caller that does not group
  * reads `groups[0].rows` and never has to special-case the ungrouped shape.
  */
-export function run({ rows, properties, query }: RunInput): Result {
+export function run({
+  rows,
+  properties,
+  query,
+  now = new Date().toISOString(),
+  zone = systemZone(),
+}: RunInput): Result {
   const total = rows.length;
 
   const matched: Row[] = [];
@@ -431,7 +512,7 @@ export function run({ rows, properties, query }: RunInput): Result {
     if (!query.includeCompleted && isCompleted(row.item)) continue;
 
     if (query.filters.length > 0) {
-      const verdicts = query.filters.map((filter) => accepts(row, filter, properties));
+      const verdicts = query.filters.map((filter) => accepts(row, filter, properties, now, zone));
       const passes = query.match === 'all' ? verdicts.every(Boolean) : verdicts.some(Boolean);
       if (!passes) continue;
     }
