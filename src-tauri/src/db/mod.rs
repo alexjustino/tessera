@@ -4,6 +4,7 @@
 //! layout are pure TypeScript in `src/domain/` (ADR-004). Rust owns storage,
 //! transactions, full-text search, migrations and the operating system.
 
+pub mod blocks;
 pub mod items;
 pub mod migrations;
 pub mod models;

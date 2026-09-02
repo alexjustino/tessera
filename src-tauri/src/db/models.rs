@@ -106,3 +106,39 @@ pub struct NewView {
     pub config: serde_json::Value,
     pub position: String,
 }
+
+/// One stored top-level node of a document.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Block {
+    pub id: String,
+    pub owner_kind: String,
+    pub owner_id: String,
+    pub r#type: String,
+    pub position: String,
+    /// The node as JSON. The host stores it and does not read it (ADR-003).
+    pub content: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct BlockCreate {
+    pub id: String,
+    pub r#type: String,
+    pub position: String,
+    pub content: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct BlockUpdate {
+    pub id: String,
+    pub r#type: String,
+    pub position: String,
+    pub content: serde_json::Value,
+}
+
+/// The smallest set of writes a document change implies, computed upstream.
+#[derive(Debug, Clone, Deserialize)]
+pub struct BlockChanges {
+    pub creates: Vec<BlockCreate>,
+    pub updates: Vec<BlockUpdate>,
+    pub deletes: Vec<String>,
+}

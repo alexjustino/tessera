@@ -90,6 +90,8 @@ pub fn run() {
             commands::views::view_create,
             commands::views::view_update,
             commands::views::view_delete,
+            commands::blocks::blocks_list,
+            commands::blocks::blocks_apply,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");
