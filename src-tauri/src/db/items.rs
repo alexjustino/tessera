@@ -272,6 +272,56 @@ pub fn delete_item(conn: &mut Connection, id: &str) -> Result<()> {
     Ok(())
 }
 
+/// Move a card on a board: its position and the field the columns group by, in
+/// one transaction.
+///
+/// Two separate calls would be two round trips with a window between them, and
+/// a failure in that window leaves a card sitting in one column while the data
+/// says another. On a board that is not a subtle inconsistency — it is a task
+/// that looks done and is not.
+///
+/// `value` of null clears the field, which is what dropping into the "no value"
+/// column means.
+pub fn move_on_board(
+    conn: &mut Connection,
+    id: &str,
+    position: &str,
+    property_id: Option<&str>,
+    value: &serde_json::Value,
+) -> Result<Item> {
+    check_position(position)?;
+    let timestamp = now();
+
+    let transaction = conn.transaction()?;
+
+    let changed = transaction.execute(
+        "UPDATE item SET position = ?2, updated_at = ?3 WHERE id = ?1",
+        params![id, position, timestamp],
+    )?;
+    if changed == 0 {
+        return Err(Error::NotFound);
+    }
+
+    if let Some(property_id) = property_id {
+        if value.is_null() {
+            transaction.execute(
+                "DELETE FROM item_property_value WHERE item_id = ?1 AND property_id = ?2",
+                params![id, property_id],
+            )?;
+        } else {
+            transaction.execute(
+                "INSERT INTO item_property_value (item_id, property_id, value_json)
+                 VALUES (?1, ?2, ?3)
+                 ON CONFLICT (item_id, property_id) DO UPDATE SET value_json = excluded.value_json",
+                params![id, property_id, value.to_string()],
+            )?;
+        }
+    }
+
+    transaction.commit()?;
+    get_item(conn, id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -430,6 +480,96 @@ mod tests {
             .query_row("SELECT count(*) FROM search_fts", [], |r| r.get(0))
             .unwrap_or(-1);
         assert_eq!(orphaned, 0, "a cascaded child left its index entry behind");
+    }
+
+    #[test]
+    fn a_board_move_writes_the_position_and_the_field_together() {
+        let mut conn = workspace();
+        let item = add(&mut conn, "movable", "V");
+
+        let moved = move_on_board(
+            &mut conn,
+            &item.id,
+            "a",
+            Some("tasks.status"),
+            &serde_json::json!("doing"),
+        )
+        .expect("move");
+
+        assert_eq!(moved.position, "a");
+        let stored: String = conn
+            .query_row(
+                "SELECT value_json FROM item_property_value
+                 WHERE item_id = ?1 AND property_id = 'tasks.status'",
+                params![item.id],
+                |row| row.get(0),
+            )
+            .expect("the field was not written");
+        assert_eq!(stored, "\"doing\"");
+    }
+
+    #[test]
+    fn a_board_move_into_the_no_value_column_clears_the_field() {
+        let mut conn = workspace();
+        let item = add(&mut conn, "movable", "V");
+        move_on_board(
+            &mut conn,
+            &item.id,
+            "a",
+            Some("tasks.status"),
+            &serde_json::json!("done"),
+        )
+        .expect("set");
+
+        move_on_board(
+            &mut conn,
+            &item.id,
+            "b",
+            Some("tasks.status"),
+            &serde_json::Value::Null,
+        )
+        .expect("clear");
+
+        let rows: i64 = conn
+            .query_row(
+                "SELECT count(*) FROM item_property_value WHERE item_id = ?1",
+                params![item.id],
+                |row| row.get(0),
+            )
+            .unwrap_or(-1);
+        assert_eq!(rows, 0);
+    }
+
+    #[test]
+    fn a_board_move_leaves_nothing_half_written_when_it_fails() {
+        // The whole reason this is one call: a card must never sit in one column
+        // while the data says another.
+        let mut conn = workspace();
+        let item = add(&mut conn, "movable", "V");
+
+        let result = move_on_board(
+            &mut conn,
+            &item.id,
+            "a",
+            Some("does-not-exist"),
+            &serde_json::json!("doing"),
+        );
+
+        assert!(result.is_err());
+        assert_eq!(
+            get_item(&conn, &item.id).expect("still there").position,
+            "V",
+            "the position was written even though the field write failed"
+        );
+    }
+
+    #[test]
+    fn a_board_move_reports_a_missing_item() {
+        let mut conn = workspace();
+        assert!(matches!(
+            move_on_board(&mut conn, "nope", "V", None, &serde_json::Value::Null),
+            Err(Error::NotFound)
+        ));
     }
 
     #[test]

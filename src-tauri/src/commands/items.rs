@@ -60,3 +60,16 @@ pub fn item_delete(db: State<'_, Db>, id: String) -> Result<()> {
     let mut conn = db.0.lock().expect("the database lock was poisoned");
     items::delete_item(&mut conn, &id)
 }
+
+/// Move a card on a board: position and grouping field, in one transaction.
+#[tauri::command]
+pub fn item_move_on_board(
+    db: State<'_, Db>,
+    id: String,
+    position: String,
+    property_id: Option<String>,
+    value: serde_json::Value,
+) -> Result<Item> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    items::move_on_board(&mut conn, &id, &position, property_id.as_deref(), &value)
+}

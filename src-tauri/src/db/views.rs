@@ -162,20 +162,29 @@ mod tests {
     }
 
     #[test]
-    fn a_new_workspace_starts_with_the_two_default_views() {
+    fn a_new_workspace_starts_with_a_list_a_table_and_a_board() {
         let conn = workspace();
         let views = list_views(&conn, Some("tasks")).expect("list");
 
-        assert_eq!(views.len(), 2);
-        assert_eq!(views[0].kind, "list");
-        assert_eq!(views[1].kind, "table");
+        let kinds: Vec<_> = views.iter().map(|view| view.kind.as_str()).collect();
+        assert_eq!(kinds, ["list", "table", "board"]);
+    }
+
+    #[test]
+    fn the_seeded_board_groups_by_status_and_carries_its_own_settings() {
+        let conn = workspace();
+        let board = get_view(&conn, "tasks.board").expect("board");
+
+        assert_eq!(board.config["groupBy"]["propertyId"], "tasks.status");
+        assert!(board.config["board"]["wipLimits"].is_object());
+        assert_eq!(board.config["board"]["cardProperties"][0], "tasks.priority");
     }
 
     #[test]
     fn seeding_the_default_views_is_idempotent() {
         let conn = workspace();
         migrations::apply(&conn).expect("re-apply");
-        assert_eq!(list_views(&conn, Some("tasks")).expect("list").len(), 2);
+        assert_eq!(list_views(&conn, Some("tasks")).expect("list").len(), 3);
     }
 
     #[test]

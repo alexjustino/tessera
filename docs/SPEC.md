@@ -155,6 +155,20 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of F4, and why
+
+Three things listed under the board in the scope are **not** in the first board,
+and are recorded here rather than quietly dropped:
+
+- **Swimlanes.** A second grouping axis. The query engine groups on one field;
+  a second one is a real change to `run`, not a rendering trick, and it belongs
+  in its own slice.
+- **Card covers.** Need an image, which arrives with the block editor in F5.
+- **Checklists on a card.** Need sub-items rendered as a list, which the detail
+  panel gets first.
+
+None of them changes the shape of what is built; each is additive.
+
 ## 8. Definition of done
 
 A slice is done when **all eight** are true.

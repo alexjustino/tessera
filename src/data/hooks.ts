@@ -14,6 +14,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { PropertyConfig } from '@/domain/property';
+import type { BoardConfig, Move } from '@/domain/board';
 import type { Query } from '@/domain/query';
 
 import * as api from './items';
@@ -73,6 +74,31 @@ export function useRenameItem() {
   return useMutation({
     mutationFn: ({ id, title }: { id: string; title: string }) => api.renameItem(id, title),
     onSuccess: invalidate,
+  });
+}
+
+/**
+ * Move a card on a board.
+ *
+ * Position and grouping field travel together in one command, because a failure
+ * between two separate writes would leave a card in one column while the data
+ * says another — on a board, a task that looks done and is not.
+ */
+export function useMoveOnBoard() {
+  const invalidate = useInvalidateItems();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (move: Move) =>
+      api.moveOnBoard(
+        move.itemId,
+        move.position,
+        move.field?.kind === 'property' ? move.field.propertyId : null,
+        move.value,
+      ),
+    onSuccess: () => {
+      invalidate();
+      void client.invalidateQueries({ queryKey: ['property-values'] });
+    },
   });
 }
 
@@ -192,14 +218,16 @@ export function useCreateView() {
       name,
       kind,
       query,
+      board,
       position,
     }: {
       collectionId: string | null;
       name: string;
       kind: viewApi.ViewKind;
       query: Query;
+      board: BoardConfig;
       position: string;
-    }) => viewApi.createView(collectionId, name, kind, query, position),
+    }) => viewApi.createView(collectionId, name, kind, query, board, position),
     onSuccess: invalidate,
   });
 }
@@ -212,12 +240,14 @@ export function useUpdateView() {
       name,
       kind,
       query,
+      board,
     }: {
       id: string;
       name: string;
       kind: viewApi.ViewKind;
       query: Query;
-    }) => viewApi.updateView(id, name, kind, query),
+      board: BoardConfig;
+    }) => viewApi.updateView(id, name, kind, query, board),
     onSuccess: invalidate,
   });
 }

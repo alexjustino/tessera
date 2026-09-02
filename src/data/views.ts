@@ -8,6 +8,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 
+import { EMPTY_BOARD_CONFIG, type BoardConfig } from '@/domain/board';
 import { EMPTY_QUERY, type Query } from '@/domain/query';
 
 export const VIEW_KINDS = ['list', 'table', 'board', 'calendar'] as const;
@@ -20,6 +21,12 @@ export interface View {
   name: string;
   kind: ViewKind;
   query: Query;
+  /**
+   * What only a board needs: work-in-progress limits, collapsed columns, which
+   * properties appear on a card. Stored beside the query rather than inside it,
+   * because none of it changes which items match.
+   */
+  board: BoardConfig;
   position: string;
 }
 
@@ -56,6 +63,24 @@ function toQuery(raw: unknown): Query {
   };
 }
 
+/** Read the board settings, filling in whatever an older view does not carry. */
+function toBoard(raw: unknown): BoardConfig {
+  if (typeof raw !== 'object' || raw === null) return EMPTY_BOARD_CONFIG;
+  const stored = (raw as { board?: Partial<BoardConfig> }).board;
+  if (typeof stored !== 'object' || stored === null) return EMPTY_BOARD_CONFIG;
+
+  return {
+    wipLimits:
+      typeof stored.wipLimits === 'object' && stored.wipLimits !== null
+        ? stored.wipLimits
+        : EMPTY_BOARD_CONFIG.wipLimits,
+    collapsed: Array.isArray(stored.collapsed) ? stored.collapsed : EMPTY_BOARD_CONFIG.collapsed,
+    cardProperties: Array.isArray(stored.cardProperties)
+      ? stored.cardProperties
+      : EMPTY_BOARD_CONFIG.cardProperties,
+  };
+}
+
 function toView(raw: RawView): View | null {
   if (!isViewKind(raw.kind)) {
     console.warn(`ignoring view "${raw.name}": unknown kind "${raw.kind}"`);
@@ -67,6 +92,7 @@ function toView(raw: RawView): View | null {
     name: raw.name,
     kind: raw.kind,
     query: toQuery(raw.config),
+    board: toBoard(raw.config),
     position: raw.position,
   };
 }
@@ -81,10 +107,11 @@ export async function createView(
   name: string,
   kind: ViewKind,
   query: Query,
+  board: BoardConfig,
   position: string,
 ): Promise<View | null> {
   const raw = await invoke<RawView>('view_create', {
-    view: { collection_id: collectionId, name, kind, config: query, position },
+    view: { collection_id: collectionId, name, kind, config: { ...query, board }, position },
   });
   return toView(raw);
 }
@@ -94,8 +121,14 @@ export async function updateView(
   name: string,
   kind: ViewKind,
   query: Query,
+  board: BoardConfig,
 ): Promise<View | null> {
-  const raw = await invoke<RawView>('view_update', { id, name, kind, config: query });
+  const raw = await invoke<RawView>('view_update', {
+    id,
+    name,
+    kind,
+    config: { ...query, board },
+  });
   return toView(raw);
 }
 
