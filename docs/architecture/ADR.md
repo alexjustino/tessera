@@ -79,9 +79,34 @@ rule in one pure, testable place rather than duplicated across two languages wit
 in between.
 
 **Cost accepted, and the exit.** This does not scale forever. The contract is
-`Query → Item[]`; when it stops being fast enough, a compiler emits SQL behind the same
-contract. The measured trigger is a 50,000-item seed in slice F3: a filter above 50 ms brings
-the push-down forward.
+`run(input) → Result`; when it stops being fast enough, a compiler emits SQL behind the same
+contract. The measured trigger is a 50,000-item seed: a filter above 50 ms brings the
+push-down forward.
+
+**Measured in slice F3** (`src/domain/query.bench.test.ts`, 50,000 items, best of five):
+
+| Operation              | Best      | Against the 50 ms target |
+| ---------------------- | --------- | ------------------------ |
+| Filter by one option   | **20 ms** | within, 2.5× headroom    |
+| Filter title contains  | **18 ms** | within                   |
+| Group by status        | **41 ms** | within                   |
+| Filter, sort and group | 59 ms     | over                     |
+| **Sort by priority**   | **85 ms** | **over**                 |
+
+The trigger is met: filtering is comfortably inside it, so the push-down stays future work.
+Sorting is the outlier and is recorded here rather than left as a surprise — it is the first
+candidate when the compiler is written, and 50,000 is a stress ceiling rather than an expected
+size.
+
+Two lessons from taking the measurement, both worth more than the numbers:
+
+- The first version of the ordering path looked up each row with `find` inside a `map`. That
+  is quadratic: invisible at twenty rows, around two billion comparisons at fifty thousand.
+  The benchmark existed for exactly this.
+- Single-shot timings on a working laptop varied by 30%, which was larger than any of the
+  optimisations being evaluated — so two of them were applied against noise and cannot be
+  credited with the improvement. The benchmark now reports the best of five runs. **Build the
+  reliable measurement before optimising against it.**
 
 ## ADR-005 — Properties are stored entity-attribute-value {#adr-005}
 

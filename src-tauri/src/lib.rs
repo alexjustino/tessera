@@ -85,6 +85,10 @@ pub fn run() {
             commands::properties::property_delete,
             commands::properties::property_values_list,
             commands::properties::property_value_set,
+            commands::views::views_list,
+            commands::views::view_create,
+            commands::views::view_update,
+            commands::views::view_delete,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");
