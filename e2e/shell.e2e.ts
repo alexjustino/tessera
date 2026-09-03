@@ -26,7 +26,7 @@ describe('shell', () => {
     expect(await mark.attribute('width')).toBe('16');
   });
 
-  it('lists every destination, with Settings honestly marked as not built', async () => {
+  it('lists every destination, all of them built', async () => {
     const { driver } = session;
     const buttons = await driver.findAll('nav[aria-label="Main"] button');
     const labels = await Promise.all(buttons.map((b) => b.text()));
@@ -40,14 +40,15 @@ describe('shell', () => {
       'Diagnostics',
       'About',
     ]);
-    const settings = await driver.findByXPath('//nav//button[contains(., "Settings")]');
-    expect(await settings.attribute('disabled')).toBe('true');
+    const disabled = await driver.findAll('nav[aria-label="Main"] button[disabled]');
+    expect(disabled.length).toBe(0);
   });
 
   it.each([
     ['Today', 'input[aria-label="New task"]'],
     ['Board', 'input[aria-label="New task"]'],
     ['Calendar', 'input[aria-label="New task"]'],
+    ['Settings', 'h1'],
     ['Diagnostics', 'h1'],
     ['About', 'h1'],
     ['Tasks', 'input[aria-label="New task"]'],
