@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The mark.** Tessera's own icon — four tiles, one being set — on the
+  taskbar, the tray, the installer, the title bar and About. The template's
+  placeholder is gone.
 - **Calendar**: day, work week, week, month and agenda over the same items and
   events, with a now line, working-hours shading, an all-day lane and events
   that can be dragged to another time.
