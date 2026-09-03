@@ -6,9 +6,29 @@
 
 use tauri::State;
 
-use crate::db::models::{Collection, Item, ItemSchedule, NewItem};
+use crate::db::models::{CaptureRequest, Collection, Item, ItemSchedule, NewItem};
 use crate::db::{items, Db};
 use crate::error::Result;
+
+/// Emitted to every window after a write made outside the main window — the
+/// quick-capture window has its own page and its own cache, and the workspace
+/// behind it must not look stale to the person who then opens the main one.
+pub const WORKSPACE_CHANGED: &str = "workspace:changed";
+
+/// Quick capture: one line, already parsed by the domain layer, written whole.
+#[tauri::command]
+pub fn item_capture(
+    app: tauri::AppHandle,
+    db: State<'_, Db>,
+    request: CaptureRequest,
+) -> Result<Item> {
+    let item = {
+        let mut conn = db.0.lock().expect("the database lock was poisoned");
+        items::capture_item(&mut conn, request)?
+    };
+    let _ = tauri::Emitter::emit(&app, WORKSPACE_CHANGED, ());
+    Ok(item)
+}
 
 #[tauri::command]
 pub fn collections_list(db: State<'_, Db>) -> Result<Vec<Collection>> {

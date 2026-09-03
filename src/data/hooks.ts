@@ -11,9 +11,11 @@
  * about what is on disk instead of about what it hoped would be.
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import type { Capture } from '@/domain/capture';
 import type { PropertyConfig } from '@/domain/property';
+import { toFtsQuery } from '@/domain/search';
 import type { BoardConfig, Move } from '@/domain/board';
 import type { BlockChanges } from '@/domain/document';
 import type { Schedule } from '@/domain/schedule';
@@ -25,6 +27,8 @@ import * as blockApi from './blocks';
 import * as reminderApi from './reminders';
 import * as calendarApi from './calendar';
 import * as viewApi from './views';
+import * as searchApi from './search';
+import * as captureApi from './capture';
 
 export const keys = {
   collections: ['collections'] as const,
@@ -459,4 +463,63 @@ export function useSetAutostart() {
     mutationFn: reminderApi.setAutostart,
     onSuccess: () => void client.invalidateQueries({ queryKey: reminderKeys.autostart }),
   });
+}
+
+// ── Search and quick capture (F9) ──────────────────────────────────────────
+
+/**
+ * One box over items and events. The text is shaped for the index here, so no
+ * component ever hands FTS5 syntax to the host. Nothing is asked for an empty
+ * or punctuation-only query; the previous answer stays while a new one loads,
+ * so the list does not blink between keystrokes.
+ */
+export function useSearch(text: string) {
+  const query = toFtsQuery(text);
+  return useQuery({
+    queryKey: ['search', query] as const,
+    queryFn: () => (query === null ? Promise.resolve([]) : searchApi.search(query, 20)),
+    enabled: query !== null,
+    placeholderData: keepPreviousData,
+    // Unlike the item lists, a search answer is stale as soon as anything is
+    // written; reopening the palette asks again.
+    staleTime: 0,
+  });
+}
+
+/**
+ * Write one parsed line. A capture can touch items, values, reminders and the
+ * search index at once, so everything is invalidated rather than guessing.
+ */
+export function useCaptureItem() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      collectionId,
+      position,
+      capture,
+      priorityPropertyId,
+    }: {
+      collectionId: string;
+      position: string;
+      capture: Capture;
+      /** The collection's priority property, when it has one. */
+      priorityPropertyId: string | null;
+    }) =>
+      api.captureItem(
+        collectionId,
+        position,
+        capture,
+        priorityPropertyId !== null && capture.priority !== null
+          ? [{ propertyId: priorityPropertyId, value: capture.priority }]
+          : [],
+      ),
+    onSuccess: () => {
+      void client.invalidateQueries();
+      void reminderApi.refreshTray();
+    },
+  });
+}
+
+export function useCaptureStatus() {
+  return useQuery({ queryKey: ['capture-status'] as const, queryFn: captureApi.captureStatus });
 }

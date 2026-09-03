@@ -11,6 +11,7 @@ pub mod migrations;
 pub mod models;
 pub mod properties;
 pub mod reminders;
+pub mod search;
 pub mod views;
 
 use std::path::PathBuf;
@@ -24,9 +25,20 @@ use crate::error::{Error, Result};
 /// The open database, held for the lifetime of the process.
 pub struct Db(pub Mutex<Connection>);
 
-/// Resolve the workspace file: `%APPDATA%/io.github.alexjustino.tessera/tessera.sqlite3`.
+/// The environment variable that relocates the workspace.
+///
+/// Set by the end-to-end suite so a test run never opens the person's real
+/// workspace. It is read once, here, and reported by Diagnostics, so a relocated
+/// workspace is never a silent one.
+pub const DATA_DIR_ENV: &str = "TESSERA_DATA_DIR";
+
+/// Resolve the workspace file: `%APPDATA%/io.github.alexjustino.tessera/tessera.sqlite3`,
+/// or `$TESSERA_DATA_DIR/tessera.sqlite3` when the variable is set.
 pub fn database_path(app: &AppHandle) -> Result<PathBuf> {
-    let dir = app.path().app_data_dir().map_err(|_| Error::DataDir)?;
+    let dir = match std::env::var_os(DATA_DIR_ENV) {
+        Some(dir) if !dir.is_empty() => PathBuf::from(dir),
+        _ => app.path().app_data_dir().map_err(|_| Error::DataDir)?,
+    };
     std::fs::create_dir_all(&dir).map_err(|_| Error::DataDir)?;
     Ok(dir.join("tessera.sqlite3"))
 }

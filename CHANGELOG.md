@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The Windows accent colour is applied when the window opens, not only after
+  visiting Diagnostics.
 - Deleting an item now removes its document and its search-index rows. They key
   on owner rather than a foreign key, so nothing cascaded on its own and the
   database leaked a row per paragraph.
@@ -17,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Quick capture.** `Ctrl+Alt+Space` in any program opens a one-line window over
+  whatever is on screen. Plain words become the task's date, time, repeat rule,
+  priority and reminder — "Pay rent on friday at 9am !high remind me 15m
+  before" — and every phrase is shown as a chip before Enter, so what was
+  understood is visible and can be undone. The same grammar works in the add
+  line on Tasks. Also reachable from the tray menu and the palette.
+- **Command palette.** `Ctrl+K`, or the Search field at the top of the rail:
+  every command the product has, ranked by the letters typed, and one search
+  over tasks and events through the full-text index — prefix matching,
+  accent-insensitive, matched words highlighted. Enter opens the hit.
+- **Events are searchable** alongside tasks, from the same box (ADR-008).
+- Diagnostics says whether the quick-capture shortcut registered, and why not
+  when another program owns it.
+- **An end-to-end suite** (`npm run e2e`) that drives the real binary — Rust
+  host, WebView2 page, SQLite file — through WebDriver, on a workspace it
+  relocates so it never touches a real one (ADR-016).
 - **The mark.** Tessera's own icon — four tiles, one being set — on the
   taskbar, the tray, the installer, the title bar and About. The template's
   placeholder is gone.

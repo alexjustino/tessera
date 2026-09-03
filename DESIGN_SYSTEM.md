@@ -146,8 +146,12 @@ first — not inline in the feature.
 `ContextMenu` · `CommandBar` · `TabStrip` · `Breadcrumb` · `ProgressBar` · `ProgressRing` ·
 `Skeleton` · `EmptyState` · `Toast` · `InfoBar` · `Kbd` · `Resizer` · `VirtualList`
 
-Present today: `Button`, `IconButton`, `Card`, `InfoBar`. The rest arrive with the slice that
-first needs them, and arrive _here_.
+Present today: `Button`, `IconButton`, `Card`, `InfoBar`, `Input`, `Select`, `Checkbox`, `Chip`,
+`Drawer`, `Modal`, `TabStrip`, `EmptyState`, `Kbd`. The rest arrive with the slice that first
+needs them, and arrive _here_.
+
+A shortcut shown beside the thing it triggers is a `Kbd`, everywhere — the palette, the rail,
+Diagnostics, the capture window — so a person learns to read it once.
 
 ## 9. The window
 

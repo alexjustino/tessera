@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-import { App } from '@/app/App';
 import { Providers } from '@/app/providers';
+import { Root } from '@/app/Root';
 import '@/styles/global.css';
 
 const root = document.getElementById('root');
@@ -11,7 +11,7 @@ if (!root) throw new Error('the application root element is missing from index.h
 ReactDOM.createRoot(root).render(
   <React.StrictMode>
     <Providers>
-      <App />
+      <Root />
     </Providers>
   </React.StrictMode>,
 );

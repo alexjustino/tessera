@@ -66,12 +66,12 @@ export function systemZone(): string {
  * wall-clock numbers, which is what date arithmetic and `rrule` need. It must
  * never be stored.
  */
-function asWallClock(instant: string | Date, zone: string): Date {
+export function asWallClock(instant: string | Date, zone: string): Date {
   return toZonedTime(typeof instant === 'string' ? new Date(instant) : instant, zone);
 }
 
 /** A wall-clock time in a zone, back to the instant it denotes. */
-function asInstant(wallClock: Date, zone: string): string {
+export function asInstant(wallClock: Date, zone: string): string {
   return fromZonedTime(wallClock, zone).toISOString();
 }
 

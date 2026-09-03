@@ -3,11 +3,14 @@ import {
   Info20Regular,
   Calendar20Regular,
   Home20Regular,
+  Search20Regular,
   Settings20Regular,
   TaskListSquareLtr20Regular,
   Wrench20Regular,
 } from '@fluentui/react-icons';
 import type { ReactNode } from 'react';
+
+import { Kbd } from '@/ui/Kbd';
 
 /**
  * The navigation rail.
@@ -39,15 +42,34 @@ const ENTRIES: Entry[] = [
 export function Sidebar({
   active,
   onNavigate,
+  onSearch,
 }: {
   active: Destination;
   onNavigate: (destination: Destination) => void;
+  /** Open the command palette. */
+  onSearch: () => void;
 }) {
   return (
     <nav
       aria-label="Main"
       className="flex w-56 shrink-0 flex-col gap-0.5 border-r border-stroke-subtle bg-layer-alt p-2"
     >
+      {/* The palette's front door. Drawn like a search field because that is
+          what a person reaches for; Ctrl+K is the same thing from the keyboard. */}
+      <button
+        type="button"
+        onClick={onSearch}
+        aria-label="Search or run a command"
+        aria-keyshortcuts="Control+K"
+        className={[
+          'mb-2 flex h-(--density-control) items-center gap-2 rounded-md border border-stroke bg-card px-3',
+          'text-body text-fg-tertiary transition-colors duration-100 ease-easy hover:bg-card-hover',
+        ].join(' ')}
+      >
+        <Search20Regular aria-hidden="true" />
+        <span className="flex-1 truncate text-left">Search</span>
+        <Kbd>Ctrl+K</Kbd>
+      </button>
       {ENTRIES.map((entry) => {
         const selected = entry.ready && entry.id === active;
         return (
