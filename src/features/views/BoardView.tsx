@@ -241,12 +241,21 @@ function BoardColumn({
           icon={<ChevronRight16Regular />}
           onClick={onToggleCollapsed}
         />
-        <ColumnCount column={column} />
         <span
           className="text-caption font-semibold whitespace-nowrap text-fg-secondary"
           style={{ writingMode: 'vertical-rl' }}
         >
           {column.label}
+        </span>
+
+        {/* At the foot of the rail, not the head.
+            A collapsed column reads downwards: the control to reopen it at the
+            top, then the name running down, and the count where the eye ends up
+            — which is also where it sits in a column that is open. Putting it
+            second meant the label started halfway down and the two states no
+            longer looked like the same column. */}
+        <span className="mt-auto">
+          <ColumnCount column={column} />
         </span>
       </section>
     );
