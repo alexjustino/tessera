@@ -75,6 +75,25 @@ export function asInstant(wallClock: Date, zone: string): string {
   return fromZonedTime(wallClock, zone).toISOString();
 }
 
+/**
+ * Where an instant falls in a zone: which local day, and how many minutes into
+ * it.
+ *
+ * The one conversion, so callers that need both do not pay for two. It goes
+ * through `date-fns-tz`, which keeps its formatters; building an
+ * `Intl.DateTimeFormat` per call — what `toLocaleString` with a `timeZone` does
+ * — is roughly fifty microseconds each, and a calendar week asks thousands of
+ * times.
+ */
+export function localPlace(instant: string, zone: string): { day: string; minute: number } {
+  const wall = asWallClock(instant, zone);
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return {
+    day: `${wall.getFullYear()}-${pad(wall.getMonth() + 1)}-${pad(wall.getDate())}`,
+    minute: wall.getHours() * 60 + wall.getMinutes(),
+  };
+}
+
 /** `2026-09-05` for the day an instant falls on, in a zone. */
 export function localDay(instant: string, zone: string): string {
   const local = asWallClock(instant, zone);

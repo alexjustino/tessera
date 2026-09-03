@@ -19,7 +19,7 @@
  * ours (ADR-014): the geometry is testable without rendering a pixel.
  */
 
-import { localDay } from './schedule';
+import { asInstant, localDay, localPlace } from './schedule';
 
 /** An event, as the interface handles it. */
 export interface CalendarEvent {
@@ -146,16 +146,35 @@ const MIN_HEIGHT_MINUTES = 20;
 const DAY_MINUTES = 24 * 60;
 
 /**
+ * The instant at which a local day begins, in a zone.
+ *
+ * Computed once per layout rather than per event: it is what turns the
+ * question "does this occurrence belong to this day" into a comparison of two
+ * numbers instead of a timezone conversion.
+ */
+export function dayStartsAt(day: string, zone: string): string {
+  const [year, month, date] = day.split('-').map(Number);
+  const wall = new Date(0);
+  wall.setFullYear(year ?? 1970, (month ?? 1) - 1, date ?? 1);
+  wall.setHours(0, 0, 0, 0);
+  return asInstant(wall, zone);
+}
+
+/**
  * Minutes from local midnight, for an instant on a given local day.
  *
  * Clamped: an event that began yesterday and runs into today starts at the top
  * of the grid rather than at a negative offset.
+ *
+ * The position is the **wall clock**, not the elapsed time, because the grid
+ * draws twenty-four fixed hours. On the day the clocks go forward, 14:00 local
+ * is thirteen hours after local midnight and still belongs at hour fourteen.
  */
 export function minutesInto(instant: string, day: string, zone: string): number {
-  const dayStart = new Date(`${day}T00:00:00`);
-  const local = new Date(new Date(instant).toLocaleString('en-US', { timeZone: zone }));
-  const minutes = (local.getTime() - dayStart.getTime()) / 60_000;
-  return Math.max(0, Math.min(DAY_MINUTES, Math.round(minutes)));
+  const place = localPlace(instant, zone);
+  if (place.day < day) return 0;
+  if (place.day > day) return DAY_MINUTES;
+  return Math.max(0, Math.min(DAY_MINUTES, place.minute));
 }
 
 /**
@@ -174,20 +193,41 @@ export function minutesInto(instant: string, day: string, zone: string): number 
  *    with empty space beside them — technically correct, visibly wrong.
  */
 export function layoutDay(occurrences: readonly Occurrence[], day: string, zone: string): Box[] {
-  const timed = occurrences
-    .filter((occurrence) => !occurrence.event.allDay)
-    .map((occurrence) => {
-      const top = minutesInto(occurrence.startsAt, day, zone);
-      const end = minutesInto(occurrence.endsAt, day, zone);
-      return {
-        occurrence,
-        top,
-        // An event ending after midnight was clamped to the end of the day, so
-        // its height comes from the clamped value rather than its real end.
-        height: Math.max(MIN_HEIGHT_MINUTES, end - top),
-      };
-    })
-    .sort((a, b) => a.top - b.top || b.height - a.height);
+  // The day as two instants, computed once. Everything below is arithmetic.
+  const dayStart = Date.parse(dayStartsAt(day, zone));
+  const dayEnd = Date.parse(dayStartsAt(addLocalDays(day, 1), zone));
+
+  const timed: Array<{ occurrence: Occurrence; top: number; height: number }> = [];
+
+  for (const occurrence of occurrences) {
+    if (occurrence.event.allDay) continue;
+
+    const startsAt = Date.parse(occurrence.startsAt);
+    const endsAt = Date.parse(occurrence.endsAt);
+
+    // Half-open: an event ending exactly at midnight belongs to the day that
+    // is ending, not to the one starting. A zero-length event belongs to the
+    // day its single instant falls in.
+    const touchesDay =
+      startsAt === endsAt
+        ? startsAt >= dayStart && startsAt < dayEnd
+        : startsAt < dayEnd && endsAt > dayStart;
+    if (!touchesDay) continue;
+
+    // Only what survives the filter is worth a timezone conversion.
+    const top = startsAt < dayStart ? 0 : minutesInto(occurrence.startsAt, day, zone);
+    const bottom = endsAt > dayEnd ? DAY_MINUTES : minutesInto(occurrence.endsAt, day, zone);
+
+    timed.push({
+      occurrence,
+      top,
+      // An event ending after midnight was clamped to the end of the day, so
+      // its height comes from the clamped value rather than its real end.
+      height: Math.max(MIN_HEIGHT_MINUTES, bottom - top),
+    });
+  }
+
+  timed.sort((a, b) => a.top - b.top || b.height - a.height);
 
   const boxes: Box[] = [];
 

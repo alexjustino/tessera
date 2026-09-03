@@ -13,7 +13,7 @@
  */
 
 import { addLocalDays } from './calendar';
-import { asInstant, asWallClock } from './schedule';
+import { asInstant, localPlace } from './schedule';
 
 export const SNAP_MINUTES = 15;
 const DAY_MINUTES = 24 * 60;
@@ -51,12 +51,7 @@ export interface MoveBounds {
 
 /** The local day and minute-of-day an instant falls on. */
 export function placeOf(instant: string, zone: string): { day: string; minute: number } {
-  const wall = asWallClock(instant, zone);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return {
-    day: `${wall.getFullYear()}-${pad(wall.getMonth() + 1)}-${pad(wall.getDate())}`,
-    minute: wall.getHours() * 60 + wall.getMinutes(),
-  };
+  return localPlace(instant, zone);
 }
 
 /** The instant at a local day and minute-of-day. */
