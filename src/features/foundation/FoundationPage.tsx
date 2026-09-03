@@ -15,6 +15,8 @@ import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { InfoBar } from '@/ui/InfoBar';
 
+import { RemindersCard } from './RemindersCard';
+
 /**
  * The foundation screen.
  *
@@ -208,6 +210,8 @@ export function FoundationPage() {
           </p>
         )}
       </Card>
+
+      <RemindersCard />
     </div>
   );
 }

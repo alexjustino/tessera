@@ -22,6 +22,7 @@ import type { Query } from '@/domain/query';
 import * as api from './items';
 import * as propertyApi from './properties';
 import * as blockApi from './blocks';
+import * as reminderApi from './reminders';
 import * as calendarApi from './calendar';
 import * as viewApi from './views';
 
@@ -108,10 +109,15 @@ export function useMoveOnBoard() {
 
 export function useSetSchedule() {
   const invalidate = useInvalidateItems();
+  const client = useQueryClient();
   return useMutation({
     mutationFn: ({ id, schedule }: { id: string; schedule: Schedule }) =>
       api.setSchedule(id, schedule),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      void client.invalidateQueries({ queryKey: ['reminders'] });
+      void reminderApi.refreshTray();
+    },
   });
 }
 
@@ -392,4 +398,65 @@ export function useSetException() {
 export function useCreateTimeBlock() {
   const invalidate = useInvalidateCalendar();
   return useMutation({ mutationFn: calendarApi.createTimeBlock, onSuccess: invalidate });
+}
+
+// ── Reminders ───────────────────────────────────────────────────────────────
+
+export const reminderKeys = {
+  status: ['reminders', 'status'] as const,
+  autostart: ['autostart'] as const,
+};
+
+export function useReminderStatus() {
+  return useQuery({
+    queryKey: reminderKeys.status,
+    queryFn: reminderApi.reminderStatus,
+    // The one query in the product that is allowed to go stale on a timer: the
+    // queue changes as the clock moves, not only when this application writes.
+    refetchInterval: 30_000,
+  });
+}
+
+function useInvalidateReminders() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: ['reminders'] });
+    void reminderApi.refreshTray();
+  };
+}
+
+export function usePauseReminders() {
+  const invalidate = useInvalidateReminders();
+  return useMutation({ mutationFn: reminderApi.pauseReminders, onSuccess: invalidate });
+}
+
+export function useResumeReminders() {
+  const invalidate = useInvalidateReminders();
+  return useMutation({ mutationFn: reminderApi.resumeReminders, onSuccess: invalidate });
+}
+
+export function useSnoozeReminder() {
+  const invalidate = useInvalidateReminders();
+  return useMutation({
+    mutationFn: ({ id, minutes }: { id: string; minutes: number }) =>
+      reminderApi.snoozeReminder(id, minutes),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDismissReminder() {
+  const invalidate = useInvalidateReminders();
+  return useMutation({ mutationFn: reminderApi.dismissReminder, onSuccess: invalidate });
+}
+
+export function useAutostart() {
+  return useQuery({ queryKey: reminderKeys.autostart, queryFn: reminderApi.autostartEnabled });
+}
+
+export function useSetAutostart() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: reminderApi.setAutostart,
+    onSuccess: () => void client.invalidateQueries({ queryKey: reminderKeys.autostart }),
+  });
 }
