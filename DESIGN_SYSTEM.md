@@ -91,6 +91,26 @@ cannot be undone later without touching every screen.
   accessible name and the tooltip. That requirement is in the type signature so it cannot be
   forgotten.
 
+### The mark
+
+The product's own icon is `src-tauri/icons/tessera.svg`: four tiles, one of them
+lighter and a hair apart — the tessera being set. It is drawn to survive sixteen
+pixels in the tray: four shapes, one accent, no stroke thinner than the gap
+between tiles. The blue is the Windows 11 default accent, the value the token
+layer starts from.
+
+Every raster the platform needs is generated from that one file, never edited by
+hand:
+
+```bash
+node -e "require('sharp')('src-tauri/icons/tessera.svg').resize(1024,1024).png().toFile('src-tauri/icons/tessera-1024.png')"
+npx tauri icon src-tauri/icons/tessera-1024.png --output src-tauri/icons
+```
+
+The same file is `src/assets/mark.svg`, shown beside the name in the title bar
+and on About, so the window, the tray, the installer and the screen all carry one
+mark.
+
 ## 6. Motion
 
 Fluent curves and durations, from the token layer: `--ease-easy`, `--ease-decelerate`,

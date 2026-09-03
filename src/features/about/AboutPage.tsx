@@ -2,6 +2,8 @@ import { Copy20Regular, Open20Regular } from '@fluentui/react-icons';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useState } from 'react';
 
+import mark from '@/assets/mark.svg';
+
 import { describeError } from '@/data/errors';
 import { fetchSystemInfo, type SystemInfo } from '@/data/system';
 import { Button } from '@/ui/Button';
@@ -48,11 +50,14 @@ export function AboutPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-5 p-6">
-      <header>
-        <h1 className="font-display text-display font-semibold text-fg">Tessera</h1>
-        <p className="mt-1 text-body-lg text-fg-secondary">
-          A workspace for tasks, projects and time. It runs on this machine and nowhere else.
-        </p>
+      <header className="flex items-center gap-4">
+        <img src={mark} alt="" width={64} height={64} draggable={false} className="rounded-xl" />
+        <div>
+          <h1 className="font-display text-display font-semibold text-fg">Tessera</h1>
+          <p className="mt-1 text-body-lg text-fg-secondary">
+            A workspace for tasks, projects and time. It runs on this machine and nowhere else.
+          </p>
+        </div>
       </header>
 
       {/* ── The name ─────────────────────────────────────────────────────── */}
