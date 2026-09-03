@@ -155,6 +155,13 @@ pub fn create_event(conn: &Connection, new: NewEvent) -> Result<CalendarEvent> {
             timestamp
         ],
     )?;
+    // Events share the search index with items (ADR-008): one search box finds
+    // both. `search_fts` is standalone, so the row is written here, by hand.
+    conn.execute(
+        "INSERT INTO search_fts (owner_kind, owner_id, title, body)
+         VALUES ('event', ?1, ?2, '')",
+        params![id, title],
+    )?;
 
     get_event(conn, &id)
 }
@@ -181,6 +188,10 @@ pub fn rename_event(conn: &Connection, id: &str, title: &str) -> Result<Calendar
     if changed == 0 {
         return Err(Error::NotFound);
     }
+    conn.execute(
+        "UPDATE search_fts SET title = ?2 WHERE owner_kind = 'event' AND owner_id = ?1",
+        params![id, title],
+    )?;
     get_event(conn, id)
 }
 
@@ -189,6 +200,10 @@ pub fn delete_event(conn: &Connection, id: &str) -> Result<()> {
     if changed == 0 {
         return Err(Error::NotFound);
     }
+    conn.execute(
+        "DELETE FROM search_fts WHERE owner_kind = 'event' AND owner_id = ?1",
+        params![id],
+    )?;
     Ok(())
 }
 

@@ -11,6 +11,7 @@ pub mod migrations;
 pub mod models;
 pub mod properties;
 pub mod reminders;
+pub mod search;
 pub mod views;
 
 use std::path::PathBuf;
