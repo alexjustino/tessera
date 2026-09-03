@@ -8,7 +8,9 @@
 
 import { invoke } from '@tauri-apps/api/core';
 
+import type { Capture } from '@/domain/capture';
 import type { Collection, Item } from '@/domain/item';
+import type { PropertyValue } from '@/domain/property';
 import type { Schedule } from '@/domain/schedule';
 
 interface RawItem {
@@ -154,5 +156,36 @@ export async function setSchedule(id: string, schedule: Schedule): Promise<Item>
  */
 export async function completeOccurrence(id: string, nextDueAt: string | null): Promise<Item> {
   const raw = await invoke<RawItem>('item_complete_occurrence', { id, nextDueAt });
+  return toItem(raw);
+}
+
+/**
+ * Quick capture: the parsed line, written as one transaction.
+ *
+ * The host receives what the domain parser decided — title, instants, rule,
+ * property values — and either stores all of it or none of it.
+ */
+export async function captureItem(
+  collectionId: string,
+  position: string,
+  capture: Capture,
+  values: ReadonlyArray<{ propertyId: string; value: PropertyValue }>,
+): Promise<Item> {
+  const scheduled = capture.dueAt !== null || capture.remindAt !== null || capture.rule !== null;
+  const raw = await invoke<RawItem>('item_capture', {
+    request: {
+      item: { collection_id: collectionId, title: capture.title, position },
+      schedule: scheduled
+        ? {
+            start_at: null,
+            due_at: capture.dueAt,
+            remind_at: capture.remindAt,
+            recurrence_rrule: capture.rule,
+            recurrence_mode: capture.rule === null ? null : 'schedule',
+          }
+        : null,
+      values: values.map((entry) => ({ property_id: entry.propertyId, value: entry.value })),
+    },
+  });
   return toItem(raw);
 }
