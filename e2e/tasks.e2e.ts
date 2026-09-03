@@ -99,13 +99,20 @@ describe('tasks', () => {
     );
   });
 
-  it('completing a task moves it out of the open list', async () => {
+  it('completing a task marks that row and no other', async () => {
     const { driver } = session;
+    // The innermost list item that names the task — an ancestor would match
+    // too, and its first checkbox belongs to a different row. That mistake
+    // passed once, for the wrong reason, and the screenshot showed it.
     const box = await driver.findByXPath(
-      '//*[contains(normalize-space(.), "Call the plumber")]//input[@type="checkbox"]',
+      '//li[contains(normalize-space(.), "Call the plumber")][not(.//li)]//input[@type="checkbox"]',
     );
     await box.click();
     await driver.waitFor('completed', async () => ((await box.property('checked')) ? true : null));
+    const other = await driver.findByXPath(
+      '//li[contains(normalize-space(.), "Pay rent")][not(.//li)]//input[@type="checkbox"]',
+    );
+    expect(await other.property('checked')).toBe(false);
   });
 
   it('everything is still there after the process is killed and restarted', async () => {
@@ -114,7 +121,7 @@ describe('tasks', () => {
     await driver.waitForText('Pay rent');
     await driver.waitForText('Call the plumber');
     const box = await driver.findByXPath(
-      '//*[contains(normalize-space(.), "Call the plumber")]//input[@type="checkbox"]',
+      '//li[contains(normalize-space(.), "Call the plumber")][not(.//li)]//input[@type="checkbox"]',
     );
     expect(await box.property('checked')).toBe(true);
     await session.screenshot('tasks-after-restart');
