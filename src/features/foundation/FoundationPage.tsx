@@ -15,6 +15,7 @@ import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { InfoBar } from '@/ui/InfoBar';
 
+import { CaptureCard } from './CaptureCard';
 import { RemindersCard } from './RemindersCard';
 
 /**
@@ -212,6 +213,7 @@ export function FoundationPage() {
       </Card>
 
       <RemindersCard />
+      <CaptureCard />
     </div>
   );
 }
