@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 
 /**
  * A square button carrying only an icon.
@@ -12,6 +12,8 @@ interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
   label: string;
   icon: ReactNode;
   selected?: boolean;
+  /** For the rare caller that must reach the element — a drag handle, say. */
+  ref?: Ref<HTMLButtonElement>;
 }
 
 export function IconButton({
