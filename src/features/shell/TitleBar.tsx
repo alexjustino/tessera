@@ -1,6 +1,8 @@
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useEffect, useMemo, useState } from 'react';
 
+import mark from '@/assets/mark.svg';
+
 /**
  * The application's own title bar.
  *
@@ -61,7 +63,13 @@ export function TitleBar() {
       data-tauri-drag-region
       className="flex h-8 shrink-0 items-center justify-between border-b border-stroke-subtle bg-layer-alt pl-3 select-none"
     >
-      <span data-tauri-drag-region className="text-caption font-semibold text-fg-secondary">
+      <span
+        data-tauri-drag-region
+        className="flex items-center gap-2 text-caption font-semibold text-fg-secondary"
+      >
+        {/* The mark, at the size Windows draws a window icon. It is the product's
+            own, not the template's, and it is the same one on the tray. */}
+        <img src={mark} alt="" width={16} height={16} draggable={false} />
         Tessera
       </span>
 

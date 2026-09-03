@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!--
+    The Tessera mark.
+
+    A mosaic is four tiles that only mean something together — and one of them
+    is the piece being set: the tessera that carries the order of the day. It
+    is the lighter tile, so the eye lands on it, and it sits a hair apart from
+    the others, so it reads as a piece rather than a pattern.
+
+    Drawn to survive sixteen pixels in a tray: four shapes, one accent, no
+    strokes thinner than the gap between tiles. The blue is the Windows 11
+    default accent, the same value the token layer starts from.
+  -->
+  <defs>
+    <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a8ae0"/>
+      <stop offset="1" stop-color="#0060b0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- The ground: Windows 11 corner radius, at this scale. -->
+  <rect x="0" y="0" width="256" height="256" rx="56" fill="url(#ground)"/>
+
+  <!-- Three tiles set. -->
+  <rect x="56"  y="56"  width="64" height="64" rx="14" fill="#ffffff"/>
+  <rect x="136" y="56"  width="64" height="64" rx="14" fill="#ffffff"/>
+  <rect x="56"  y="136" width="64" height="64" rx="14" fill="#ffffff"/>
+
+  <!-- The piece being placed: lighter, and a hair apart. -->
+  <rect x="142" y="142" width="64" height="64" rx="14" fill="#a6dcff"/>
+</svg>
