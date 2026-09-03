@@ -1,9 +1,11 @@
 import {
+  CalendarAdd20Regular,
   ChevronLeft20Regular,
   ChevronRight20Regular,
   Delete16Regular,
+  ReOrderDotsVertical16Regular,
 } from '@fluentui/react-icons';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
 import {
@@ -13,6 +15,7 @@ import {
   useEventExceptions,
   useEvents,
   useMoveEvent,
+  useTimeBlockedItems,
   useWorkHours,
 } from '@/data/hooks';
 import {
@@ -29,11 +32,20 @@ import {
   type Occurrence,
 } from '@/domain/calendar';
 import type { Item } from '@/domain/item';
+import {
+  describePlacement,
+  firstSlot,
+  isMoveKey,
+  moveByKey,
+  placeOf,
+  type MoveBounds,
+} from '@/domain/moveByKeys';
 import { occurrencesBetween, systemZone } from '@/domain/schedule';
 import { Button } from '@/ui/Button';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { TabStrip } from '@/ui/TabStrip';
+import { announce } from '@/ui/announce';
 
 /** How tall an hour is, in pixels. Everything on the grid derives from this. */
 const HOUR_HEIGHT = 48;
@@ -46,6 +58,15 @@ const DEFAULT_BLOCK_MINUTES = 60;
 
 const DRAG_TASK = 'application/x-tessera-task';
 const DRAG_EVENT = 'application/x-tessera-event';
+
+/** What is being moved by keyboard, and where it is right now. */
+interface Carrying {
+  kind: 'event' | 'task';
+  id: string;
+  title: string;
+  startsAt: string;
+  durationMs: number;
+}
 
 /**
  * The calendar.
@@ -84,6 +105,14 @@ export function CalendarView({
   const deleteEvent = useDeleteEvent();
   const createBlock = useCreateTimeBlock();
 
+  // "Not scheduled" means no time reserved anywhere — a task blocked next
+  // month is scheduled, whatever days are on screen.
+  const blocked = useTimeBlockedItems();
+  const waiting = useMemo(() => {
+    const ids = new Set(blocked.data ?? []);
+    return unscheduled.filter((item) => !ids.has(item.id));
+  }, [unscheduled, blocked.data]);
+
   const occurrences = useMemo(
     () =>
       expand(events.data ?? [], exceptions.data ?? [], from, to, (event, windowFrom, windowTo) =>
@@ -105,6 +134,87 @@ export function CalendarView({
 
   const failure =
     calendars.error ?? events.error ?? exceptions.error ?? moveEvent.error ?? createBlock.error;
+
+  // ── Moving by keyboard ────────────────────────────────────────────────────
+  // The mouse route is HTML5 drag-and-drop; this is the other one. Something
+  // is picked up (an event on the grid, or a task from the panel), nudged with
+  // the arrows, and placed with Enter — every step spoken to the live region.
+  const [carrying, setCarrying] = useState<Carrying | null>(null);
+
+  const bounds: MoveBounds = useMemo(() => {
+    const span = workingSpan(days[0] ?? anchor, workHours.data ?? []);
+    return {
+      days,
+      zone,
+      workStartsMinute: span?.startsMinute ?? 9 * 60,
+      workEndsMinute: span?.endsMinute ?? 18 * 60,
+    };
+  }, [days, anchor, zone, workHours.data]);
+
+  const pickUpEvent = (occurrence: Occurrence) => {
+    const durationMs =
+      new Date(occurrence.endsAt).getTime() - new Date(occurrence.startsAt).getTime();
+    setCarrying({
+      kind: 'event',
+      id: occurrence.event.id,
+      title: occurrence.event.title || 'Untitled',
+      startsAt: occurrence.startsAt,
+      durationMs,
+    });
+    announce(
+      `Moving ${occurrence.event.title || 'Untitled'}. Use the arrow keys, Enter to place, Escape to cancel.`,
+    );
+  };
+
+  const pickUpTask = (item: Item) => {
+    setCarrying({
+      kind: 'task',
+      id: item.id,
+      title: item.title,
+      startsAt: firstSlot(bounds, todayIn(now, zone)),
+      durationMs: DEFAULT_BLOCK_MINUTES * 60_000,
+    });
+    announce(
+      `Reserving time for ${item.title}. Use the arrow keys, Enter to place, Escape to cancel.`,
+    );
+  };
+
+  useEffect(() => {
+    if (carrying === null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (isMoveKey(event.key)) {
+        event.preventDefault();
+        const startsAt = moveByKey(carrying, event.key, bounds);
+        const next = { ...carrying, startsAt };
+        setCarrying(next);
+        announce(describePlacement(next, zone));
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        const endsAt = new Date(
+          new Date(carrying.startsAt).getTime() + carrying.durationMs,
+        ).toISOString();
+        if (carrying.kind === 'event') {
+          moveEvent.mutate({ id: carrying.id, startsAt: carrying.startsAt, endsAt });
+        } else {
+          createBlock.mutate({
+            itemId: carrying.id,
+            calendarId: calendars.data?.[0]?.id ?? 'personal',
+            startsAt: carrying.startsAt,
+            endsAt,
+            tz: zone,
+          });
+        }
+        announce(`Placed ${carrying.title}, ${describePlacement(carrying, zone)}`);
+        setCarrying(null);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        announce('Cancelled');
+        setCarrying(null);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [carrying, bounds, zone, moveEvent, createBlock, calendars.data]);
 
   /** Where a drop landed, as an instant. */
   const instantAt = (day: string, minutes: number): string => {
@@ -179,7 +289,13 @@ export function CalendarView({
           </InfoBar>
         )}
 
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div
+          className="min-h-0 flex-1 overflow-auto"
+          // A scrollable region a keyboard cannot reach cannot be scrolled by one.
+          tabIndex={0}
+          role="region"
+          aria-label="Calendar grid"
+        >
           {scale === 'month' ? (
             <MonthGrid days={days} anchor={anchor} occurrences={occurrences} zone={zone} />
           ) : scale === 'agenda' ? (
@@ -193,12 +309,20 @@ export function CalendarView({
               workHours={workHours.data ?? []}
               onDrop={onDrop}
               onDelete={(id) => deleteEvent.mutate(id)}
+              carrying={carrying}
+              onPickUp={pickUpEvent}
             />
           )}
         </div>
       </div>
 
-      <UnscheduledPanel items={unscheduled} onOpen={onOpenItem} />
+      <UnscheduledPanel items={waiting} onOpen={onOpenItem} onPickUp={pickUpTask} />
+
+      {/* What the keys do, for anyone who reaches a block or a task. */}
+      <p id="calendar-keyboard-help" className="sr-only">
+        Enter picks up. The arrow keys move by fifteen minutes or a day, Page Up and Page Down by an
+        hour, Home and End to the start and end of the working day. Enter places, Escape cancels.
+      </p>
     </div>
   );
 }
@@ -213,6 +337,8 @@ function TimeGrid({
   workHours,
   onDrop,
   onDelete,
+  carrying,
+  onPickUp,
 }: {
   days: string[];
   occurrences: Occurrence[];
@@ -221,7 +347,10 @@ function TimeGrid({
   workHours: Array<{ weekday: number; startsMinute: number; endsMinute: number }>;
   onDrop: (day: string, minutes: number, transfer: DataTransfer) => void;
   onDelete: (id: string) => void;
+  carrying: Carrying | null;
+  onPickUp: (occurrence: Occurrence) => void;
 }) {
+  const carriedPlace = carrying ? placeOf(carrying.startsAt, zone) : null;
   const today = todayIn(now, zone);
   const nowMinutes = minutesInto(now, today, zone);
 
@@ -332,10 +461,26 @@ function TimeGrid({
                 </div>
               )}
 
+              {/* Where the carried block would land, drawn as an outline
+                  until Enter makes it real. */}
+              {carrying && carriedPlace && carriedPlace.day === day && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-0.5 z-30 rounded-sm border-2 border-dashed border-accent bg-accent-subtle px-1 text-caption font-semibold text-accent"
+                  style={{
+                    top: (carriedPlace.minute / 60) * HOUR_HEIGHT,
+                    height: (carrying.durationMs / 3_600_000) * HOUR_HEIGHT - 2,
+                  }}
+                >
+                  {carrying.title}
+                </div>
+              )}
+
               {boxes.map((box) => (
                 <article
                   key={`${box.occurrence.event.id}-${box.occurrence.originalStart}`}
                   draggable
+                  aria-label={`${box.occurrence.event.title || 'Untitled'}, ${timeOf(box.occurrence.startsAt, zone)} to ${timeOf(box.occurrence.endsAt, zone)}`}
                   onDragStart={(event) => {
                     const duration =
                       new Date(box.occurrence.endsAt).getTime() -
@@ -347,6 +492,7 @@ function TimeGrid({
                   }}
                   className={[
                     'group absolute overflow-hidden rounded-sm border px-1 py-0.5 text-caption',
+                    carrying?.id === box.occurrence.event.id ? 'opacity-40' : '',
                     box.occurrence.event.itemId !== null
                       ? 'border-accent/40 bg-accent-subtle text-accent'
                       : 'border-stroke bg-card text-fg',
@@ -365,14 +511,28 @@ function TimeGrid({
                   <span className="block truncate opacity-70">
                     {timeOf(box.occurrence.startsAt, zone)}
                   </span>
-                  <button
-                    type="button"
-                    aria-label={`Delete ${box.occurrence.event.title}`}
-                    onClick={() => onDelete(box.occurrence.event.id)}
-                    className="absolute top-0.5 right-0.5 hidden rounded-sm p-0.5 hover:bg-card-hover group-hover:block focus-visible:block"
-                  >
-                    <Delete16Regular />
-                  </button>
+                  {/* The keyboard route. A real button, so Enter reaches it the
+                      way Enter reaches every other control — the mouse drags
+                      the block itself. */}
+                  <span className="absolute top-0.5 right-0.5 flex gap-0.5">
+                    <button
+                      type="button"
+                      aria-label={`Move ${box.occurrence.event.title || 'Untitled'}`}
+                      aria-describedby="calendar-keyboard-help"
+                      onClick={() => onPickUp(box.occurrence)}
+                      className="rounded-sm p-0.5 opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-100 hover:bg-card-hover focus-visible:opacity-100"
+                    >
+                      <ReOrderDotsVertical16Regular />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Delete ${box.occurrence.event.title}`}
+                      onClick={() => onDelete(box.occurrence.event.id)}
+                      className="rounded-sm p-0.5 opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-100 hover:bg-card-hover focus-visible:opacity-100"
+                    >
+                      <Delete16Regular />
+                    </button>
+                  </span>
                 </article>
               ))}
             </div>
@@ -488,7 +648,15 @@ function AgendaList({
  * the left, and dragging it onto the grid turns it into time without turning it
  * into a different thing.
  */
-function UnscheduledPanel({ items, onOpen }: { items: Item[]; onOpen: (item: Item) => void }) {
+function UnscheduledPanel({
+  items,
+  onOpen,
+  onPickUp,
+}: {
+  items: Item[];
+  onOpen: (item: Item) => void;
+  onPickUp: (item: Item) => void;
+}) {
   return (
     <aside className="hidden w-56 shrink-0 flex-col rounded-lg border border-stroke-subtle bg-layer-alt p-2 lg:flex">
       <h3 className="mb-2 px-1 text-caption font-semibold text-fg-tertiary uppercase">
@@ -506,15 +674,22 @@ function UnscheduledPanel({ items, onOpen }: { items: Item[]; onOpen: (item: Ite
               <div
                 draggable
                 onDragStart={(event) => event.dataTransfer.setData(DRAG_TASK, item.id)}
-                className="cursor-grab rounded-md border border-stroke-subtle bg-card p-1.5 text-caption text-fg active:cursor-grabbing"
+                className="flex cursor-grab items-center gap-1 rounded-md border border-stroke-subtle bg-card p-1.5 text-caption text-fg active:cursor-grabbing"
               >
                 <button
                   type="button"
                   onClick={() => onOpen(item)}
-                  className="block w-full truncate text-left"
+                  className="block min-w-0 flex-1 truncate text-left"
                 >
                   {item.title}
                 </button>
+                <IconButton
+                  label={`Reserve time for ${item.title}`}
+                  icon={<CalendarAdd20Regular />}
+                  aria-describedby="calendar-keyboard-help"
+                  onClick={() => onPickUp(item)}
+                  className="-my-1 shrink-0"
+                />
               </div>
             </li>
           ))}
@@ -522,7 +697,8 @@ function UnscheduledPanel({ items, onOpen }: { items: Item[]; onOpen: (item: Ite
       )}
 
       <p className="mt-2 px-1 text-caption text-fg-tertiary">
-        Drag one onto the grid to reserve time for it. It stays the same task.
+        Drag one onto the grid, or press its calendar button and use the arrow keys, to reserve time
+        for it. It stays the same task.
       </p>
     </aside>
   );

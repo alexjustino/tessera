@@ -16,6 +16,7 @@ import { Button } from '@/ui/Button';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { Kbd } from '@/ui/Kbd';
+import { announce } from '@/ui/announce';
 
 import { CaptureLine } from './CaptureLine';
 
@@ -112,6 +113,7 @@ export function CaptureWindow() {
         onSuccess: (item) => {
           setValue('');
           setAdded({ title: item.title, dueAt: item.dueAt });
+          announce(`Added ${item.title} to Tasks`);
           linger.current = setTimeout(() => void hideCapture(), LINGER_MS);
         },
       },

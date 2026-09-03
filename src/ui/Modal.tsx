@@ -1,5 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 
+import { useFocusTrap } from './useFocusTrap';
+
 /**
  * A surface that takes over the window for one exchange.
  *
@@ -35,14 +37,11 @@ export function Modal({
       }
     };
     document.addEventListener('keydown', onKeyDown);
-    // Focus the first focusable descendant, or the panel itself.
-    const first = panel.current?.querySelector<HTMLElement>(
-      'input, button, [tabindex]:not([tabindex="-1"])',
-    );
-    (first ?? panel.current)?.focus();
-
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
+
+  // Tab stays inside while it is open; focus goes back to where it was after.
+  useFocusTrap(panel, open);
 
   if (!open) return null;
 

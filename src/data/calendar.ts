@@ -171,3 +171,8 @@ export async function createTimeBlock(input: {
     tz: input.tz,
   });
 }
+
+/** Items with time reserved for them anywhere — not only in the visible days. */
+export async function listTimeBlockedItems(): Promise<string[]> {
+  return invoke<string[]>('time_blocked_items');
+}

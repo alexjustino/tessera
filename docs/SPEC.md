@@ -155,6 +155,25 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of F11, and why
+
+Every screen is opened by the suite in both themes and audited; the keyboard
+reaches the calendar; contrast is a test; dialogs behave. What is listed under
+polish and accessibility and is not in the first version:
+
+- **Snap Layouts on the maximise button.** Windows shows the flyout when a
+  window answers `HTMAXBUTTON` to `WM_NCHITTEST`, but the cursor is over the
+  WebView2 child window, which answers for itself; its non-client region support
+  covers the caption drag (`app-region: drag`) and not the caption buttons. Until
+  WebView2 exposes that, maximising works and the flyout does not appear.
+- **Keyboard moves in the month and agenda views.** Both are read-only today;
+  the time grid is where blocks move, and that is where the keyboard works.
+- **Tooltips as a primitive.** Every icon control has a name and a `title`;
+  a styled `Tooltip` with a delay and an arrow is presentation on top of that.
+- **Windows high-contrast (forced colours) mode** was not verified by a person.
+- **A screen-reader pass by a person** (NVDA, Narrator). The live regions and
+  names are in place and audited; how they _sound_ needs ears.
+
 ### Deferred out of F10, and why
 
 Settings, backups, restore, export and import ship end to end, with the

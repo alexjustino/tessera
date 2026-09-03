@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
+import { Announcer } from '@/ui/Announcer';
+
 /**
  * The query client.
  *
@@ -24,5 +26,11 @@ const client = new QueryClient({
 });
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      {children}
+      {/* The live regions, present from the first render in every window. */}
+      <Announcer />
+    </QueryClientProvider>
+  );
 }

@@ -49,7 +49,9 @@ transparent.
 `src/app/theme.ts` reads the Windows accent **ramp** from the host and writes it into the token
 layer. Windows exposes a ramp rather than a single colour because the shade that reads well on
 white does not read well on near-black: light themes take the base and darker steps, dark
-themes the lighter ones. Re-apply the ramp whenever the theme changes.
+themes the lighter ones. Re-apply the ramp whenever the theme changes. In light, the fill and
+text colour is the ramp's **first dark step**, not the raw accent — what Fluent does, and what keeps
+accent text at 4.5:1 on white and on its own tint.
 
 When the system cannot be asked, the built-in default is used and `fromSystem` is `false` —
 and the interface says so. It does not pretend.
@@ -133,7 +135,15 @@ component cannot forget it. Nothing animates in a loop.
 - Full keyboard reach, including **dragging by keyboard** on the board and the calendar.
 - Contrast verified in both themes, including accent-on-surface.
 - Minimum target 32 px at comfortable density.
-- Live regions for anything that changes without a click.
+- Live regions for anything that changes without a click — through `announce()` from
+  `ui/announce.ts`, rendered by the one `Announcer` mounted with the providers. A component
+  never renders its own live region for a transient message.
+- Dialogs (`Modal`, `Drawer`, `ConfirmDialog`) hold Tab and give focus back on close, via
+  `useFocusTrap`.
+
+**Held by gates, not by review (ADR-018):** `src/styles/tokens.test.ts` checks every
+text-on-surface pair in both themes; `e2e/accessibility.e2e.ts` runs axe-core on every screen in
+both themes and drives the product by keyboard alone.
 
 ## 8. The canonical primitives
 

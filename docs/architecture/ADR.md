@@ -286,3 +286,22 @@ which this product has deliberately not built (README); a replace that asks firs
 import from a different schema version is refused rather than migrated; the backup path
 covers that case. Two backups in the same instant get a collision suffix rather than sharing a
 name — the test that found the collision is `tests/restore.rs`.
+
+## ADR-018 — Accessibility is gated, not reviewed {#adr-018}
+
+**Decision.** Three gates hold the design system's §7: a unit test that parses the token file and
+checks every text-on-surface pair in both themes against WCAG AA (`src/styles/tokens.test.ts`);
+an axe-core audit run by the end-to-end suite on every screen in both themes, failing on any
+serious or critical violation and reporting the rest; and a keyboard-only journey in the same
+suite — tab order, focus rings, a dialog that holds Tab and gives focus back, and a block moved
+on the calendar without a mouse. The keyboard route for moving time is its own pure module
+(`src/domain/moveByKeys.ts`), so what a key means is tested without a window.
+
+**Why.** A review remembers accessibility the week it is discussed. A gate remembers it on every
+pull request. The first run of the contrast test found the light accent below AA on its own
+tint and the strong stroke below the component minimum — both from the original palette, both
+unnoticed by every screen review before it.
+
+**Cost accepted.** axe-core is a development dependency injected into the page by the suite,
+never shipped. The audit cannot judge how a screen reader _sounds_; that stays a person's job,
+and is written down as such.

@@ -179,6 +179,7 @@ pub fn run() {
             commands::calendar::event_delete,
             commands::calendar::event_set_exception,
             commands::calendar::time_block_create,
+            commands::calendar::time_blocked_items,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");

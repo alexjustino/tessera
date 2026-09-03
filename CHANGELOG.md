@@ -7,8 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The Move and Delete controls on a calendar block were hidden with
+  `display: none` until hovered, which also took them out of the tab order; they
+  now fade in, and a keyboard reaches them.
+- The calendar's "Not scheduled" panel listed tasks that already had time
+  reserved outside the visible days.
+- Two backups in the same second shared a file name.
+
 ### Changed
 
+- The light theme's accent is now the ramp's first dark step, as Fluent does,
+  so accent text reads on white and on its own tint.
 - Theme and density moved from Diagnostics to Settings, and are now remembered.
 - The Windows accent colour is applied when the window opens, not only after
   visiting Diagnostics.
@@ -20,6 +31,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Moving time by keyboard.** On the calendar, a Move button on every block
+  and a Reserve button on every waiting task pick it up; the arrows nudge it by
+  fifteen minutes or a day,
+  Home and End go to the working day, Enter places, Escape cancels — every
+  step spoken to a screen reader. The mouse drag was the only route before.
+- **Live regions.** A task added, a card moved, a block placed, how many
+  results the palette found: said, not just shown.
+- **Dialogs hold Tab** and give focus back to where it was when they close.
+- **Contrast is a test.** Every text-on-surface pair in both themes is checked
+  against WCAG AA from the token file itself; the light accent, info and strong
+  stroke tokens were corrected to pass.
+- **An accessibility audit** with axe-core runs on every screen in both themes
+  in the end-to-end suite, alongside a keyboard-only journey.
 - **Settings.** Theme, density, the quick-capture shortcut (a closed list of
   four combinations), daily backups and how many to keep, start with Windows —
   kept in the workspace file, applied when the window opens.

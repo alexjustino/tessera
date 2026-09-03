@@ -55,10 +55,12 @@ export function applyAccent(ramp: AccentRamp): void {
     style.setProperty('--accent-active', ramp.accent);
     style.setProperty('--accent-subtle', withAlpha(ramp.light2, 0.12));
   } else {
-    style.setProperty('--accent-base', ramp.accent);
-    style.setProperty('--accent-hover', ramp.dark1);
-    style.setProperty('--accent-active', ramp.dark2);
-    style.setProperty('--accent-subtle', withAlpha(ramp.accent, 0.1));
+    // Fluent's light theme fills with the first dark step, not the raw accent:
+    // it is what keeps accent text readable on white and on its own tint.
+    style.setProperty('--accent-base', ramp.dark1);
+    style.setProperty('--accent-hover', ramp.dark2);
+    style.setProperty('--accent-active', ramp.dark3);
+    style.setProperty('--accent-subtle', withAlpha(ramp.dark1, 0.1));
   }
 }
 

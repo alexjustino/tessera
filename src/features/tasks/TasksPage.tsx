@@ -33,6 +33,7 @@ import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
 import { TabStrip } from '@/ui/TabStrip';
+import { announce } from '@/ui/announce';
 
 import { TaskDetail } from './TaskDetail';
 
@@ -132,7 +133,12 @@ export function TasksPage({
         },
         // Clearing only after the host accepted it means a rejected write does
         // not silently swallow what the person typed.
-        { onSuccess: () => setDraft('') },
+        {
+          onSuccess: (item) => {
+            setDraft('');
+            announce(`Added ${item.title}`);
+          },
+        },
       );
     },
     [create, items.data, priorityPropertyId],
