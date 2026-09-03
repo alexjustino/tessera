@@ -2,13 +2,16 @@ import { useQueryClient } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
 import { useCallback, useEffect, useState } from 'react';
 
-import { applyAccent, applyTheme } from '@/app/theme';
+import { applyAccent, applyDensity, applyTheme } from '@/app/theme';
 import { WORKSPACE_CHANGED, showCapture } from '@/data/capture';
 import { pauseReminders, resumeReminders } from '@/data/reminders';
+import { useSaveSettings, useSettings } from '@/data/hooks';
 import { fetchAccentRamp } from '@/data/system';
+import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { AboutPage } from '@/features/about/AboutPage';
 import { FoundationPage } from '@/features/foundation/FoundationPage';
 import { CommandPalette } from '@/features/palette/CommandPalette';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 import type { CommandId } from '@/features/palette/commands';
 import { Sidebar, type Destination } from '@/features/shell/Sidebar';
 import { TitleBar } from '@/features/shell/TitleBar';
@@ -36,6 +39,19 @@ export function App() {
   const [focus, setFocus] = useState<Focus>({ itemId: null, nonce: 0 });
   const [paletteOpen, setPaletteOpen] = useState(false);
   const client = useQueryClient();
+  const settings = useSettings();
+  const saveSettings = useSaveSettings();
+
+  // The stored theme and density are applied as soon as they are read, and
+  // the accent ramp after them, because the ramp depends on the theme.
+  useEffect(() => {
+    if (!settings.data) return;
+    applyTheme(settings.data.theme);
+    applyDensity(settings.data.density);
+    void fetchAccentRamp()
+      .then(applyAccent)
+      .catch(() => undefined);
+  }, [settings.data]);
 
   // A write from another window — the quick-capture line — lands in the same
   // file but not in this window's cache. The host says so; everything refetches.
@@ -97,6 +113,7 @@ export function App() {
         case 'go.tasks':
         case 'go.board':
         case 'go.calendar':
+        case 'go.settings':
         case 'go.diagnostics':
         case 'go.about':
           go(id.slice('go.'.length) as Destination);
@@ -116,15 +133,19 @@ export function App() {
           break;
         case 'theme.system':
         case 'theme.light':
-        case 'theme.dark':
-          applyTheme(id.slice('theme.'.length) as 'system' | 'light' | 'dark');
+        case 'theme.dark': {
+          // Applied now, saved behind: the palette is a shortcut to Settings.
+          const theme = id.slice('theme.'.length) as 'system' | 'light' | 'dark';
+          applyTheme(theme);
           void fetchAccentRamp()
             .then(applyAccent)
             .catch(() => undefined);
+          saveSettings.mutate({ ...(settings.data ?? DEFAULT_SETTINGS), theme });
           break;
+        }
       }
     },
-    [go],
+    [go, saveSettings, settings.data],
   );
 
   const pageKey = `${destination}:${focus.nonce}`;
@@ -141,6 +162,7 @@ export function App() {
           {destination === 'today' && <TasksPage key={pageKey} initialViewId="view.today" />}
           {destination === 'board' && <TasksPage key={pageKey} initialViewId="tasks.board" />}
           {destination === 'calendar' && <TasksPage key={pageKey} initialViewId="view.calendar" />}
+          {destination === 'settings' && <SettingsPage />}
           {destination === 'diagnostics' && <FoundationPage />}
           {destination === 'about' && <AboutPage />}
         </main>

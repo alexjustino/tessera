@@ -20,7 +20,8 @@ import { Kbd } from '@/ui/Kbd';
  * going, and nothing pretends to work when it does not.
  */
 
-export type Destination = 'tasks' | 'today' | 'board' | 'calendar' | 'diagnostics' | 'about';
+export type Destination =
+  'tasks' | 'today' | 'board' | 'calendar' | 'settings' | 'diagnostics' | 'about';
 
 interface Entry {
   id: string;
@@ -34,7 +35,7 @@ const ENTRIES: Entry[] = [
   { id: 'tasks', label: 'Tasks', icon: <TaskListSquareLtr20Regular />, ready: true },
   { id: 'board', label: 'Board', icon: <Board20Regular />, ready: true },
   { id: 'calendar', label: 'Calendar', icon: <Calendar20Regular />, ready: true },
-  { id: 'settings', label: 'Settings', icon: <Settings20Regular />, ready: false },
+  { id: 'settings', label: 'Settings', icon: <Settings20Regular />, ready: true },
   { id: 'diagnostics', label: 'Diagnostics', icon: <Wrench20Regular />, ready: true },
   { id: 'about', label: 'About', icon: <Info20Regular />, ready: true },
 ];

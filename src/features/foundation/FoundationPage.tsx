@@ -1,7 +1,7 @@
 import { Alert20Regular, Database20Regular } from '@fluentui/react-icons';
 import { useCallback, useEffect, useState } from 'react';
 
-import { applyAccent, applyDensity, applyTheme, type Density, type ThemeChoice } from '@/app/theme';
+import { applyAccent } from '@/app/theme';
 import { describeError } from '@/data/errors';
 import {
   fetchAccentRamp,
@@ -32,9 +32,6 @@ export function FoundationPage() {
   const [ramp, setRamp] = useState<AccentRamp | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
-  const [theme, setTheme] = useState<ThemeChoice>('system');
-  const [density, setDensity] = useState<Density>('comfortable');
-
   const [toast, setToast] = useState<ToastOutcome | null>(null);
   const [probing, setProbing] = useState(false);
 
@@ -55,23 +52,6 @@ export function FoundationPage() {
     return () => {
       active = false;
     };
-  }, []);
-
-  const chooseTheme = useCallback(
-    (choice: ThemeChoice) => {
-      setTheme(choice);
-      applyTheme(choice);
-      // The accent ramp is theme-dependent: light surfaces take the darker
-      // steps, dark surfaces the lighter ones. Re-apply, or the accent stops
-      // meeting contrast on the new surface.
-      if (ramp) applyAccent(ramp);
-    },
-    [ramp],
-  );
-
-  const chooseDensity = useCallback((choice: Density) => {
-    setDensity(choice);
-    applyDensity(choice);
   }, []);
 
   const runProbe = useCallback(async () => {
@@ -122,55 +102,34 @@ export function FoundationPage() {
       </Card>
 
       <Card
-        title="Appearance"
-        description="Mica is painted by Windows behind this window. The accent colour is the one you chose for your desktop."
+        title="Accent"
+        description="The ramp Windows gave for your accent colour. Theme and density are chosen in Settings."
       >
-        <div className="flex flex-col gap-4">
-          <Choice
-            label="Theme"
-            options={['system', 'light', 'dark'] as const}
-            value={theme}
-            onChange={chooseTheme}
-          />
-          <Choice
-            label="Density"
-            options={['comfortable', 'compact'] as const}
-            value={density}
-            onChange={chooseDensity}
-          />
-
-          <div>
-            <p className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">
-              Accent ramp
-            </p>
-            <div className="flex overflow-hidden rounded-md border border-stroke-subtle">
-              {ramp
-                ? [
-                    ramp.dark3,
-                    ramp.dark2,
-                    ramp.dark1,
-                    ramp.accent,
-                    ramp.light1,
-                    ramp.light2,
-                    ramp.light3,
-                  ].map((hex) => (
-                    <div
-                      key={hex}
-                      className="h-10 flex-1"
-                      style={{ backgroundColor: hex }}
-                      title={hex}
-                    />
-                  ))
-                : null}
-            </div>
-            {ramp && !ramp.fromSystem && (
-              <p className="mt-2 text-caption text-fg-tertiary">
-                This is the built-in default, not your Windows setting — the system could not be
-                asked.
-              </p>
-            )}
-          </div>
+        <div className="flex overflow-hidden rounded-md border border-stroke-subtle">
+          {ramp
+            ? [
+                ramp.dark3,
+                ramp.dark2,
+                ramp.dark1,
+                ramp.accent,
+                ramp.light1,
+                ramp.light2,
+                ramp.light3,
+              ].map((hex) => (
+                <div
+                  key={hex}
+                  className="h-10 flex-1"
+                  style={{ backgroundColor: hex }}
+                  title={hex}
+                />
+              ))
+            : null}
         </div>
+        {ramp && !ramp.fromSystem && (
+          <p className="mt-2 text-caption text-fg-tertiary">
+            This is the built-in default, not your Windows setting — the system could not be asked.
+          </p>
+        )}
       </Card>
 
       <Card
@@ -229,39 +188,5 @@ function Row({ label, value, mono = false }: { label: string; value: string; mon
         {value}
       </dd>
     </>
-  );
-}
-
-function Choice<T extends string>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: readonly T[];
-  value: T;
-  onChange: (next: T) => void;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="w-28 shrink-0 text-caption font-semibold text-fg-tertiary uppercase">
-        {label}
-      </span>
-      <div role="radiogroup" aria-label={label} className="flex gap-1">
-        {options.map((option) => (
-          <Button
-            key={option}
-            role="radio"
-            aria-checked={option === value}
-            appearance={option === value ? 'accent' : 'standard'}
-            onClick={() => onChange(option)}
-            className="capitalize"
-          >
-            {option}
-          </Button>
-        ))}
-      </div>
-    </div>
   );
 }

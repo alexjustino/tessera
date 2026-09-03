@@ -2,24 +2,20 @@ import { Alert20Regular, Pause20Regular, Play20Regular } from '@fluentui/react-i
 
 import { describeError } from '@/data/errors';
 import {
-  useAutostart,
   useDismissReminder,
   usePauseReminders,
   useReminderStatus,
   useResumeReminders,
-  useSetAutostart,
   useSnoozeReminder,
 } from '@/data/hooks';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
-import { Checkbox } from '@/ui/Checkbox';
 import { InfoBar } from '@/ui/InfoBar';
 
 /**
  * The alert pipeline, shown rather than asserted.
  *
- * What is queued, whether the queue is paused, and whether the product starts
- * with Windows. The queue is the scheduler's own list, read back — if it says a
+ * What is queued and whether the queue is paused. The queue is the scheduler's own list, read back — if it says a
  * reminder will fire at nine, that is because the loop will sleep until nine.
  */
 export function RemindersCard() {
@@ -28,10 +24,8 @@ export function RemindersCard() {
   const resume = useResumeReminders();
   const snooze = useSnoozeReminder();
   const dismiss = useDismissReminder();
-  const autostart = useAutostart();
-  const setAutostart = useSetAutostart();
 
-  const failure = status.error ?? pause.error ?? autostart.error ?? setAutostart.error;
+  const failure = status.error ?? pause.error;
   const paused = status.data?.pausedUntil ?? null;
 
   return (
@@ -73,22 +67,6 @@ export function RemindersCard() {
             when the pause lifts.
           </InfoBar>
         )}
-
-        <label className="flex items-center gap-2 text-body text-fg">
-          <Checkbox
-            checked={autostart.data === true}
-            label="Start with Windows"
-            disabled={autostart.isPending || setAutostart.isPending}
-            onChange={(on) => setAutostart.mutate(on)}
-          />
-          <span>
-            Start with Windows, minimised to the tray
-            <span className="block text-caption text-fg-tertiary">
-              Off unless you turn it on. This is how reminders arrive before you have opened
-              anything.
-            </span>
-          </span>
-        </label>
 
         <div>
           <p className="mb-1 text-caption font-semibold text-fg-tertiary uppercase">Queued</p>
