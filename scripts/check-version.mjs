@@ -1,10 +1,14 @@
 /**
- * The version is one fact, declared in three files.
+ * The version is one fact, declared in four files.
  *
  * `src-tauri/tauri.conf.json` is the source of truth — it is what the installer
- * and the running binary carry. `package.json` and `src-tauri/Cargo.toml` mirror
- * it. VERSIONING.md has always said a gate fails if the three disagree; this is
- * that gate.
+ * and the running binary carry. `package.json`, its lockfile and
+ * `src-tauri/Cargo.toml` mirror it. VERSIONING.md has always said a gate fails
+ * if they disagree; this is that gate.
+ *
+ * The lockfile is here because it drifted the first time this was used in
+ * anger: `package.json` was edited by hand, and npm's copy of the version stayed
+ * a release behind until something looked.
  *
  * Run by `npm run gates`, so a bump that misses a file cannot reach a tag.
  */
@@ -35,7 +39,11 @@ function readCargo(relative) {
 }
 
 const truth = readJson('src-tauri/tauri.conf.json', 'version');
-const mirrors = [readJson('package.json', 'version'), readCargo('src-tauri/Cargo.toml')];
+const mirrors = [
+  readJson('package.json', 'version'),
+  readJson('package-lock.json', 'version'),
+  readCargo('src-tauri/Cargo.toml'),
+];
 
 const problems = [];
 
