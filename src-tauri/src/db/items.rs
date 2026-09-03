@@ -361,6 +361,11 @@ pub fn set_schedule(conn: &Connection, id: &str, schedule: ItemSchedule) -> Resu
         ));
     }
 
+    // The reminder table is the scheduler's only source. An item's remind_at is
+    // the person's intent; the row is what fires. They are kept in step here so
+    // there is exactly one place where they can drift, and it is this one.
+    super::reminders::sync_for_item(conn, id, schedule.remind_at.as_deref())?;
+
     let changed = conn.execute(
         "UPDATE item
          SET start_at = ?2, due_at = ?3, remind_at = ?4,
