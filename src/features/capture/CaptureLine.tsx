@@ -84,7 +84,10 @@ export function CaptureLine({
                   type="button"
                   aria-label={`Keep "${chip.text}" in the title`}
                   onClick={() => onChange(withoutChip(value, chip))}
-                  className="-mr-0.5 ml-0.5 grid size-4 place-items-center rounded-sm hover:bg-card-active"
+                  // The glyph is small; the target is not. Negative margins
+                  // grow the hit area to the design system's 32 px minimum
+                  // without growing the chip.
+                  className="-my-2 -mr-1.5 ml-0.5 grid h-8 w-6 place-items-center rounded-sm hover:bg-card-active"
                 >
                   <Dismiss12Regular aria-hidden="true" />
                 </button>

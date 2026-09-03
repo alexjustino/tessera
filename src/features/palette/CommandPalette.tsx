@@ -157,6 +157,11 @@ export function CommandPalette({
         <Kbd>Esc</Kbd>
       </div>
 
+      {/* Screen readers hear how many results the letters found. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {entries.length === 0 ? 'No results' : `${entries.length} results`}
+      </p>
+
       <ul
         id="palette-list"
         role="listbox"
