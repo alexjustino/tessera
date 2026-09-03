@@ -100,3 +100,10 @@ pub fn time_block_create(
         &tz,
     )
 }
+
+/// Items with time reserved anywhere, so the side panel can leave them out.
+#[tauri::command]
+pub fn time_blocked_items(db: State<'_, Db>) -> Result<Vec<String>> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    calendar::time_blocked_item_ids(&conn)
+}

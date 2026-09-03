@@ -351,7 +351,16 @@ export const calendarKeys = {
   workHours: ['work-hours'] as const,
   events: (from: string, to: string) => ['events', from, to] as const,
   exceptions: ['event-exceptions'] as const,
+  timeBlocked: ['time-blocked'] as const,
 };
+
+/** The ids of items that already have a block on the calendar. */
+export function useTimeBlockedItems() {
+  return useQuery({
+    queryKey: calendarKeys.timeBlocked,
+    queryFn: calendarApi.listTimeBlockedItems,
+  });
+}
 
 export function useCalendars() {
   return useQuery({ queryKey: calendarKeys.calendars, queryFn: calendarApi.listCalendars });
@@ -378,6 +387,7 @@ function useInvalidateCalendar() {
   return () => {
     void client.invalidateQueries({ queryKey: ['events'] });
     void client.invalidateQueries({ queryKey: ['event-exceptions'] });
+    void client.invalidateQueries({ queryKey: calendarKeys.timeBlocked });
     // Reserving time for a task touches the task's own row too.
     void client.invalidateQueries({ queryKey: ['items'] });
   };

@@ -250,6 +250,21 @@ pub fn set_exception(
 /// One transaction, because a half-written block is an event on somebody's
 /// calendar that belongs to nothing and cannot be traced back to the work it
 /// was meant to protect.
+/// Items that have time reserved for them, whatever the window.
+///
+/// The side panel calls itself "Not scheduled", and a task with a block next
+/// month is scheduled — so the question is asked of the whole table, not of
+/// the days on screen.
+pub fn time_blocked_item_ids(conn: &Connection) -> Result<Vec<String>> {
+    let mut statement = conn.prepare(
+        "SELECT DISTINCT tb.item_id FROM time_block tb JOIN event e ON e.id = tb.event_id",
+    )?;
+    let ids = statement
+        .query_map([], |row| row.get::<_, String>(0))?
+        .collect::<rusqlite::Result<Vec<_>>>()?;
+    Ok(ids)
+}
+
 pub fn create_time_block(
     conn: &mut Connection,
     item_id: &str,
