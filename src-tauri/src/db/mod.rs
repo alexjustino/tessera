@@ -4,14 +4,17 @@
 //! layout are pure TypeScript in `src/domain/` (ADR-004). Rust owns storage,
 //! transactions, full-text search, migrations and the operating system.
 
+pub mod backup;
 pub mod blocks;
 pub mod calendar;
+pub mod export;
 pub mod items;
 pub mod migrations;
 pub mod models;
 pub mod properties;
 pub mod reminders;
 pub mod search;
+pub mod settings;
 pub mod views;
 
 use std::path::PathBuf;
@@ -45,8 +48,12 @@ pub fn database_path(app: &AppHandle) -> Result<PathBuf> {
 
 /// Open the workspace, apply pending migrations, and return the connection.
 pub fn open(app: &AppHandle) -> Result<Connection> {
-    let path = database_path(app)?;
-    let conn = Connection::open(&path)?;
+    open_at(&database_path(app)?)
+}
+
+/// Open a workspace file the way start-up does. Also how a restore reopens it.
+pub fn open_at(path: &std::path::Path) -> Result<Connection> {
+    let conn = Connection::open(path)?;
 
     // WAL keeps readers from blocking the writer and survives a hard kill far
     // better than the rollback journal. NORMAL is the correct companion to WAL:

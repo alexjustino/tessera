@@ -264,3 +264,25 @@ runtime, so it is not in the pull-request gate — `npm run gates` stays fast an
 runs on a developer machine and from a manually triggered workflow. A global shortcut cannot be
 pressed through WebDriver; that path is proved by Diagnostics reporting its registration and by
 a person.
+
+## ADR-017 — Backups are file copies; import replaces, never merges {#adr-017}
+
+**Decision.** A backup is `VACUUM INTO` a timestamped file beside the workspace, taken on the
+first start of each day and on request, kept in rotation. A restore closes the live connection,
+copies the backup over the workspace file and reopens it through the same path start-up uses,
+so pending migrations run. Export is the whole database read through `PRAGMA table_info`, one
+JSON document; import replaces every table in one transaction, checked for referential
+integrity before it commits, and rebuilds the search index. Before any restore or import a
+safety backup is taken.
+
+**Why.** `VACUUM INTO` gives a consistent, compacted copy of a live WAL database without
+stopping it. Replacing the file is what a person means by "restore", and it is the one
+strategy that also handles a backup from an older schema — the file comes back whole and the
+migrations bring it forward. Reading the export through the schema means a migration cannot
+leave a column out of it. Merging two histories of the same identifiers is synchronisation,
+which this product has deliberately not built (README); a replace that asks first is honest.
+
+**Cost accepted.** A restore interrupts the connection for the duration of a file copy. An
+import from a different schema version is refused rather than migrated; the backup path
+covers that case. Two backups in the same instant get a collision suffix rather than sharing a
+name — the test that found the collision is `tests/restore.rs`.

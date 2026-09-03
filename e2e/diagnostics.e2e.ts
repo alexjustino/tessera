@@ -50,8 +50,10 @@ describe('diagnostics and about', () => {
     await driver.waitForText('Ctrl+Alt+Space');
   });
 
-  it('the appearance controls switch the theme on the root element', async () => {
+  it('the theme control in Settings switches the theme on the root element', async () => {
     const { driver } = session;
+    await (await driver.findByXPath('//nav//button[normalize-space(.)="Settings"]')).click();
+    await driver.waitForText('Kept in your workspace file');
     await (await driver.findByXPath('//*[@role="radio"][normalize-space(.)="dark"]')).click();
     await driver.waitFor('dark theme', async () => {
       const theme = await driver.execute<string | null>(

@@ -52,7 +52,7 @@ while still being the same task.**
 | **Task becomes a time block** |    ✗     |     ✗      |    ✗     |  weak   |            **✓**             |
 | Native toast + tray           |    ✓     |     ✗      |   weak   |    ✓    |      **✓ with actions**      |
 | Global quick capture          |   weak   |     ✗      |    ✗     |    ✗    |     **✓ Ctrl+Alt+Space**     |
-| Your data, your file          |    ✗     |     ✗      |    ✗     |    ✗    |      **✓ local SQLite**      |
+| Your data, your file          |    ✗     |     ✗      |    ✗     |    ✗    | **✓ SQLite, daily backups**  |
 | Price                         | freemium |  freemium  | freemium | licence |    **free, open source**     |
 
 ## The name

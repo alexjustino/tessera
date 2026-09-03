@@ -14,6 +14,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Capture } from '@/domain/capture';
+import type { Settings } from '@/domain/settings';
 import type { PropertyConfig } from '@/domain/property';
 import { toFtsQuery } from '@/domain/search';
 import type { BoardConfig, Move } from '@/domain/board';
@@ -29,6 +30,8 @@ import * as calendarApi from './calendar';
 import * as viewApi from './views';
 import * as searchApi from './search';
 import * as captureApi from './capture';
+import * as settingsApi from './settings';
+import * as backupsApi from './backups';
 
 export const keys = {
   collections: ['collections'] as const,
@@ -522,4 +525,76 @@ export function useCaptureItem() {
 
 export function useCaptureStatus() {
   return useQuery({ queryKey: ['capture-status'] as const, queryFn: captureApi.captureStatus });
+}
+
+// ── Settings and data (F10) ────────────────────────────────────────────────
+
+export const settingsKey = ['settings'] as const;
+
+export function useSettings() {
+  return useQuery({ queryKey: settingsKey, queryFn: settingsApi.getSettings });
+}
+
+/**
+ * Replace the settings. The cache takes what the host actually stored, not
+ * what was sent — a refused value never looks accepted — and the capture
+ * status is re-read because the shortcut may have been re-bound.
+ */
+export function useSaveSettings() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (settings: Settings) => settingsApi.setSettings(settings),
+    onSuccess: (saved) => {
+      client.setQueryData(settingsKey, saved);
+      void client.invalidateQueries({ queryKey: ['capture-status'] });
+    },
+  });
+}
+
+export function useBackupsStatus() {
+  return useQuery({
+    queryKey: ['backups'] as const,
+    queryFn: backupsApi.backupsStatus,
+    staleTime: 0,
+  });
+}
+
+export function useBackupNow() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: backupsApi.backupNow,
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['backups'] }),
+  });
+}
+
+/** After the workspace is replaced, nothing in any cache can be trusted. */
+function useWorkspaceReplaced() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries();
+    void reminderApi.refreshTray();
+  };
+}
+
+export function useRestoreBackup() {
+  const replaced = useWorkspaceReplaced();
+  return useMutation({
+    mutationFn: (path: string) => backupsApi.restoreBackup(path),
+    onSuccess: replaced,
+  });
+}
+
+export function useExport() {
+  return useMutation({
+    mutationFn: ({ kind, path }: { kind: backupsApi.ExportKind; path: string }) =>
+      backupsApi.exportTo(kind, path),
+  });
+}
+
+export function useImportJson() {
+  const replaced = useWorkspaceReplaced();
+  return useMutation({
+    mutationFn: (path: string) => backupsApi.importJson(path),
+    onSuccess: replaced,
+  });
 }

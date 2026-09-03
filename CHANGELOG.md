@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Theme and density moved from Diagnostics to Settings, and are now remembered.
 - The Windows accent colour is applied when the window opens, not only after
   visiting Diagnostics.
 - Deleting an item now removes its document and its search-index rows. They key
@@ -19,6 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Settings.** Theme, density, the quick-capture shortcut (a closed list of
+  four combinations), daily backups and how many to keep, start with Windows —
+  kept in the workspace file, applied when the window opens.
+- **Backups.** A compacted copy of the workspace on the first start of each
+  day and on request, kept in rotation beside the file. Restore from the list
+  or from any file; a backup of the current state is taken first, so a restore
+  can itself be undone.
+- **Export and import.** JSON is the whole workspace, every table and column,
+  and the only form that imports — import replaces, never merges, inspects the
+  file first and asks. Markdown for tasks and notes; iCalendar for events and
+  dated tasks, with repeat rules and cancelled occurrences.
 - **Quick capture.** `Ctrl+Alt+Space` in any program opens a one-line window over
   whatever is on screen. Plain words become the task's date, time, repeat rule,
   priority and reminder — "Pay rent on friday at 9am !high remind me 15m

@@ -26,7 +26,13 @@ export const COMMANDS: readonly PaletteCommand[] = [
   { id: 'go.tasks', title: 'Go to Tasks', group: 'navigate', keywords: ['list', 'table'] },
   { id: 'go.board', title: 'Go to Board', group: 'navigate', keywords: ['kanban', 'columns'] },
   { id: 'go.calendar', title: 'Go to Calendar', group: 'navigate', keywords: ['agenda', 'week'] },
-  { id: 'go.diagnostics', title: 'Go to Diagnostics', group: 'navigate', keywords: ['settings'] },
+  {
+    id: 'go.settings',
+    title: 'Go to Settings',
+    group: 'navigate',
+    keywords: ['preferences', 'backup', 'export', 'theme'],
+  },
+  { id: 'go.diagnostics', title: 'Go to Diagnostics', group: 'navigate', keywords: ['probe'] },
   { id: 'go.about', title: 'Go to About', group: 'navigate', keywords: ['version', 'licence'] },
   { id: 'new.task', title: 'New task', group: 'create', keywords: ['add', 'create'] },
   {

@@ -155,6 +155,27 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of F10, and why
+
+Settings, backups, restore, export and import ship end to end, with the
+restore test the slice was named for. What is listed in the scope and is not
+in the first version:
+
+- **Choosing the backup folder.** Backups live beside the workspace file, where
+  they are found by the same relocation the workspace uses. A second location —
+  a synced folder, another drive — is a preference for a later slice; Explorer
+  is one click away meanwhile.
+- **Importing other products' files.** Microsoft To Do, Trello, Notion, Todoist
+  and ICS importers are the 1.2 theme; only Tessera's own export imports today.
+- **Merging on import.** Import replaces the workspace. Merging two histories
+  of the same identifiers is a synchronisation problem, and the product does
+  not pretend to have solved it (ADR-017).
+- **Moved occurrences in the iCalendar export.** Cancelled occurrences go out as
+  `EXDATE`; a moved one would need `RECURRENCE-ID` and its own `VEVENT`, and
+  is written down here rather than exported half-right.
+- **Exporting from the command palette** and a keyboard shortcut for "back up
+  now" — both a screen away in Settings.
+
 ### Deferred out of F9, and why
 
 Quick capture, the palette and search ship end to end: a global shortcut, a
