@@ -81,15 +81,16 @@ npm run gates
 
 runs, and all of them must pass:
 
-| Gate                       | What it protects                                                     |
-| -------------------------- | -------------------------------------------------------------------- |
-| `cargo fmt --check`        | Rust formatting                                                      |
-| `cargo clippy -D warnings` | Rust correctness and idiom                                           |
-| `cargo test`               | repository, migrations, OS layer                                     |
-| `tsc --noEmit`             | type correctness                                                     |
-| `eslint`                   | **`react-hooks/rules-of-hooks` is an error**, plus the boundary rule |
-| `prettier --check`         | formatting                                                           |
-| `vitest`                   | domain rules, including negative cases                               |
+| Gate                       | What it protects                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------ |
+| `cargo fmt --check`        | Rust formatting                                                                      |
+| `cargo clippy -D warnings` | Rust correctness and idiom                                                           |
+| `cargo test`               | repository, migrations, OS layer                                                     |
+| `tsc --noEmit`             | type correctness                                                                     |
+| `eslint`                   | **`react-hooks/rules-of-hooks` is an error**, plus the boundary rule                 |
+| `prettier --check`         | formatting                                                                           |
+| `vitest`                   | domain rules, including negative cases                                               |
+| `npm run e2e` (separate)   | the real binary through WebDriver — needs a debug build and `msedgedriver` (ADR-016) |
 
 > A hook placed after an early return type-checks cleanly and crashes the screen at runtime.
 > That is why the lint gate is mandatory and not advisory.

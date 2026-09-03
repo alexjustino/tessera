@@ -155,6 +155,27 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of F9, and why
+
+Quick capture, the palette and search ship end to end: a global shortcut, a
+floating window, a stated grammar with live chips, one index over tasks and
+events, and a suite that drives the real binary. What is listed in the scope
+and is not in the first version:
+
+- **Choosing the shortcut.** It is `Ctrl+Alt+Space`, fixed. A preference belongs to
+  Settings, which is F10; until then Diagnostics says whether the key registered
+  and the tray menu and palette are the fallback.
+- **Capturing into a collection other than Tasks**, or with a note body. One
+  collection exists today; the request shape already carries the collection.
+- **Acting on a search hit from the palette** — complete, snooze, reschedule.
+  Enter opens the item; the actions are one screen away.
+- **Grammar in other languages.** The parser is English, stated in full in its
+  header. Portuguese is the first candidate and follows the interface's i18n.
+- **Pressing the global shortcut in the end-to-end suite.** WebDriver speaks to
+  the page, not to the operating system; the suite summons the window through
+  the same command the tray uses and proves the rest. The key itself is proved
+  by Diagnostics reporting its registration, and by a person pressing it.
+
 ### Deferred out of F8, and why
 
 The alert pipeline ships end to end: reminder rows, a scheduler that survives a

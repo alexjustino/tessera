@@ -243,3 +243,24 @@ README and `SECURITY.md`.
 **Why.** A code-signing certificate is a recurring commercial cost that does not change the
 security properties of the software, only the first-run experience. Deferring it is a budget
 decision, taken openly, and reversible at any time.
+
+## ADR-016 — End-to-end tests drive the real binary {#adr-016}
+
+**Decision.** The end-to-end suite (`e2e/`, `npm run e2e`) launches the debug binary through
+`tauri-driver` and the platform's WebDriver (`msedgedriver`, matched to the installed WebView2
+runtime), on a workspace relocated by `TESSERA_DATA_DIR` to an empty temporary directory. The
+client is a small W3C WebDriver implementation kept in the repository, not a framework.
+
+**Why.** Unit tests prove rules; they cannot see the seams. The defects that survived green unit
+suites in earlier slices all lived between two correct components — a cache in one window not
+told about a write in another, a driver attaching to the wrong window, an index row not written
+by one path. Only a test through the real host, the real page and the real file can find those,
+and one did on its first run. The relocated workspace is what makes the suite safe to run on a
+machine that has a real Tessera open, and it doubles as a migration test: every session starts
+from an empty file.
+
+**Cost accepted.** The suite needs a built binary and a driver that matches the WebView2
+runtime, so it is not in the pull-request gate — `npm run gates` stays fast and hermetic. It
+runs on a developer machine and from a manually triggered workflow. A global shortcut cannot be
+pressed through WebDriver; that path is proved by Diagnostics reporting its registration and by
+a person.

@@ -111,6 +111,17 @@ Run the full validation battery exactly as CI does:
 npm run gates
 ```
 
+The end-to-end suite drives the real binary through WebDriver on a throwaway workspace. It needs
+a debug build and a [Microsoft Edge WebDriver](https://developer.microsoft.com/microsoft-edge/tools/webdriver/)
+matching your WebView2 runtime (`edge://version` shows it):
+
+```bash
+cargo install tauri-driver --locked
+npm run e2e:build
+$env:TESSERA_E2E_EDGEDRIVER = 'C:\path\to\msedgedriver.exe'
+npm run e2e
+```
+
 ## Roadmap
 
 | Release   | Theme                         | Contents                                                                                                                                                                                                                |
