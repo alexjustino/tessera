@@ -77,6 +77,7 @@ pub fn run() {
         )
         .setup(|app| {
             let connection = db::open(app.handle())?;
+            let settings = db::settings::get(&connection).unwrap_or_default();
             app.manage(db::Db(Mutex::new(connection)));
 
             // The reminder loop and the tray. The tray is what keeps the process
@@ -86,7 +87,7 @@ pub fn run() {
             os::tray::build(app.handle())?;
             // A failed shortcut registration is recorded, not fatal: the
             // capture line is still reachable from the tray and the palette.
-            os::capture::install(app.handle())?;
+            os::capture::install(app.handle(), &settings.quick_capture_shortcut)?;
 
             // Started by autostart: stay in the tray rather than opening a window
             // on top of whatever the person was about to do.
@@ -125,6 +126,9 @@ pub fn run() {
             commands::capture::capture_hide,
             commands::capture::capture_status,
             commands::search::search,
+            commands::settings::settings_get,
+            commands::settings::settings_set,
+            commands::settings::settings_shortcuts,
             commands::items::item_capture,
             commands::items::collections_list,
             commands::items::items_list,

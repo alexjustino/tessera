@@ -20,9 +20,10 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut,
 /// instead of the workspace.
 pub const WINDOW: &str = "capture";
 
-/// The combination the specification names. Free on a stock Windows install —
-/// `Win+` combinations are the operating system's, and `Alt+Space` alone is the
-/// window menu.
+/// The default combination, the one the specification names. Free on a stock
+/// Windows install — `Win+` combinations are the operating system's, and
+/// `Alt+Space` alone is the window menu. Settings offers a closed list of
+/// alternatives.
 pub const SHORTCUT_LABEL: &str = "Ctrl+Alt+Space";
 
 /// Emitted to the capture window each time it is shown, so the line is empty
@@ -41,39 +42,55 @@ pub struct CaptureStatus {
 /// The registration outcome, kept for the lifetime of the process.
 pub struct CaptureState(pub Mutex<CaptureStatus>);
 
-fn shortcut() -> Shortcut {
-    Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::Space)
+/// The combination a settings label names. The list is closed on both sides
+/// (`db::settings::SHORTCUTS`); a label outside it falls back to the default.
+pub fn parse_shortcut(label: &str) -> Shortcut {
+    match label {
+        "Ctrl+Alt+T" => Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyT),
+        "Ctrl+Shift+Space" => {
+            Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space)
+        }
+        "Ctrl+Alt+N" => Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyN),
+        _ => Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::Space),
+    }
 }
 
-/// The plugin, with its handler. Registered on the builder before setup.
+fn known_label(label: &str) -> &'static str {
+    crate::db::settings::SHORTCUTS
+        .iter()
+        .copied()
+        .find(|known| *known == label)
+        .unwrap_or(SHORTCUT_LABEL)
+}
+
+/// The plugin, with its handler. Only one shortcut is ever registered, so any
+/// press that reaches the handler is the capture key.
 pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
-    let wanted = shortcut();
     tauri_plugin_global_shortcut::Builder::<tauri::Wry>::new()
-        .with_handler(move |app, pressed, event| {
-            if event.state() == ShortcutState::Pressed && pressed == &wanted {
+        .with_handler(move |app, _pressed, event| {
+            if event.state() == ShortcutState::Pressed {
                 toggle(app);
             }
         })
         .build()
 }
 
-/// Create the (hidden) capture window and claim the shortcut. Called in setup.
-pub fn install(app: &AppHandle) -> tauri::Result<()> {
-    build_window(app)?;
-
-    let status = match app.global_shortcut().register(shortcut()) {
+fn register(app: &AppHandle, label: &str) -> CaptureStatus {
+    let label = known_label(label);
+    let _ = app.global_shortcut().unregister_all();
+    match app.global_shortcut().register(parse_shortcut(label)) {
         Ok(()) => {
-            log::info!("quick capture on {SHORTCUT_LABEL}");
+            log::info!("quick capture on {label}");
             CaptureStatus {
-                shortcut: SHORTCUT_LABEL,
+                shortcut: label,
                 registered: true,
                 problem: None,
             }
         }
         Err(error) => {
-            log::warn!("quick capture shortcut not registered: {error}");
+            log::warn!("quick capture shortcut {label} not registered: {error}");
             CaptureStatus {
-                shortcut: SHORTCUT_LABEL,
+                shortcut: label,
                 registered: false,
                 problem: Some(
                     "another program owns this key combination; use the tray menu or the palette"
@@ -81,9 +98,26 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
                 ),
             }
         }
-    };
+    }
+}
+
+/// Create the (hidden) capture window and claim the shortcut. Called in setup.
+pub fn install(app: &AppHandle, label: &str) -> tauri::Result<()> {
+    build_window(app)?;
+    let status = register(app, label);
     app.manage(CaptureState(Mutex::new(status)));
     Ok(())
+}
+
+/// Bind a different combination, from Settings. The outcome replaces the
+/// status Diagnostics reads.
+pub fn rebind(app: &AppHandle, label: &str) {
+    let status = register(app, label);
+    if let Some(state) = app.try_state::<CaptureState>() {
+        if let Ok(mut current) = state.0.lock() {
+            *current = status;
+        }
+    }
 }
 
 fn build_window(app: &AppHandle) -> tauri::Result<()> {
