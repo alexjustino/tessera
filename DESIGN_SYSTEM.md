@@ -147,11 +147,18 @@ first — not inline in the feature.
 `Skeleton` · `EmptyState` · `Toast` · `InfoBar` · `Kbd` · `Resizer` · `VirtualList`
 
 Present today: `Button`, `IconButton`, `Card`, `InfoBar`, `Input`, `Select`, `Checkbox`, `Chip`,
-`Drawer`, `Modal`, `TabStrip`, `EmptyState`, `Kbd`. The rest arrive with the slice that first
+`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`. The rest arrive with the slice that first
 needs them, and arrive _here_.
 
 A shortcut shown beside the thing it triggers is a `Kbd`, everywhere — the palette, the rail,
 Diagnostics, the capture window — so a person learns to read it once.
+
+### Asking "are you sure"
+
+`ConfirmDialog`, always. It names what will happen, the confirming button repeats the verb, and
+a destructive action takes the danger tone — with the wording carrying the consequence too,
+never colour alone. `window.confirm` is not themed, not keyboard-consistent, and blocks the
+window's own event loop; it does not appear in this codebase.
 
 ## 9. The window
 
