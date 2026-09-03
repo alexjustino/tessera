@@ -6,8 +6,10 @@
 
 pub mod blocks;
 pub mod calendar;
+pub mod capture;
 pub mod items;
 pub mod properties;
 pub mod reminders;
+pub mod search;
 pub mod system;
 pub mod views;

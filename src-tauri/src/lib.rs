@@ -13,6 +13,10 @@
 //!
 //! - F0: database opened and migrated at startup, single-instance guard,
 //!   rotating file log, accent ramp, notification probe.
+//! - F8: reminder scheduler, tray, autostart; closing the window hides it.
+//! - F9: quick-capture window on a global shortcut, one search over items and
+//!   events, `TESSERA_DATA_DIR` to relocate the workspace (used by the
+//!   end-to-end suite so it never touches a real one).
 
 pub mod commands;
 pub mod db;
@@ -44,10 +48,12 @@ pub fn run() {
     // Diagnostics, and the product never registers itself behind their back.
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec!["--minimized"]),
-        ));
+        builder = builder
+            .plugin(tauri_plugin_autostart::init(
+                tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+                Some(vec!["--minimized"]),
+            ))
+            .plugin(os::capture::plugin());
     }
 
     builder
@@ -78,6 +84,9 @@ pub fn run() {
             let scheduler = os::scheduler::start(app.handle().clone());
             app.manage(scheduler);
             os::tray::build(app.handle())?;
+            // A failed shortcut registration is recorded, not fatal: the
+            // capture line is still reachable from the tray and the palette.
+            os::capture::install(app.handle())?;
 
             // Started by autostart: stay in the tray rather than opening a window
             // on top of whatever the person was about to do.
@@ -112,6 +121,11 @@ pub fn run() {
             commands::reminders::reminder_snooze,
             commands::reminders::reminder_dismiss,
             commands::reminders::tray_refresh,
+            commands::capture::capture_show,
+            commands::capture::capture_hide,
+            commands::capture::capture_status,
+            commands::search::search,
+            commands::items::item_capture,
             commands::items::collections_list,
             commands::items::items_list,
             commands::items::item_create,

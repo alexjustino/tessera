@@ -67,6 +67,26 @@ pub struct NewItem {
     pub position: String,
 }
 
+/// One property value to set on a captured item.
+#[derive(Debug, Clone, Deserialize)]
+pub struct CaptureValue {
+    pub property_id: String,
+    pub value: serde_json::Value,
+}
+
+/// Everything one line of quick capture produces, written in one transaction.
+///
+/// A task that exists without its date, or with its date but not its priority,
+/// is a task the person did not describe — so either all of it lands or none of
+/// it does.
+#[derive(Debug, Clone, Deserialize)]
+pub struct CaptureRequest {
+    pub item: NewItem,
+    pub schedule: Option<ItemSchedule>,
+    #[serde(default)]
+    pub values: Vec<CaptureValue>,
+}
+
 /// A typed field a collection declares.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Property {

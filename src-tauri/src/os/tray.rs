@@ -22,6 +22,7 @@ pub const TRAY_ID: &str = "main";
 
 const OPEN: &str = "open";
 const TODAY: &str = "today";
+const CAPTURE: &str = "capture";
 const PAUSE_HOUR: &str = "pause-hour";
 const RESUME: &str = "resume";
 const QUIT: &str = "quit";
@@ -29,6 +30,13 @@ const QUIT: &str = "quit";
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
     let open = MenuItem::with_id(app, OPEN, "Open Tessera", true, None::<&str>)?;
     let today = MenuItem::with_id(app, TODAY, "Today", true, None::<&str>)?;
+    let capture = MenuItem::with_id(
+        app,
+        CAPTURE,
+        format!("Quick capture\t{}", crate::os::capture::SHORTCUT_LABEL),
+        true,
+        None::<&str>,
+    )?;
     let pause = MenuItem::with_id(
         app,
         PAUSE_HOUR,
@@ -44,6 +52,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         &[
             &open,
             &today,
+            &capture,
             &PredefinedMenuItem::separator(app)?,
             &pause,
             &resume,
@@ -68,6 +77,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
                 // The window navigates itself; the tray only asks.
                 let _ = tauri::Emitter::emit(app, "tray:navigate", event.id().as_ref());
             }
+            CAPTURE => crate::os::capture::show(app),
             PAUSE_HOUR => {
                 if let Some(scheduler) = app.try_state::<Scheduler>() {
                     scheduler.pause_until(Utc::now() + Duration::hours(1));
