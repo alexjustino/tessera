@@ -18,7 +18,8 @@
     "gates": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/gates.ps1",
     "e2e": "npm run e2e:build && tsc -p tsconfig.e2e.json --noEmit && vitest run --config vitest.e2e.config.ts",
     "e2e:build": "tauri build --debug --no-bundle",
-    "e2e:only": "tsc -p tsconfig.e2e.json --noEmit && vitest run --config vitest.e2e.config.ts"
+    "e2e:only": "tsc -p tsconfig.e2e.json --noEmit && vitest run --config vitest.e2e.config.ts",
+    "check:version": "node scripts/check-version.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
