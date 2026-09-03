@@ -37,6 +37,12 @@ export default tseslint.config(
     },
   },
 
+  // The end-to-end harness runs in Node, not in the page.
+  {
+    files: ['e2e/**/*.ts', 'vitest.e2e.config.ts'],
+    languageOptions: { globals: { ...globals.node } },
+  },
+
   // ── The architectural boundary (CONTRIBUTING.md) ──────────────────────────
   // `domain/` is pure: entities, query engine, recurrence, calendar layout,
   // timezone arithmetic, natural-language parsing, fractional indexing.
