@@ -40,6 +40,16 @@ pub fn run() {
         }));
     }
 
+    // Start with Windows, optionally. Off by default: a person opts in from
+    // Diagnostics, and the product never registers itself behind their back.
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--minimized"]),
+        ));
+    }
+
     builder
         .plugin(tauri_plugin_opener::init())
         .plugin(
@@ -62,16 +72,46 @@ pub fn run() {
         .setup(|app| {
             let connection = db::open(app.handle())?;
             app.manage(db::Db(Mutex::new(connection)));
+
+            // The reminder loop and the tray. The tray is what keeps the process
+            // alive when the window is closed, and the loop is why that matters.
+            let scheduler = os::scheduler::start(app.handle().clone());
+            app.manage(scheduler);
+            os::tray::build(app.handle())?;
+
+            // Started by autostart: stay in the tray rather than opening a window
+            // on top of whatever the person was about to do.
+            if std::env::args().any(|arg| arg == "--minimized") {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.hide();
+                }
+            }
             log::info!(
                 "workspace opened; Tessera {} ready",
                 env!("CARGO_PKG_VERSION")
             );
             Ok(())
         })
+        .on_window_event(|window, event| {
+            // Closing the window hides it. The process — and the reminder loop
+            // — lives on in the tray; Quit in the tray menu is what ends it. A
+            // person who set "remind me at nine" expects to be told at nine
+            // whether or not the window is open.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             commands::system::system_info,
             commands::system::accent_ramp,
-            commands::system::probe_notification,
+            commands::reminders::probe_notification,
+            commands::reminders::reminders_status,
+            commands::reminders::reminders_pause,
+            commands::reminders::reminders_resume,
+            commands::reminders::reminder_snooze,
+            commands::reminders::reminder_dismiss,
+            commands::reminders::tray_refresh,
             commands::items::collections_list,
             commands::items::items_list,
             commands::items::item_create,
