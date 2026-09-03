@@ -27,6 +27,8 @@ export function App() {
               a query over the same items, not a second screen. */}
           {destination === 'tasks' && <TasksPage key="tasks" />}
           {destination === 'today' && <TasksPage key="today" initialViewId="view.today" />}
+          {destination === 'board' && <TasksPage key="board" initialViewId="tasks.board" />}
+          {destination === 'calendar' && <TasksPage key="calendar" initialViewId="view.calendar" />}
           {destination === 'diagnostics' && <FoundationPage />}
           {destination === 'about' && <AboutPage />}
         </main>
