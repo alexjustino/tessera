@@ -107,6 +107,10 @@ export const Keys = {
   BACKSPACE: '',
   ARROW_DOWN: '',
   ARROW_UP: '',
+  ARROW_LEFT: '',
+  ARROW_RIGHT: '',
+  HOME: '',
+  END: '',
   CONTROL: '',
   ALT: '',
 } as const;
@@ -272,8 +276,10 @@ export class Driver {
     await this.waitFor(
       `"${text}" to disappear`,
       async () => {
+        // Live regions hold the last announcement for a few seconds; what they
+        // say is not what the screen shows.
         const matches = await this.findAllByXPath(
-          `//*[contains(normalize-space(text()), "${escaped}")]`,
+          `//*[contains(normalize-space(text()), "${escaped}")][not(ancestor-or-self::*[@aria-live])]`,
         );
         return matches.length === 0 ? true : null;
       },
