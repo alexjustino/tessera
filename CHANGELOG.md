@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The mark.** Tessera's own icon — four tiles, one being set — on the
   taskbar, the tray, the installer, the title bar and About. The template's
   placeholder is gone.
+- **Windows reminders**: a native toast at the time you asked for, with
+  Complete, Snooze and Open on it. Closing the window keeps them coming — the
+  tray keeps the process alive, and Quit in the tray menu is what ends it.
+- A tray icon with Open, Today, Pause for an hour, Resume and Quit; its tooltip
+  says how many things are due today.
+- "Start with Windows", off by default, from Diagnostics.
+- Reminders that came due while Tessera was closed fire on the next start —
+  grouped into one toast when there are several.
 - **Calendar**: day, work week, week, month and agenda over the same items and
   events, with a now line, working-hours shading, an all-day lane and events
   that can be dragged to another time.

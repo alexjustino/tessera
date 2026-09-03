@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { listen } from '@tauri-apps/api/event';
+import { useEffect, useState } from 'react';
 
 import { AboutPage } from '@/features/about/AboutPage';
 import { FoundationPage } from '@/features/foundation/FoundationPage';
@@ -16,6 +17,18 @@ import { TitleBar } from '@/features/shell/TitleBar';
  */
 export function App() {
   const [destination, setDestination] = useState<Destination>('tasks');
+
+  // The tray menu only asks; the window decides where to go. Keeping the
+  // routing here means there is one map from names to screens.
+  useEffect(() => {
+    const unlisten = listen<string>('tray:navigate', (event) => {
+      if (event.payload === 'today') setDestination('today');
+      else setDestination('tasks');
+    });
+    return () => {
+      void unlisten.then((off) => off());
+    };
+  }, []);
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg">

@@ -66,15 +66,41 @@ pub fn reminder_actions() -> Vec<ToastAction> {
     ]
 }
 
+/// Raise a toast.
+///
+/// `on_activated` receives the argument of whichever button was pressed — or an
+/// empty string when the toast body itself was clicked. The callback runs on a
+/// Windows thread, so it must be `Send` and must not assume the interface.
+///
 #[cfg(windows)]
-pub fn send(title: &str, body: &str, actions: &[ToastAction]) -> ToastOutcome {
+pub fn send(
+    title: &str,
+    body: &str,
+    actions: &[ToastAction],
+    on_activated: impl Fn(String) + Send + 'static,
+) -> ToastOutcome {
+    use std::sync::{Arc, Mutex};
     use tauri_winrt_notification::{Duration, Toast};
 
+    // Shared between the two identity attempts. A `Send` closure behind a
+    // `Mutex` is `Sync`, which is what the Windows event handler needs to carry
+    // it to the notification thread — and it needs no unsafe to say so.
+    /// A callback that can be carried to the notification thread.
+    type Shared = Arc<Mutex<Box<dyn Fn(String) + Send + 'static>>>;
+    let on_activated: Shared = Arc::new(Mutex::new(Box::new(on_activated)));
+
     let build = |app_id: &str| {
+        let handler = Arc::clone(&on_activated);
         let mut toast = Toast::new(app_id)
             .title(title)
             .text1(body)
-            .duration(Duration::Short);
+            .duration(Duration::Short)
+            .on_activated(move |argument| {
+                if let Ok(callback) = handler.lock() {
+                    callback(argument.unwrap_or_default());
+                }
+                Ok(())
+            });
         for action in actions {
             toast = toast.add_button(action.label, action.argument);
         }
@@ -130,7 +156,12 @@ pub fn send(title: &str, body: &str, actions: &[ToastAction]) -> ToastOutcome {
 }
 
 #[cfg(not(windows))]
-pub fn send(_title: &str, _body: &str, _actions: &[ToastAction]) -> ToastOutcome {
+pub fn send(
+    _title: &str,
+    _body: &str,
+    _actions: &[ToastAction],
+    _on_activated: impl Fn(String) + Send + 'static,
+) -> ToastOutcome {
     // Degraded, and it says so. Silence would be the bug.
     ToastOutcome {
         delivered: false,

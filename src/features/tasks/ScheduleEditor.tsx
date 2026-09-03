@@ -13,6 +13,8 @@ import { IconButton } from '@/ui/IconButton';
 import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 
+import { fromLocalInput, toLocalInput } from './localTime';
+
 /**
  * When a task is due, and whether it comes back.
  *
@@ -45,9 +47,14 @@ export function ScheduleEditor({
               // Clearing the date clears the repetition with it: a rule with
               // nothing to repeat from is a rule that repeats from nowhere, and
               // the host refuses it anyway.
-              onChange(
-                dueAt === null ? { ...schedule, dueAt: null, rule: null } : { ...schedule, dueAt },
-              );
+              if (dueAt === null) {
+                onChange({ ...schedule, dueAt: null, rule: null, remindAt: null });
+                return;
+              }
+              // A reminder set "one hour before" moves with the due time. Left
+              // where it was, it would fire an hour before the *old* time.
+              const lead = leadOf(schedule);
+              onChange({ ...schedule, dueAt, remindAt: remindAtFor(dueAt, lead) });
             }}
           />
           {schedule.dueAt !== null && (
@@ -62,6 +69,34 @@ export function ScheduleEditor({
           <p className="mt-1 flex items-center gap-1 text-caption text-fg-tertiary">
             <CalendarClock20Regular aria-hidden="true" />
             {formatDue(schedule.dueAt, now, zone)}
+          </p>
+        )}
+      </Field>
+
+      <Field label="Remind me">
+        <Select
+          value={leadOf(schedule)}
+          aria-label="When to be reminded"
+          disabled={schedule.dueAt === null}
+          onChange={(event) =>
+            onChange({ ...schedule, remindAt: remindAtFor(schedule.dueAt, event.target.value) })
+          }
+        >
+          {LEADS.map((lead) => (
+            <option key={lead.id} value={lead.id}>
+              {lead.label}
+            </option>
+          ))}
+        </Select>
+        {schedule.dueAt === null && (
+          <p className="mt-1 text-caption text-fg-tertiary">
+            A reminder needs a due time to count back from.
+          </p>
+        )}
+        {schedule.remindAt !== null && (
+          <p className="mt-1 text-caption text-fg-tertiary">
+            A Windows notification at {new Date(schedule.remindAt).toLocaleString()} — with
+            Complete, Snooze and Open on it.
           </p>
         )}
       </Field>
@@ -153,6 +188,35 @@ export function ScheduleEditor({
   );
 }
 
+/**
+ * How far ahead of the due time the reminder fires.
+ *
+ * Stored as an absolute `remindAt` rather than as a lead, because the
+ * scheduler sleeps until an instant and should not have to know about due
+ * dates. The lead is recovered from the two instants for the control.
+ */
+const LEADS: ReadonlyArray<{ id: string; label: string; minutesBefore: number | null }> = [
+  { id: 'none', label: 'No reminder', minutesBefore: null },
+  { id: 'at', label: 'At the due time', minutesBefore: 0 },
+  { id: '15m', label: '15 minutes before', minutesBefore: 15 },
+  { id: '1h', label: '1 hour before', minutesBefore: 60 },
+  { id: '1d', label: 'The day before', minutesBefore: 24 * 60 },
+];
+
+function remindAtFor(dueAt: string | null, leadId: string): string | null {
+  const lead = LEADS.find((candidate) => candidate.id === leadId);
+  if (dueAt === null || lead === undefined || lead.minutesBefore === null) return null;
+  return new Date(new Date(dueAt).getTime() - lead.minutesBefore * 60_000).toISOString();
+}
+
+function leadOf(schedule: Schedule): string {
+  if (schedule.remindAt === null || schedule.dueAt === null) return 'none';
+  const minutes = Math.round(
+    (new Date(schedule.dueAt).getTime() - new Date(schedule.remindAt).getTime()) / 60_000,
+  );
+  return LEADS.find((lead) => lead.minutesBefore === minutes)?.id ?? 'at';
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -160,30 +224,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       {children}
     </div>
   );
-}
-
-/**
- * An instant, as the `datetime-local` control wants it.
- *
- * The control has no concept of a zone: it shows and returns wall-clock digits.
- * Converting on both sides, here, is what stops a due date drifting by the
- * offset every time somebody opens the panel.
- */
-export function toLocalInput(instant: string | null): string {
-  if (instant === null) return '';
-  const date = new Date(instant);
-  if (Number.isNaN(date.getTime())) return '';
-
-  const pad = (value: number) => String(value).padStart(2, '0');
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
-}
-
-/** What the control returned, back to an instant. */
-export function fromLocalInput(value: string): string | null {
-  if (value.trim() === '') return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }

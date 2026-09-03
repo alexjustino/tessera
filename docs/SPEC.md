@@ -155,6 +155,24 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of F8, and why
+
+The alert pipeline ships end to end: reminder rows, a scheduler that survives a
+closed laptop lid, native toasts with working buttons, the tray, autostart and
+catch-up. What is listed in the scope and is not in the first version:
+
+- **The "Today" flyout on the tray.** A compact Acrylic panel is its own window
+  with its own lifecycle; the tray menu's _Today_ opens the main window on the
+  Today view instead, which is the same information one click further away.
+- **A badge on the tray icon.** Windows does not give an ordinary application a
+  badge there. The count lives in the tooltip — visible on hover, honest, and
+  not a fake overlay drawn onto the icon.
+- **The global hotkey** belongs to quick capture, which is F9.
+- **Toast buttons after the process has exited.** A button on a toast that is
+  still in the Action Center after Tessera was quit has nothing to talk to; it
+  opens the application. That is a Windows COM-activator problem, and it is
+  named here rather than left to be discovered.
+
 ### Deferred out of F7, and why
 
 The calendar ships with its grid, its layout and its time-blocking. What is

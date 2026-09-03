@@ -5,7 +5,7 @@ use tauri::{AppHandle, State};
 
 use crate::db::{migrations, Db};
 use crate::error::Result;
-use crate::os::{accent, notify};
+use crate::os::accent;
 
 /// What the About and Diagnostics screens read. Never a hand-typed constant:
 /// the version comes from the running binary.
@@ -43,19 +43,4 @@ pub fn system_info(app: AppHandle, db: State<'_, Db>) -> Result<SystemInfo> {
 #[tauri::command]
 pub fn accent_ramp() -> accent::AccentRamp {
     accent::read()
-}
-
-/// Raise a reminder-shaped toast and report what actually happened.
-///
-/// This is the foundation slice's probe for the highest-severity unknown in the
-/// risk register. It is wired to a button in Diagnostics rather than to a test,
-/// because the only meaningful evidence is a human seeing the toast appear next
-/// to the clock, from an installed build.
-#[tauri::command]
-pub fn probe_notification() -> notify::ToastOutcome {
-    notify::send(
-        "Tessera",
-        "Reminder pipeline probe — this toast carries action buttons.",
-        &notify::reminder_actions(),
-    )
 }
