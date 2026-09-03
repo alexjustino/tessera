@@ -155,6 +155,27 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of F12, and why
+
+1.0.0 ships: the version is one fact held by a gate, the migration round-trip
+runs against a file, the release budgets are tests, and the installers are
+built from a tagged commit by the workflow rather than from a developer
+machine. What a release could also have and does not:
+
+- **Code signing.** A certificate is a recurring commercial cost that changes
+  the first-run experience and not the security properties (ADR-015). Until
+  then SmartScreen warns, and the README says so.
+- **Automatic updates.** The updater needs signing keys and an endpoint to
+  serve from; both arrive together, after signing.
+- **An embedded WebView2 runtime.** The installer bootstraps it instead, which
+  needs a network connection once on a machine that lacks it. Embedding would
+  take a three-megabyte installer past a hundred and thirty, against a stated
+  twenty-megabyte budget.
+- **A verified install on a genuinely clean machine.** The suite drives the
+  release binary on a workspace it creates from empty, which proves the
+  migrations and the product; a machine with no WebView2, no Visual C++
+  runtime and no developer tools is a different claim, and needs a real one.
+
 ### Deferred out of F11, and why
 
 Every screen is opened by the suite in both themes and audited; the keyboard
