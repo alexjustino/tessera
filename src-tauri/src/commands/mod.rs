@@ -7,6 +7,7 @@
 pub mod blocks;
 pub mod calendar;
 pub mod capture;
+pub mod data;
 pub mod items;
 pub mod properties;
 pub mod reminders;

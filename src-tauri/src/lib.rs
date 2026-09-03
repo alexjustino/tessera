@@ -17,6 +17,9 @@
 //! - F9: quick-capture window on a global shortcut, one search over items and
 //!   events, `TESSERA_DATA_DIR` to relocate the workspace (used by the
 //!   end-to-end suite so it never touches a real one).
+//! - F10: settings read at start-up (theme, density, the capture shortcut), a
+//!   daily rotating backup taken before the connection is shared, export and
+//!   import commands, native file dialogs.
 
 pub mod commands;
 pub mod db;
@@ -53,7 +56,8 @@ pub fn run() {
                 tauri_plugin_autostart::MacosLauncher::LaunchAgent,
                 Some(vec!["--minimized"]),
             ))
-            .plugin(os::capture::plugin());
+            .plugin(os::capture::plugin())
+            .plugin(tauri_plugin_dialog::init());
     }
 
     builder
@@ -77,7 +81,11 @@ pub fn run() {
         )
         .setup(|app| {
             let connection = db::open(app.handle())?;
+            // Settings and the daily backup are read before the connection is
+            // shared: one owner, no lock, and a failure here is a start-up
+            // failure rather than a silent one.
             let settings = db::settings::get(&connection).unwrap_or_default();
+            daily_backup(app.handle(), &connection, &settings);
             app.manage(db::Db(Mutex::new(connection)));
 
             // The reminder loop and the tray. The tray is what keeps the process
@@ -129,6 +137,15 @@ pub fn run() {
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::settings::settings_shortcuts,
+            commands::data::backups_status,
+            commands::data::backup_now,
+            commands::data::backup_restore,
+            commands::data::backups_reveal,
+            commands::data::export_json,
+            commands::data::export_markdown,
+            commands::data::export_ics,
+            commands::data::import_inspect,
+            commands::data::import_json,
             commands::items::item_capture,
             commands::items::collections_list,
             commands::items::items_list,
@@ -165,4 +182,34 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");
+}
+
+/// The first start of each day takes a backup, when backups are on.
+///
+/// Before the scheduler, before any window: a backup taken here describes the
+/// workspace exactly as the previous session left it. Failure is logged, never
+/// fatal — a workspace that cannot be backed up is still a workspace.
+fn daily_backup(
+    app: &tauri::AppHandle,
+    conn: &rusqlite::Connection,
+    settings: &db::settings::Settings,
+) {
+    if !settings.backups_enabled {
+        return;
+    }
+    let Ok(file) = db::database_path(app) else {
+        return;
+    };
+    let Some(dir) = file.parent() else {
+        return;
+    };
+    if !db::backup::due_today(dir) {
+        return;
+    }
+    match db::backup::create(conn, dir) {
+        Ok(_) => {
+            let _ = db::backup::rotate(dir, settings.backups_keep);
+        }
+        Err(error) => log::warn!("the daily backup failed: {error}"),
+    }
 }
