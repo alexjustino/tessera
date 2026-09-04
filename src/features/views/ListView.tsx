@@ -2,6 +2,7 @@ import {
   ArrowRepeatAll16Regular,
   Delete20Regular,
   PanelRightExpand20Regular,
+  Warning16Regular,
 } from '@fluentui/react-icons';
 import { useState } from 'react';
 
@@ -26,6 +27,7 @@ export function ListView({
   groups,
   grouped,
   inlineProperties,
+  blockedIds,
   onToggle,
   onRename,
   onDelete,
@@ -35,6 +37,8 @@ export function ListView({
   groups: readonly Group[];
   grouped: boolean;
   inlineProperties: Property[];
+  /** Tasks waiting on something unfinished (P1). */
+  blockedIds: ReadonlySet<string>;
   onToggle: (row: Row, completed: boolean) => void;
   onRename: (row: Row, title: string) => void;
   onDelete: (row: Row) => void;
@@ -61,6 +65,7 @@ export function ListView({
                 <TaskRow
                   key={row.item.id}
                   task={row.item}
+                  blocked={blockedIds.has(row.item.id)}
                   properties={inlineProperties}
                   values={row.values}
                   onToggle={(completed) => onToggle(row, completed)}
@@ -80,6 +85,7 @@ export function ListView({
 
 function TaskRow({
   task,
+  blocked,
   properties,
   values,
   onToggle,
@@ -89,6 +95,7 @@ function TaskRow({
   onSetValue,
 }: {
   task: Item;
+  blocked: boolean;
   properties: Property[];
   values: Readonly<Record<string, unknown>>;
   onToggle: (completed: boolean) => void;
@@ -150,6 +157,22 @@ function TaskRow({
       )}
 
       <DueChip task={task} />
+
+      {/* Waiting on something unfinished.
+          Not "Blocked": the seeded status property already offers an option by
+          that name, which a person sets by hand and means something else. Two
+          different things wearing one word on the same row is how a glance
+          starts lying. The whole feature says "waiting" instead — the section
+          is Waiting for, the other direction is Waited on by.
+          Colour is not the only cue: the word says it, and so does the title. */}
+      {blocked && !done && (
+        <span title="Waiting for another task to finish — see Waiting for in the detail panel">
+          <Chip tone="caution">
+            <Warning16Regular aria-hidden="true" />
+            Waiting
+          </Chip>
+        </span>
+      )}
 
       {properties.map((property) => (
         <span key={property.id} className="hidden shrink-0 sm:block">

@@ -4,6 +4,8 @@ import { type Schedule } from '@/domain/schedule';
 import { type Property, type PropertyValue } from '@/domain/property';
 import { Editor } from '@/features/editor/Editor';
 
+import { Dependencies } from './Dependencies';
+
 import { ScheduleEditor } from './ScheduleEditor';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
 import { Drawer } from '@/ui/Drawer';
@@ -18,11 +20,14 @@ import { EmptyState } from '@/ui/EmptyState';
  */
 export function TaskDetail({
   task,
+  items,
   properties,
   values,
   onClose,
 }: {
   task: Item | null;
+  /** Every task in the collection — what the dependency picker offers. */
+  items: readonly Item[];
   properties: Property[];
   values: Readonly<Record<string, unknown>>;
   onClose: () => void;
@@ -83,6 +88,8 @@ export function TaskDetail({
           ))}
         </dl>
       )}
+
+      {task !== null && <Dependencies task={task} items={items} />}
 
       {task !== null && (
         <section className="mt-6 border-t border-stroke-subtle pt-4">

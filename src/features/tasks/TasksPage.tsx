@@ -5,6 +5,7 @@ import { describeError } from '@/data/errors';
 import {
   useCaptureItem,
   useCompleteOccurrence,
+  useDependencies,
   useDeleteItem,
   useItems,
   useProperties,
@@ -17,6 +18,7 @@ import {
   useViews,
 } from '@/data/hooks';
 import { EMPTY_BOARD_CONFIG, type BoardConfig } from '@/domain/board';
+import { isBlocked } from '@/domain/graph';
 import type { Capture } from '@/domain/capture';
 import { positionForNewItem } from '@/domain/item';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
@@ -116,6 +118,18 @@ export function TasksPage({
     () => (items.data ?? []).find((item) => item.id === detailId) ?? null,
     [items.data, detailId],
   );
+
+  // What is waiting on something unfinished. Computed once here, from the
+  // whole graph, rather than asked per row.
+  const dependencies = useDependencies();
+  const blockedIds = useMemo(() => {
+    const edges = dependencies.data ?? [];
+    const all = items.data ?? [];
+    const done = new Set(all.filter((item) => item.completedAt !== null).map((item) => item.id));
+    return new Set(
+      all.filter((item) => isBlocked(edges, item.id, (id) => done.has(id))).map((item) => item.id),
+    );
+  }, [dependencies.data, items.data]);
 
   const priorityPropertyId = useMemo(
     () => (properties.data ?? []).find((property) => property.type === 'priority')?.id ?? null,
@@ -347,6 +361,7 @@ export function TasksPage({
           <ListView
             groups={result.groups}
             grouped={query.groupBy !== null}
+            blockedIds={blockedIds}
             inlineProperties={inlineProperties}
             onToggle={toggleRow}
             onRename={(row, title) => rename.mutate({ id: row.item.id, title })}
@@ -366,6 +381,7 @@ export function TasksPage({
 
       <TaskDetail
         task={detailTask}
+        items={items.data ?? []}
         properties={properties.data ?? []}
         values={detailTask ? (values.data?.[detailTask.id] ?? {}) : {}}
         onClose={() => setDetailId(null)}
