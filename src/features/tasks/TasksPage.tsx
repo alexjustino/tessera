@@ -18,6 +18,7 @@ import {
   useViews,
 } from '@/data/hooks';
 import { EMPTY_BOARD_CONFIG, type BoardConfig } from '@/domain/board';
+import { formatDuration, plan as computePlan } from '@/domain/criticalPath';
 import { isBlocked } from '@/domain/graph';
 import type { Capture } from '@/domain/capture';
 import { positionForNewItem } from '@/domain/item';
@@ -119,9 +120,47 @@ export function TasksPage({
     [items.data, detailId],
   );
 
+  const dependencies = useDependencies();
+
+  /**
+   * The plan over this collection: how long it takes, what decides the end.
+   *
+   * Computed over every task, completed ones included — the critical path is a
+   * statement about the plan as designed, not about what is left to do.
+   */
+  const planned = useMemo(
+    () =>
+      computePlan(
+        (items.data ?? []).map((item) => ({
+          id: item.id,
+          estimateMinutes: item.estimateMinutes,
+          isMilestone: item.isMilestone,
+        })),
+        dependencies.data ?? [],
+      ),
+    [items.data, dependencies.data],
+  );
+
+  /**
+   * Marking the critical path is only worth doing when something is *not* on
+   * it. A straight chain is entirely critical, and a chip on every row says
+   * nothing while costing a glance.
+   */
+  const criticalIds = useMemo(
+    () =>
+      planned.unplanned || planned.critical.size === (items.data ?? []).length
+        ? new Set<string>()
+        : planned.critical,
+    [planned, items.data],
+  );
+
+  const milestoneIds = useMemo(
+    () => new Set((items.data ?? []).filter((item) => item.isMilestone).map((item) => item.id)),
+    [items.data],
+  );
+
   // What is waiting on something unfinished. Computed once here, from the
   // whole graph, rather than asked per row.
-  const dependencies = useDependencies();
   const blockedIds = useMemo(() => {
     const edges = dependencies.data ?? [];
     const all = items.data ?? [];
@@ -236,6 +275,16 @@ export function TasksPage({
           Properties
         </Button>
       </header>
+
+      {!planned.unplanned && (
+        <p className="-mt-1 text-caption text-fg-tertiary">
+          {formatDuration(planned.durationMinutes)} of work on the longest route
+          {planned.longestChain.length > 1 && `, through ${planned.longestChain.length} tasks`}
+          {planned.unestimatedOnPath.length > 0 &&
+            ` · ${planned.unestimatedOnPath.length} of them without an estimate`}
+          .
+        </p>
+      )}
 
       <CaptureLine value={draft} onChange={setDraft} onSubmit={submit} autoFocus>
         {({ ready }) => (
@@ -362,6 +411,8 @@ export function TasksPage({
             groups={result.groups}
             grouped={query.groupBy !== null}
             blockedIds={blockedIds}
+            criticalIds={criticalIds}
+            milestoneIds={milestoneIds}
             inlineProperties={inlineProperties}
             onToggle={toggleRow}
             onRename={(row, title) => rename.mutate({ id: row.item.id, title })}
@@ -382,6 +433,7 @@ export function TasksPage({
       <TaskDetail
         task={detailTask}
         items={items.data ?? []}
+        timing={detailTask ? planned.timing.get(detailTask.id) : undefined}
         properties={properties.data ?? []}
         values={detailTask ? (values.data?.[detailTask.id] ?? {}) : {}}
         onClose={() => setDetailId(null)}

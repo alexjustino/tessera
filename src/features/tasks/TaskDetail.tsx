@@ -1,10 +1,12 @@
 import { useSetPropertyValue, useSetSchedule } from '@/data/hooks';
+import { type Timing } from '@/domain/criticalPath';
 import { type Item } from '@/domain/item';
 import { type Schedule } from '@/domain/schedule';
 import { type Property, type PropertyValue } from '@/domain/property';
 import { Editor } from '@/features/editor/Editor';
 
 import { Dependencies } from './Dependencies';
+import { PlanEditor } from './PlanEditor';
 
 import { ScheduleEditor } from './ScheduleEditor';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
@@ -21,6 +23,7 @@ import { EmptyState } from '@/ui/EmptyState';
 export function TaskDetail({
   task,
   items,
+  timing,
   properties,
   values,
   onClose,
@@ -28,6 +31,8 @@ export function TaskDetail({
   task: Item | null;
   /** Every task in the collection — what the dependency picker offers. */
   items: readonly Item[];
+  /** This task's place in the plan, from the whole collection (P2). */
+  timing: Timing | undefined;
   properties: Property[];
   values: Readonly<Record<string, unknown>>;
   onClose: () => void;
@@ -88,6 +93,8 @@ export function TaskDetail({
           ))}
         </dl>
       )}
+
+      {task !== null && <PlanEditor task={task} timing={timing} />}
 
       {task !== null && <Dependencies task={task} items={items} />}
 

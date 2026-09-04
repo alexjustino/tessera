@@ -1,6 +1,7 @@
 import {
   ArrowRepeatAll16Regular,
   Delete20Regular,
+  Diamond16Filled,
   PanelRightExpand20Regular,
   Warning16Regular,
 } from '@fluentui/react-icons';
@@ -28,6 +29,8 @@ export function ListView({
   grouped,
   inlineProperties,
   blockedIds,
+  criticalIds,
+  milestoneIds,
   onToggle,
   onRename,
   onDelete,
@@ -39,6 +42,10 @@ export function ListView({
   inlineProperties: Property[];
   /** Tasks waiting on something unfinished (P1). */
   blockedIds: ReadonlySet<string>;
+  /** Tasks that decide when the project ends. Empty when saying so is useless. */
+  criticalIds: ReadonlySet<string>;
+  /** Moments in the plan rather than work. */
+  milestoneIds: ReadonlySet<string>;
   onToggle: (row: Row, completed: boolean) => void;
   onRename: (row: Row, title: string) => void;
   onDelete: (row: Row) => void;
@@ -66,6 +73,8 @@ export function ListView({
                   key={row.item.id}
                   task={row.item}
                   blocked={blockedIds.has(row.item.id)}
+                  critical={criticalIds.has(row.item.id)}
+                  milestone={milestoneIds.has(row.item.id)}
                   properties={inlineProperties}
                   values={row.values}
                   onToggle={(completed) => onToggle(row, completed)}
@@ -86,6 +95,8 @@ export function ListView({
 function TaskRow({
   task,
   blocked,
+  critical,
+  milestone,
   properties,
   values,
   onToggle,
@@ -96,6 +107,8 @@ function TaskRow({
 }: {
   task: Item;
   blocked: boolean;
+  critical: boolean;
+  milestone: boolean;
   properties: Property[];
   values: Readonly<Record<string, unknown>>;
   onToggle: (completed: boolean) => void;
@@ -158,6 +171,30 @@ function TaskRow({
 
       <DueChip task={task} />
 
+      {/* A moment in the plan rather than work. A diamond because that is what
+          a plan draws — and never the shape alone: the wrapper carries the
+          accessible name and the tooltip, the way `IconButton` does. A Fluent
+          icon's own `title` becomes a `<title>` inside the SVG, which is not a
+          tooltip and not a name. */}
+      {milestone && (
+        <span
+          role="img"
+          aria-label="A milestone"
+          title="A milestone"
+          className="shrink-0 text-accent"
+        >
+          <Diamond16Filled aria-hidden="true" />
+        </span>
+      )}
+
+      {/* On the critical path — shown only when something is not, since a chip
+          on every row costs a glance and says nothing. */}
+      {critical && !done && (
+        <Chip tone="accent" title="On the critical path: any delay here moves the end">
+          Critical
+        </Chip>
+      )}
+
       {/* Waiting on something unfinished.
           Not "Blocked": the seeded status property already offers an option by
           that name, which a person sets by hand and means something else. Two
@@ -166,12 +203,13 @@ function TaskRow({
           is Waiting for, the other direction is Waited on by.
           Colour is not the only cue: the word says it, and so does the title. */}
       {blocked && !done && (
-        <span title="Waiting for another task to finish — see Waiting for in the detail panel">
-          <Chip tone="caution">
-            <Warning16Regular aria-hidden="true" />
-            Waiting
-          </Chip>
-        </span>
+        <Chip
+          tone="caution"
+          title="Waiting for another task to finish — see Waiting for in the detail panel"
+        >
+          <Warning16Regular aria-hidden="true" />
+          Waiting
+        </Chip>
       )}
 
       {properties.map((property) => (
