@@ -105,9 +105,14 @@ export function TimeTracker({ task, items }: { task: Item; items: readonly Item[
             </span>
           )}
 
-          <span className="ml-auto text-caption text-fg-tertiary">
-            {tracked === 0 ? 'Nothing tracked yet' : `${formatDuration(tracked)} tracked`}
-          </span>
+          {/* Minutes, so a clock two seconds old has tracked nothing yet —
+              and saying "nothing" beside a running clock is a contradiction
+              on screen. While this task's clock runs, the clock speaks. */}
+          {(tracked > 0 || !runningHere) && (
+            <span className="ml-auto text-caption text-fg-tertiary">
+              {tracked === 0 ? 'Nothing tracked yet' : `${formatDuration(tracked)} tracked`}
+            </span>
+          )}
         </div>
 
         {/* Naming the task that would be interrupted, before the button is
