@@ -12,6 +12,7 @@ import {
   usePropertyValues,
   useRenameItem,
   useSetItemCompleted,
+  useSetSchedule,
   useMoveOnBoard,
   useSetPropertyValue,
   useUpdateView,
@@ -32,6 +33,7 @@ import { BoardView } from '@/features/views/BoardView';
 import { ListView } from '@/features/views/ListView';
 import { QueryBar } from '@/features/views/QueryBar';
 import { TableView } from '@/features/views/TableView';
+import { TimelineView } from '@/features/views/TimelineView';
 import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
@@ -86,6 +88,7 @@ export function TasksPage({
   const moveOnBoard = useMoveOnBoard();
   const completeOccurrence = useCompleteOccurrence();
   const saveView = useUpdateView();
+  const setSchedule = useSetSchedule();
 
   const view = useMemo(() => {
     const all = views.data ?? [];
@@ -382,6 +385,25 @@ export function TasksPage({
             // can drag it onto the grid, which is the whole point of the slice.
             unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
             onOpenItem={(item) => setDetailId(item.id)}
+          />
+        ) : view?.kind === 'timeline' ? (
+          <TimelineView
+            items={items.data ?? []}
+            edges={dependencies.data ?? []}
+            critical={criticalIds}
+            onOpen={(item) => setDetailId(item.id)}
+            onShift={(item, startAt, dueAt) =>
+              setSchedule.mutate({
+                id: item.id,
+                schedule: {
+                  startAt,
+                  dueAt,
+                  remindAt: item.remindAt,
+                  rule: item.recurrenceRule,
+                  mode: item.recurrenceMode,
+                },
+              })
+            }
           />
         ) : view?.kind === 'board' ? (
           <BoardView
