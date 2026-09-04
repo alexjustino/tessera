@@ -37,6 +37,12 @@ export default tseslint.config(
     },
   },
 
+  // A benchmark's measurement is its product; printing it is the point.
+  {
+    files: ['**/*.bench.test.ts'],
+    rules: { 'no-console': 'off' },
+  },
+
   // The end-to-end harness runs in Node, not in the page.
   {
     files: ['e2e/**/*.ts', 'vitest.e2e.config.ts'],
