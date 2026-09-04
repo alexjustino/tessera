@@ -182,6 +182,25 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of P6, and why
+
+The report answers four questions about a week or a month and every figure
+opens onto its rows. What a reports page could also do:
+
+- **A custom range.** Week and month are what people ask about; "the last
+  ninety days" is a date picker and a wider events window. The period model
+  already takes any two days; only the picker is missing.
+- **Export.** The rows are on the screen and the workspace exports as JSON
+  (F10). A CSV of one report is a small addition once somebody needs it in a
+  spreadsheet.
+- **Counting unreserved estimates.** Deferred from P5 to here, and here to
+  the templates slice: "due this month with no time reserved" wants the
+  templates' notion of what a task's dates mean before it says anything.
+- **Editing the working hours.** Deferred from P5 again; still no screen. It
+  is Settings work, and Settings is where it goes.
+- **Trends.** This week against last week is two reports side by side, which
+  the arrows already give a person. A sparkline is presentation over that.
+
 ### Deferred out of P5, and why
 
 The year is drawn from the calendar's reservations against the working hours

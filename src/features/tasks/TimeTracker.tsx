@@ -1,8 +1,21 @@
-import { Delete12Regular, Play16Regular, Stop16Regular } from '@fluentui/react-icons';
-import { useMemo } from 'react';
+import {
+  Add16Regular,
+  Delete12Regular,
+  Edit12Regular,
+  Play16Regular,
+  Stop16Regular,
+} from '@fluentui/react-icons';
+import { useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
-import { useDeleteTimeEntry, useStartTimer, useStopTimer, useTimeEntries } from '@/data/hooks';
+import {
+  useAddTimeEntry,
+  useDeleteTimeEntry,
+  useStartTimer,
+  useStopTimer,
+  useTimeEntries,
+  useUpdateTimeEntry,
+} from '@/data/hooks';
 import { formatDuration } from '@/domain/criticalPath';
 import type { Item } from '@/domain/item';
 import { localPlace, systemZone } from '@/domain/schedule';
@@ -16,9 +29,12 @@ import {
 } from '@/domain/time';
 import { Button } from '@/ui/Button';
 import { IconButton } from '@/ui/IconButton';
+import { Input } from '@/ui/Input';
 import { InfoBar } from '@/ui/InfoBar';
 import { announce } from '@/ui/announce';
 import { useNow } from '@/ui/useNow';
+
+import { fromLocalInput, toLocalInput } from './localTime';
 
 /**
  * How long this task has taken, and the clock for taking longer.
@@ -37,6 +53,11 @@ export function TimeTracker({ task, items }: { task: Item; items: readonly Item[
   const start = useStartTimer();
   const stop = useStopTimer();
   const remove = useDeleteTimeEntry();
+  const add = useAddTimeEntry();
+  const update = useUpdateTimeEntry();
+
+  /** The entry being corrected, or 'new' for time written by hand. */
+  const [editing, setEditing] = useState<string | 'new' | null>(null);
 
   const all = useMemo(() => entries.data ?? [], [entries.data]);
   const running = runningEntry(all);
@@ -77,7 +98,7 @@ export function TimeTracker({ task, items }: { task: Item; items: readonly Item[
   };
 
   const busy = start.isPending || stop.isPending;
-  const failure = start.error ?? stop.error ?? remove.error;
+  const failure = start.error ?? stop.error ?? remove.error ?? add.error ?? update.error;
 
   return (
     <section className="mt-6 border-t border-stroke-subtle pt-4">
@@ -154,6 +175,12 @@ export function TimeTracker({ task, items }: { task: Item; items: readonly Item[
                   {entry.endedAt === null ? 'running' : formatDuration(minutesBetween(entry))}
                 </span>
                 <IconButton
+                  label={`Correct the entry from ${describeEntry(entry, now)}`}
+                  icon={<Edit12Regular />}
+                  disabled={update.isPending}
+                  onClick={() => setEditing(entry.id)}
+                />
+                <IconButton
                   label={`Remove the entry from ${describeEntry(entry, now)}`}
                   icon={<Delete12Regular />}
                   disabled={remove.isPending}
@@ -163,8 +190,119 @@ export function TimeTracker({ task, items }: { task: Item; items: readonly Item[
             ))}
           </ul>
         )}
+
+        {editing === null ? (
+          <div>
+            <Button
+              appearance="subtle"
+              icon={<Add16Regular />}
+              onClick={() => setEditing('new')}
+              disabled={add.isPending}
+            >
+              Add time
+            </Button>
+          </div>
+        ) : (
+          <EntryForm
+            key={editing}
+            entry={editing === 'new' ? null : (mine.find((entry) => entry.id === editing) ?? null)}
+            now={now}
+            busy={add.isPending || update.isPending}
+            onCancel={() => setEditing(null)}
+            onSubmit={(startedAt, endedAt) => {
+              const done = {
+                onSuccess: () => {
+                  setEditing(null);
+                  announce(editing === 'new' ? 'Time added' : 'Entry corrected');
+                },
+              };
+              if (editing === 'new') add.mutate({ itemId: task.id, startedAt, endedAt }, done);
+              else update.mutate({ id: editing, startedAt, endedAt }, done);
+            }}
+          />
+        )}
       </div>
     </section>
+  );
+}
+
+/**
+ * Two times and a button: time the clock never saw, or a correction to what
+ * it did see. A running entry being corrected gets an end — a person editing
+ * the times of a clock is not asking it to keep running.
+ *
+ * An end before its start is refused here in words; the host refuses it too,
+ * and the schema after that. Three answers, one rule.
+ */
+function EntryForm({
+  entry,
+  now,
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  entry: Entry | null;
+  now: string;
+  busy: boolean;
+  onCancel: () => void;
+  onSubmit: (startedAt: string, endedAt: string) => void;
+}) {
+  const [started, setStarted] = useState(toLocalInput(entry?.startedAt ?? null));
+  const [ended, setEnded] = useState(toLocalInput(entry?.endedAt ?? (entry ? now : null)));
+  const [complaint, setComplaint] = useState<string | null>(null);
+
+  const submit = () => {
+    const startedAt = fromLocalInput(started);
+    const endedAt = fromLocalInput(ended);
+    if (startedAt === null || endedAt === null) {
+      setComplaint('An entry needs a start and an end.');
+      return;
+    }
+    if (endedAt < startedAt) {
+      setComplaint('An entry cannot end before it starts.');
+      return;
+    }
+    setComplaint(null);
+    onSubmit(startedAt, endedAt);
+  };
+
+  return (
+    <form
+      className="flex flex-col gap-2"
+      aria-label={entry === null ? 'Add time' : 'Correct the entry'}
+      onSubmit={(event) => {
+        event.preventDefault();
+        submit();
+      }}
+    >
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="flex flex-col gap-1 text-caption text-fg-tertiary">
+          Started
+          <Input
+            type="datetime-local"
+            aria-label="Started"
+            value={started}
+            onChange={(event) => setStarted(event.target.value)}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-caption text-fg-tertiary">
+          Ended
+          <Input
+            type="datetime-local"
+            aria-label="Ended"
+            value={ended}
+            onChange={(event) => setEnded(event.target.value)}
+          />
+        </label>
+        <Button type="submit" appearance="accent" disabled={busy}>
+          {entry === null ? 'Add' : 'Save'}
+        </Button>
+        <Button appearance="subtle" onClick={onCancel} disabled={busy}>
+          Cancel
+        </Button>
+      </div>
+      {complaint !== null && <p className="text-caption text-caution">{complaint}</p>}
+    </form>
   );
 }
 

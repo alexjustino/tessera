@@ -445,3 +445,31 @@ count over (SPEC, deferred out of P5).
 **Cost accepted.** Capacity is a weekday span, so a public holiday on a Tuesday has nine
 hours until a holiday table exists. Working hours are read everywhere and edited nowhere
 yet; the screen is deferred, the reading is not.
+
+## ADR-024 — A figure carries the rows it came from {#adr-024}
+
+**Decision.** In `src/domain/report.ts` a number is never bare. A `Figure` is a value, a unit
+(minutes or a count) and the list of `ReportRow`s it was built from, and `traceable(figure)`
+states the invariant: the value is the sum of the rows' minutes, or their number, and no row
+appears twice. Every figure a report produces is checked against it in the unit tests, the
+page checks it on every render, and a figure that fails shows a dash and an explanation rather
+than the number.
+
+**Why.** A report that shows "12h" without being able to say which twelve hours is a report
+nobody can argue with, which is the same as a report nobody can trust. Carrying the rows makes
+the number _checkable by the person reading it_, in the product, without a developer — the
+proof of done for P6 written as a data structure. It also makes the report's correctness a
+property rather than a set of examples: the test does not need to know what the right total
+is, only that the total is what the rows say.
+
+The same reason capacity is _not_ a figure: it comes from a table of working hours, not from
+rows a person could open, and the type says so by making it a plain number.
+
+**Consequence.** Building a figure means keeping its rows, which costs memory proportional to
+the entries in the period — a handful of hundreds — and forbids any aggregation that cannot
+name its parts. That is the constraint working as intended: a number that cannot be traced
+does not get to be on the page.
+
+**Cost accepted.** Rows are built for figures nobody opens. On a month with a thousand
+entries that is a thousand small objects, computed once per render of the report, and the
+render is memoised on its inputs.

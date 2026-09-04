@@ -84,9 +84,14 @@ export function splitInterval(startedAt: string, endedAt: string, zone: string):
   const endMs = Date.parse(endedAt);
   if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) return [];
 
+  // One zone conversion for the start; the day's end comes from the memo. The
+  // common interval — a block, a meeting, a morning's work — ends before the
+  // next midnight and never pays for a second conversion. A year of them is
+  // what the year view and the reports walk, and this is where their time
+  // went: two `Intl` reads per interval was 10 µs each, 1,664 times.
   const firstDay = localPlace(startedAt, zone).day;
-  const lastDay = localPlace(new Date(endMs).toISOString(), zone).day;
-  if (firstDay === lastDay) {
+  let nextMidnight = midnightAfter(firstDay, zone);
+  if (endMs <= nextMidnight) {
     return [{ day: firstDay, minutes: Math.round((endMs - startMs) / 60_000) }];
   }
 
@@ -97,14 +102,35 @@ export function splitInterval(startedAt: string, endedAt: string, zone: string):
   // Walk the local midnights. The boundary instants come from the zone, so a
   // day that is 23 or 25 hours long is exactly that many minutes wide.
   while (cursor < endMs) {
-    const nextMidnight = Date.parse(dayStartsAt(addLocalDays(day, 1), zone));
     const until = Math.min(nextMidnight, endMs);
     const minutes = Math.round((until - cursor) / 60_000);
     if (minutes > 0) shares.push({ day, minutes });
     cursor = until;
     day = addLocalDays(day, 1);
+    nextMidnight = midnightAfter(day, zone);
   }
   return shares;
+}
+
+/**
+ * The instant the day after `day` starts, in a zone — memoised.
+ *
+ * A zone conversion is deterministic, so remembering one is not state, only
+ * work not repeated: a year has 366 midnights and the occurrences that fall
+ * on them number in the thousands. Bounded so a long-lived process does not
+ * grow it without end; a clear is a cache miss, never a wrong answer.
+ */
+const MIDNIGHTS = new Map<string, number>();
+const MIDNIGHTS_CAP = 8_192;
+
+function midnightAfter(day: string, zone: string): number {
+  const key = `${zone}|${day}`;
+  const known = MIDNIGHTS.get(key);
+  if (known !== undefined) return known;
+  if (MIDNIGHTS.size >= MIDNIGHTS_CAP) MIDNIGHTS.clear();
+  const instant = Date.parse(dayStartsAt(addLocalDays(day, 1), zone));
+  MIDNIGHTS.set(key, instant);
+  return instant;
 }
 
 /**

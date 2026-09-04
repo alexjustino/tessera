@@ -38,3 +38,27 @@ pub fn time_entry_delete(db: State<'_, Db>, id: String) -> Result<()> {
     let conn = db.0.lock().expect("the database lock was poisoned");
     time_entries::delete(&conn, &id)
 }
+
+/// Time the clock never saw, written by hand. Always already ended.
+#[tauri::command]
+pub fn time_entry_add(
+    db: State<'_, Db>,
+    item_id: String,
+    started_at: String,
+    ended_at: String,
+) -> Result<TimeEntry> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    time_entries::add(&conn, &item_id, &started_at, &ended_at)
+}
+
+/// Correct an entry's start and end.
+#[tauri::command]
+pub fn time_entry_update(
+    db: State<'_, Db>,
+    id: String,
+    started_at: String,
+    ended_at: String,
+) -> Result<TimeEntry> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    time_entries::update(&conn, &id, &started_at, &ended_at)
+}

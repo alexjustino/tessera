@@ -53,3 +53,13 @@ export async function stopTimer(): Promise<Entry | null> {
 export async function deleteEntry(id: string): Promise<void> {
   await invoke<void>('time_entry_delete', { id });
 }
+
+/** Add an entry by hand: time the clock never saw. */
+export async function addEntry(itemId: string, startedAt: string, endedAt: string): Promise<Entry> {
+  return toEntry(await invoke<RawEntry>('time_entry_add', { itemId, startedAt, endedAt }));
+}
+
+/** Correct an entry's start and end. */
+export async function updateEntry(id: string, startedAt: string, endedAt: string): Promise<Entry> {
+  return toEntry(await invoke<RawEntry>('time_entry_update', { id, startedAt, endedAt }));
+}
