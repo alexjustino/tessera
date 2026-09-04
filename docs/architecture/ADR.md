@@ -385,3 +385,34 @@ moves work on its own is precisely what 1.1 said it would not build.
 **Cost accepted.** Until P5 there is no "when will this finish" on a calendar, only "how long
 is the longest route" from P2 and "when did you say" from the dates. Two answers to adjacent
 questions, and the product says which is which.
+
+## ADR-022 — An invariant the schema can state, the schema states {#adr-022}
+
+**Decision.** "At most one timer runs at a time" is a partial unique index over a constant
+expression, in migration 011:
+
+```sql
+CREATE UNIQUE INDEX idx_one_timer_running ON time_entry ((1)) WHERE ended_at IS NULL;
+```
+
+Every running row indexes the same key, so a second one collides; a stopped row leaves the
+index. The repository keeps the rule by stopping the running entry in the same transaction as
+starting the next — but the rule does not depend on the repository.
+
+**Why.** A rule enforced in application code holds on the path that remembered to check. An
+import, a restore, a repair script and the command written next week are all paths that did
+not. The same reasoning already put the dependency graph's acyclicity in the host (ADR-019) and
+the schema version in the workspace row: the closer to the data a rule lives, the fewer ways
+there are around it.
+
+The general form: **when SQLite can express an invariant — a CHECK, a foreign key, a unique
+index, partial or over an expression — it does.** The application enforces what SQL cannot
+say, and says so in a comment where it does.
+
+**Consequence.** A running timer is a row with no end, which is also why it survives a
+restart: nothing is written at shutdown and nothing is restored at start-up. The row _is_ the
+state. The end-to-end suite closes the application with a clock running and finds it running.
+
+**Cost accepted.** The rule is one person's rule — a workspace with two people would want two
+clocks, and the index would have to become `(owner_id)`. There is one person (SPEC §2), and a
+migration that widens an index is an ordinary migration.

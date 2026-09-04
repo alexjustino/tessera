@@ -223,6 +223,26 @@ fn a_workspace_written_at_every_version_survives_the_walk_to_head() {
         "a seeded view was lost in the rebuild"
     );
 
+    // The one-running-timer index arrives with migration 011 on an upgraded
+    // database, not only on a fresh one — the unit tests only ever see fresh.
+    conn.execute(
+        "INSERT INTO time_entry (id, item_id, started_at, ended_at, created_at)
+         VALUES ('timer', 'item-v1', '2026-03-01T09:00:00.000Z', NULL,
+                 '2026-03-01T09:00:00.000Z')",
+        [],
+    )
+    .unwrap();
+    assert!(
+        conn.execute(
+            "INSERT INTO time_entry (id, item_id, started_at, ended_at, created_at)
+             VALUES ('second', 'item-v2', '2026-03-01T09:05:00.000Z', NULL,
+                     '2026-03-01T09:05:00.000Z')",
+            [],
+        )
+        .is_err(),
+        "the upgraded database accepted a second running timer"
+    );
+
     // The foreign keys the walk relied on still hold.
     assert_eq!(
         count(&conn, "SELECT count(*) FROM pragma_foreign_key_check"),

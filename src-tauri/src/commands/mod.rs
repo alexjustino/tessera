@@ -15,4 +15,5 @@ pub mod reminders;
 pub mod search;
 pub mod settings;
 pub mod system;
+pub mod time_entries;
 pub mod views;

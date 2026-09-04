@@ -16,6 +16,7 @@ pub mod properties;
 pub mod reminders;
 pub mod search;
 pub mod settings;
+pub mod time_entries;
 pub mod views;
 
 use std::path::PathBuf;

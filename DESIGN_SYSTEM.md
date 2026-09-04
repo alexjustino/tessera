@@ -86,6 +86,14 @@ same line. It says **Waiting** now, matching the section that edits it (_Waiting
 one that reports the other direction (_Waited on by_). A glance that has to disambiguate is not
 a glance.
 
+### Two readings of one fact agree
+
+When a surface shows the same fact twice — a clock and a total, a count and a list — the two
+must never contradict each other, whatever their units. The time panel showed a running clock
+at `0:02` beside "Nothing tracked yet", because the total is in minutes and two seconds round
+to none. Both were correct; together they were a lie. A screenshot found it; the tests, which
+checked each reading alone, did not. When one reading is live, the other defers to it.
+
 ### Severity is never colour alone
 
 State (`info`, `success`, `caution`, `danger`) is carried by **colour and an icon and the

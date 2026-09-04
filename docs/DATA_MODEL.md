@@ -38,9 +38,11 @@ calls a board and what Notion calls a database.
 | `reminder`            | a pending alert for an item or an event                 |
 | `activity`            | the history and undo trail                              |
 | `search_fts`          | FTS5 over titles and flattened block text               |
+| `item_dependency`     | one edge of the graph: this task waits for that one     |
+| `time_entry`          | an interval on a task; a null end is a running timer    |
 
 Arriving with the calendar slice: `calendar`, `event`, `event_exception`, `time_block`,
-`work_hours`. Arriving later: `item_dependency`, `time_entry`, `page`.
+`work_hours`. Arriving later: `page`.
 
 ## Conventions
 
@@ -51,7 +53,7 @@ one UPDATE of one row rather than a rewrite of the list. **JSON columns** (`conf
 `content_json`, `value_json`) hold shapes the domain layer validates; SQLite is not asked to
 understand them.
 
-## Three decisions worth defending
+## Four decisions worth defending
 
 **Entity-attribute-value for property values.** EAV is famously slow to query in SQL. It does
 not bite here because filtering runs in memory (ADR-004), and in exchange the user creates and
@@ -81,6 +83,13 @@ The column was never written to, so migration 003 drops it. Removing a column we
 guessed at is cheaper today than explaining it in a year — and because
 migrations are forward-only, the retraction is itself a migration, applied to
 every existing database exactly once.
+
+**The one-running-timer rule is an index, not a check in code.** `time_entry` carries
+`CREATE UNIQUE INDEX … ON time_entry ((1)) WHERE ended_at IS NULL`: every running row indexes
+the same constant, so a second running row is refused by SQLite whatever wrote it — the
+repository, an import, or a script. The repository stops the running entry in the same
+transaction as starting the next, so the collision is never seen in ordinary use; the index is
+there for the paths that did not remember (ADR-022).
 
 ## Migrations
 
