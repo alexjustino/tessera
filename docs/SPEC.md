@@ -182,6 +182,24 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of P3, and why
+
+The timeline draws the plan and edits it. What a Gantt could also do:
+
+- **Resize a bar** to change its length. Moving works; stretching needs a
+  second grab affordance and a decision about which end moves — the same shape
+  the calendar deferred in F7, and worth doing once for both.
+- **Zoom.** The grid is one column per day. Weeks and months are a scale
+  factor, and a quarter at day resolution already scrolls further than anyone
+  wants to drag.
+- **Rescheduling what a move breaks.** Moving a task can leave a dependency
+  contradicted; the chart says so and changes nothing else. A plan that moves
+  work on its own is exactly what 1.1 said it would not do.
+- **Grouping and filtering.** The timeline reads the view's query but ignores
+  its grouping; a grouped Gantt wants swimlanes, which the board deferred too.
+- **A today marker that scrolls into view.** Today is ruled and coloured, but
+  the chart opens at the beginning of the window rather than at now.
+
 ### Deferred out of P2, and why
 
 The plan is computed, correct on a graph a person can check by hand, editable

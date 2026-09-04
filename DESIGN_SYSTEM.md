@@ -56,6 +56,13 @@ accent text at 4.5:1 on white and on its own tint.
 When the system cannot be asked, the built-in default is used and `fromSystem` is `false` —
 and the interface says so. It does not pretend.
 
+### A chart says what it left out
+
+A view that cannot place every row does not quietly show the rest. The timeline counts the
+tasks with no due date under the chart, and says so in its empty state when there is nothing
+to draw at all. The same rule as ADR-020's plan summary: an incomplete picture presented as a
+complete one is worse than an admission.
+
 ### A mark that is always on is not a mark
 
 An indicator earns its place by distinguishing. "Critical" on every row in a straight chain, or

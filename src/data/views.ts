@@ -11,7 +11,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { EMPTY_BOARD_CONFIG, type BoardConfig } from '@/domain/board';
 import { EMPTY_QUERY, type Query } from '@/domain/query';
 
-export const VIEW_KINDS = ['list', 'table', 'board', 'calendar'] as const;
+export const VIEW_KINDS = ['list', 'table', 'board', 'calendar', 'timeline'] as const;
 export type ViewKind = (typeof VIEW_KINDS)[number];
 
 export interface View {

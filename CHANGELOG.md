@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The timeline.** A fifth view: a row per dated task in dependency order, a
+  bar from each task's own dates, an arrow for every dependency, and the
+  critical path coloured. Move a bar by dragging it or by pressing Move and
+  using the arrow keys — both shift the start and the due date together, and
+  the dates are the plan.
+
+  A dependency the dates contradict is drawn as a broken arrow and counted at
+  the top. A task with no due date is not given an invented place: it is
+  counted under the chart.
+
 - **The critical path.** Give tasks estimates — typed the way you say them,
   `2h 30m`, `1d`, `45` — and Tessera says how long the longest route through
   the work is, which tasks decide the end, and how much slack the rest have. A
