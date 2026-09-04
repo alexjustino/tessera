@@ -1,3 +1,5 @@
+import { Target20Regular } from '@fluentui/react-icons';
+
 import { useSetPropertyValue, useSetSchedule } from '@/data/hooks';
 import { type Timing } from '@/domain/criticalPath';
 import { type Item } from '@/domain/item';
@@ -11,6 +13,7 @@ import { TimeTracker } from './TimeTracker';
 
 import { ScheduleEditor } from './ScheduleEditor';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
+import { Button } from '@/ui/Button';
 import { Drawer } from '@/ui/Drawer';
 import { EmptyState } from '@/ui/EmptyState';
 
@@ -28,6 +31,7 @@ export function TaskDetail({
   properties,
   values,
   onClose,
+  onFocus,
 }: {
   task: Item | null;
   /** Every task in the collection — what the dependency picker offers. */
@@ -37,6 +41,8 @@ export function TaskDetail({
   properties: Property[];
   values: Readonly<Record<string, unknown>>;
   onClose: () => void;
+  /** Enter focus mode on this task. */
+  onFocus?: ((id: string) => void) | undefined;
 }) {
   const setValue = useSetPropertyValue();
   const setSchedule = useSetSchedule();
@@ -60,6 +66,21 @@ export function TaskDetail({
 
   return (
     <Drawer open={task !== null} title={task?.title ?? ''} onClose={onClose}>
+      {task !== null && onFocus !== undefined && task.completedAt === null && (
+        <div className="mb-4">
+          <Button
+            appearance="accent"
+            icon={<Target20Regular />}
+            onClick={() => {
+              onClose();
+              onFocus(task.id);
+            }}
+          >
+            Focus on this
+          </Button>
+        </div>
+      )}
+
       {task !== null && (
         <section className="mb-5 border-b border-stroke-subtle pb-5">
           <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Schedule</h3>
