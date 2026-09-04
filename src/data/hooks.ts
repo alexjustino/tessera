@@ -33,6 +33,7 @@ import * as captureApi from './capture';
 import * as dependencyApi from './dependencies';
 import * as settingsApi from './settings';
 import * as backupsApi from './backups';
+import * as timeApi from './time';
 
 export const keys = {
   collections: ['collections'] as const,
@@ -662,6 +663,49 @@ export function useUnlinkDependency() {
   return useMutation({
     mutationFn: ({ blockerId, blockedId }: { blockerId: string; blockedId: string }) =>
       dependencyApi.unlinkDependency(blockerId, blockedId),
+    onSuccess: invalidate,
+  });
+}
+
+// ── Time tracking (1.1) ────────────────────────────────────────────────────
+
+export const timeKey = ['time-entries'] as const;
+
+/**
+ * Every entry in the workspace.
+ *
+ * One query, like the dependency graph and for the same reason: the questions
+ * — this task's total, today's total, the week — are all walks over the same
+ * few hundred rows, and answering them in the domain layer beats a round trip
+ * each.
+ */
+export function useTimeEntries() {
+  return useQuery({ queryKey: timeKey, queryFn: timeApi.listEntries });
+}
+
+function useInvalidateTime() {
+  const client = useQueryClient();
+  return () => client.invalidateQueries({ queryKey: timeKey });
+}
+
+/** Start timing a task. Whatever was running stops, in one transaction. */
+export function useStartTimer() {
+  const invalidate = useInvalidateTime();
+  return useMutation({
+    mutationFn: (itemId: string) => timeApi.startTimer(itemId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useStopTimer() {
+  const invalidate = useInvalidateTime();
+  return useMutation({ mutationFn: () => timeApi.stopTimer(), onSuccess: invalidate });
+}
+
+export function useDeleteTimeEntry() {
+  const invalidate = useInvalidateTime();
+  return useMutation({
+    mutationFn: (id: string) => timeApi.deleteEntry(id),
     onSuccess: invalidate,
   });
 }
