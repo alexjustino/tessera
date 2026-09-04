@@ -305,3 +305,31 @@ unnoticed by every screen review before it.
 **Cost accepted.** axe-core is a development dependency injected into the page by the suite,
 never shipped. The audit cannot judge how a screen reader _sounds_; that stays a person's job,
 and is written down as such.
+
+## ADR-019 — The dependency graph is acyclic, and two layers say so {#adr-019}
+
+**Decision.** A dependency is one edge with one meaning: `blocker_id` must finish before
+`blocked_id` may start. The graph is acyclic, and that is enforced twice, differently. The
+interface asks `src/domain/graph.ts` before it offers a link, and only offers what would not
+close a loop — naming the chain when it must explain a refusal. The repository asks SQLite the
+reachability question with a recursive CTE before every insert, and refuses on its own.
+
+**Why.** These are not the same check written twice. They answer different questions for
+different audiences. `cycleFrom` returns the _path_ — `Ship it → Test it → Fix it → Ship it` —
+because it has the titles and a person needs to see which loop; a boolean would be useless to
+them. The repository answers _whether_, for the file, because storage integrity delegated to a
+caller is not integrity: a cycle stored is a workspace whose timeline, critical path and
+capacity figures are all lies, and no interface should be the only thing standing between the
+file and that.
+
+The recursive CTE is not an algorithm duplicated in SQL. Reachability is a question a database
+answers natively, and `UNION` de-duplicates, which makes the walk terminate even on a graph that
+somehow already holds a cycle.
+
+**Consequence.** The domain module is where every later reading of the graph lives — the
+critical path, the timeline's arrows, what is ready to start — and it is pure, so all of it is
+testable without a window. What a cycle _means_ is decided once, here, rather than in each view.
+
+**Cost accepted.** Two implementations to keep honest, and a picker that hides options rather
+than refusing them, which needs a sentence saying what is missing and why — otherwise a filtered
+list reads as a bug.
