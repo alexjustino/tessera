@@ -117,6 +117,70 @@ pub fn stop(conn: &Connection) -> Result<Option<TimeEntry>> {
     }))
 }
 
+/// Time the clock never saw: an entry written by hand, already ended.
+///
+/// A running entry is only ever made by `start`, so this one must have an end;
+/// the schema refuses an end before its start, and the message here says so
+/// in words before the database has to.
+pub fn add(
+    conn: &Connection,
+    item_id: &str,
+    started_at: &str,
+    ended_at: &str,
+) -> Result<TimeEntry> {
+    check_interval(started_at, ended_at)?;
+    let exists: i64 = conn.query_row(
+        "SELECT count(*) FROM item WHERE id = ?1 AND archived_at IS NULL",
+        params![item_id],
+        |row| row.get(0),
+    )?;
+    if exists == 0 {
+        return Err(Error::NotFound);
+    }
+    let id = Uuid::now_v7().to_string();
+    conn.execute(
+        "INSERT INTO time_entry (id, item_id, started_at, ended_at, created_at)
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![id, item_id, started_at, ended_at, now()],
+    )?;
+    Ok(TimeEntry {
+        id,
+        item_id: item_id.to_string(),
+        started_at: started_at.to_string(),
+        ended_at: Some(ended_at.to_string()),
+    })
+}
+
+/// Correct an entry's start and end. The corrected entry is always ended: a
+/// person editing the times of a clock is not asking it to keep running.
+pub fn update(conn: &Connection, id: &str, started_at: &str, ended_at: &str) -> Result<TimeEntry> {
+    check_interval(started_at, ended_at)?;
+    let changed = conn.execute(
+        "UPDATE time_entry SET started_at = ?2, ended_at = ?3 WHERE id = ?1",
+        params![id, started_at, ended_at],
+    )?;
+    if changed == 0 {
+        return Err(Error::NotFound);
+    }
+    conn.query_row(
+        "SELECT id, item_id, started_at, ended_at FROM time_entry WHERE id = ?1",
+        params![id],
+        read,
+    )
+    .map_err(Error::from)
+}
+
+/// The interval rule in words, before the schema's CHECK says it in SQL.
+fn check_interval(started_at: &str, ended_at: &str) -> Result<()> {
+    if started_at.is_empty() || ended_at.is_empty() {
+        return Err(Error::InvalidInput("an entry needs a start and an end"));
+    }
+    if ended_at < started_at {
+        return Err(Error::InvalidInput("an entry cannot end before it starts"));
+    }
+    Ok(())
+}
+
 /// Remove one entry — a timer left running by accident, a mistaken start.
 pub fn delete(conn: &Connection, id: &str) -> Result<()> {
     let changed = conn.execute("DELETE FROM time_entry WHERE id = ?1", params![id])?;
@@ -278,6 +342,92 @@ mod tests {
             })
             .unwrap();
         assert_eq!(dangling, 0);
+    }
+
+    #[test]
+    fn an_entry_can_be_written_by_hand_and_is_already_ended() {
+        let mut conn = workspace();
+        let task = item(&mut conn, "Yesterday");
+        let entry = add(
+            &conn,
+            &task,
+            "2026-09-08T12:00:00.000Z",
+            "2026-09-08T14:00:00.000Z",
+        )
+        .unwrap();
+        assert_eq!(entry.ended_at.as_deref(), Some("2026-09-08T14:00:00.000Z"));
+        assert!(
+            running(&conn).unwrap().is_none(),
+            "a hand-written entry must not run"
+        );
+        assert_eq!(list(&conn).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_hand_written_entry_that_ends_before_it_starts_is_refused_in_words() {
+        let mut conn = workspace();
+        let task = item(&mut conn, "Backwards");
+        let refused = add(
+            &conn,
+            &task,
+            "2026-09-08T14:00:00.000Z",
+            "2026-09-08T12:00:00.000Z",
+        );
+        assert!(matches!(refused.unwrap_err(), Error::InvalidInput(_)));
+        assert!(matches!(
+            add(&conn, &task, "", "2026-09-08T12:00:00.000Z").unwrap_err(),
+            Error::InvalidInput(_)
+        ));
+        assert!(matches!(
+            add(
+                &conn,
+                "ghost",
+                "2026-09-08T12:00:00.000Z",
+                "2026-09-08T13:00:00.000Z"
+            )
+            .unwrap_err(),
+            Error::NotFound
+        ));
+    }
+
+    #[test]
+    fn an_entry_can_be_corrected_and_a_running_one_stops_when_it_is() {
+        let mut conn = workspace();
+        let task = item(&mut conn, "Forgot to stop");
+        let entry = start(&mut conn, &task).unwrap();
+
+        let fixed = update(
+            &conn,
+            &entry.id,
+            "2026-09-08T12:00:00.000Z",
+            "2026-09-08T12:30:00.000Z",
+        )
+        .unwrap();
+        assert_eq!(fixed.id, entry.id);
+        assert_eq!(fixed.started_at, "2026-09-08T12:00:00.000Z");
+        assert_eq!(fixed.ended_at.as_deref(), Some("2026-09-08T12:30:00.000Z"));
+        assert!(running(&conn).unwrap().is_none());
+
+        assert!(matches!(
+            update(
+                &conn,
+                &entry.id,
+                "2026-09-08T13:00:00.000Z",
+                "2026-09-08T12:00:00.000Z"
+            )
+            .unwrap_err(),
+            Error::InvalidInput(_)
+        ));
+        assert!(matches!(
+            update(
+                &conn,
+                "ghost",
+                "2026-09-08T12:00:00.000Z",
+                "2026-09-08T13:00:00.000Z"
+            )
+            .unwrap_err(),
+            Error::NotFound
+        ));
     }
 
     #[test]
