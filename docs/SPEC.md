@@ -182,6 +182,29 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of P5, and why
+
+The year is drawn from the calendar's reservations against the working hours
+already there. What the same figures could also drive:
+
+- **Editing the working hours.** They are seeded (nine to six, Monday to
+  Friday) and read everywhere; there is no screen to change them yet. It
+  belongs in Settings, with the day-off rule and the first day of the week,
+  and is small enough to arrive with the reports (P6).
+- **Capacity on the week and day scales.** The year says how full a day is;
+  the day itself does not yet — the same `dayLoad` reading, under each day's
+  header. Presentation over arithmetic that exists.
+- **Counting unreserved estimates.** A task due in a month with four hours of
+  estimate and no block is not on the map, by decision (ADR-023). A count
+  beside the month — "3 tasks due, no time reserved" — would keep the map
+  honest without putting invented hours on it. Wants the reports' notion of
+  a period first.
+- **Public holidays.** A day off that is not a weekend has capacity today.
+  A holiday table is a small migration and a bigger question about whose
+  calendar; deferred with the working-hours screen.
+- **Zoom from the year to a month.** A cell opens the day. Opening the month
+  from its heading is a second affordance and a small one.
+
 ### Deferred out of P4, and why
 
 A timer runs on one task, survives a restart, and adds up correctly across

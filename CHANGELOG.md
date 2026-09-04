@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The year view.** A sixth calendar scale: twelve months, every day a cell,
+  each coloured by how much of its working hours the calendar has reserved.
+  The shade is never the only cue — every cell names its day and its load in
+  words, the legend says what each shade means, and a day with more reserved
+  than it has gets a ring as well as a colour. A cell opens the day.
+
+- **Daily capacity.** The working hours already in the workspace are what a
+  day has; what the calendar has reserved — events with a time, and the
+  blocks that hold time for a task — is what a day has used. The year view
+  says how much of the year is spoken for, month by month and in total, and
+  counts the days that are over. Nothing is estimated: a task with an estimate
+  and no time reserved is not on the calendar, so it is not on the map
+  (ADR-023).
+
 - **Time tracking.** Start a clock on a task from its detail panel and stop it
   there; the row wearing the clock says **Timing**. One timer runs at a time —
   starting a task stops whatever was running, and the panel names the task it
