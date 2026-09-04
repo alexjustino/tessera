@@ -13,7 +13,7 @@ import type { Collection, Item } from '@/domain/item';
 import type { PropertyValue } from '@/domain/property';
 import type { Schedule } from '@/domain/schedule';
 
-interface RawItem {
+export interface RawItem {
   id: string;
   collection_id: string;
   parent_item_id: string | null;
@@ -39,7 +39,7 @@ interface RawCollection {
   position: string;
 }
 
-function toItem(raw: RawItem): Item {
+export function toItem(raw: RawItem): Item {
   return {
     id: raw.id,
     collectionId: raw.collection_id,
