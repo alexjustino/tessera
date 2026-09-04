@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Templates.** Save what the view is showing as a template — the tasks,
+  their estimates, which are milestones, which wait for which, and how the
+  dates fall relative to the first — and make it again on any day. Applying
+  asks for one thing, the day it starts; every date moves with it, keeping
+  its time of day across month ends, year ends and the clocks changing. The
+  dependencies come too. Everything is made in one step or not at all.
+
 - **Reports.** A page of its own: a week or a month, and what it held. Time
   tracked — in total, by task and by day, split at midnight; tasks completed;
   for the tasks worked on, everything ever tracked beside the estimate; and
