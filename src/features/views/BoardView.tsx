@@ -20,10 +20,11 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   ChevronDown16Regular,
   ChevronRight16Regular,
+  ReOrderDotsVertical20Regular,
   Stack16Filled,
   Warning16Regular,
 } from '@fluentui/react-icons';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type KeyboardEventHandler, type ReactNode } from 'react';
 
 import {
   cardProperties,
@@ -41,6 +42,7 @@ import type { Group, Query, Row } from '@/domain/query';
 import { Chip } from '@/ui/Chip';
 import { toChipTone } from '@/ui/chipTone';
 import { IconButton } from '@/ui/IconButton';
+import { announce } from '@/ui/announce';
 
 /**
  * The board.
@@ -115,6 +117,7 @@ export function BoardView({
     const destination = columnOf(String(over.id));
     if (row === null || destination === null) return;
     if (!isDroppable(destination, groupProperty)) return;
+    announce(`Moved ${row.item.title} to ${destination.label}`);
 
     // dnd-kit reports the slot in the column as rendered — the array that still
     // contains the dragged card. That is exactly what `planMove` expects, and
@@ -241,12 +244,21 @@ function BoardColumn({
           icon={<ChevronRight16Regular />}
           onClick={onToggleCollapsed}
         />
-        <ColumnCount column={column} />
         <span
           className="text-caption font-semibold whitespace-nowrap text-fg-secondary"
           style={{ writingMode: 'vertical-rl' }}
         >
           {column.label}
+        </span>
+
+        {/* At the foot of the rail, not the head.
+            A collapsed column reads downwards: the control to reopen it at the
+            top, then the name running down, and the count where the eye ends up
+            — which is also where it sits in a column that is open. Putting it
+            second meant the label started halfway down and the two states no
+            longer looked like the same column. */}
+        <span className="mt-auto">
+          <ColumnCount column={column} />
         </span>
       </section>
     );
@@ -288,7 +300,7 @@ function BoardColumn({
             <SortableCard key={row.item.id} row={row} properties={properties} onOpen={onOpen} />
           ))}
           {column.rows.length === 0 && (
-            <p className="px-1 py-4 text-center text-caption text-fg-disabled">Drop a card here</p>
+            <p className="px-1 py-4 text-center text-caption text-fg-tertiary">Drop a card here</p>
           )}
         </div>
       </SortableContext>
@@ -305,9 +317,21 @@ function SortableCard({
   properties: Property[];
   onOpen: (row: Row) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: row.item.id,
-  });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: row.item.id });
+
+  // The pointer drags the whole card; the keyboard drags by the handle. Putting
+  // the button role on the card would nest the title button inside another
+  // control, which no screen reader can present — so the role, the tab stop
+  // and the key handling live on one small handle instead.
+  const { onKeyDown, ...pointerListeners } = listeners ?? {};
 
   return (
     <div
@@ -316,10 +340,24 @@ function SortableCard({
       // The original stays in place as a gap while the overlay follows the
       // cursor; hiding it entirely makes the column jump.
       className={isDragging ? 'opacity-40' : undefined}
-      {...attributes}
-      {...listeners}
+      {...pointerListeners}
     >
-      <Card row={row} properties={properties} onOpen={onOpen} />
+      <Card
+        row={row}
+        properties={properties}
+        onOpen={onOpen}
+        handle={
+          <IconButton
+            ref={setActivatorNodeRef}
+            label={`Move ${row.item.title}`}
+            icon={<ReOrderDotsVertical20Regular />}
+            className="-my-1 shrink-0 cursor-grab text-fg-tertiary active:cursor-grabbing"
+            {...attributes}
+            // dnd-kit types its listeners loosely; this one is the keyboard sensor's.
+            onKeyDown={onKeyDown as KeyboardEventHandler<HTMLButtonElement> | undefined}
+          />
+        }
+      />
     </div>
   );
 }
@@ -329,11 +367,14 @@ function Card({
   properties,
   onOpen,
   overlay = false,
+  handle,
 }: {
   row: Row;
   properties: Property[];
   onOpen: (row: Row) => void;
   overlay?: boolean;
+  /** The keyboard drag handle; absent on the overlay copy. */
+  handle?: ReactNode;
 }) {
   const done = row.item.completedAt !== null;
 
@@ -344,16 +385,19 @@ function Card({
         overlay ? 'shadow-flyout' : 'shadow-card hover:bg-card-hover',
       ].join(' ')}
     >
-      <button
-        type="button"
-        onClick={() => onOpen(row)}
-        className={[
-          'block w-full text-left text-body',
-          done ? 'text-fg-tertiary line-through' : 'text-fg',
-        ].join(' ')}
-      >
-        {row.item.title}
-      </button>
+      <div className="flex items-start gap-1">
+        <button
+          type="button"
+          onClick={() => onOpen(row)}
+          className={[
+            'block min-w-0 flex-1 text-left text-body',
+            done ? 'text-fg-tertiary line-through' : 'text-fg',
+          ].join(' ')}
+        >
+          {row.item.title}
+        </button>
+        {handle}
+      </div>
 
       {properties.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">

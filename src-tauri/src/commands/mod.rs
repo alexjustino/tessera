@@ -5,7 +5,13 @@
 //! system lives in `os`.
 
 pub mod blocks;
+pub mod calendar;
+pub mod capture;
+pub mod data;
 pub mod items;
 pub mod properties;
+pub mod reminders;
+pub mod search;
+pub mod settings;
 pub mod system;
 pub mod views;

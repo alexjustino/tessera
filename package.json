@@ -1,7 +1,7 @@
 {
   "name": "tessera",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,7 +15,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "gates": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/gates.ps1"
+    "gates": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/gates.ps1",
+    "e2e": "npm run e2e:build && tsc -p tsconfig.e2e.json --noEmit && vitest run --config vitest.e2e.config.ts",
+    "e2e:build": "tauri build --debug --no-bundle",
+    "e2e:only": "tsc -p tsconfig.e2e.json --noEmit && vitest run --config vitest.e2e.config.ts",
+    "check:version": "node scripts/check-version.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "release:check": "npm run gates && npm run tauri build && npm run check:bundle"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -25,6 +31,8 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/react-query": "^5.102.8",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-autostart": "^2.5.1",
+    "@tauri-apps/plugin-dialog": "^2.7.3",
     "@tauri-apps/plugin-log": "^2.9.1",
     "@tauri-apps/plugin-notification": "^2.4.0",
     "@tauri-apps/plugin-opener": "^2",
@@ -55,11 +63,13 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
     "@vitest/coverage-v8": "^4.1.11",
+    "axe-core": "^4.13.0",
     "eslint": "^10.9.1",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.6",
     "globals": "^17.12.0",
     "prettier": "^3.9.6",
+    "sharp": "^0.35.4",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.69.0",
     "vite": "^7.0.4",

@@ -155,6 +155,127 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of F12, and why
+
+1.0.0 ships: the version is one fact held by a gate, the migration round-trip
+runs against a file, the release budgets are tests, and the installers are
+built from a tagged commit by the workflow rather than from a developer
+machine. What a release could also have and does not:
+
+- **Code signing.** A certificate is a recurring commercial cost that changes
+  the first-run experience and not the security properties (ADR-015). Until
+  then SmartScreen warns, and the README says so.
+- **Automatic updates.** The updater needs signing keys and an endpoint to
+  serve from; both arrive together, after signing.
+- **An embedded WebView2 runtime.** The installer bootstraps it instead, which
+  needs a network connection once on a machine that lacks it. Embedding would
+  take a three-megabyte installer past a hundred and thirty, against a stated
+  twenty-megabyte budget.
+- **A verified install on a genuinely clean machine.** The suite drives the
+  release binary on a workspace it creates from empty, which proves the
+  migrations and the product; a machine with no WebView2, no Visual C++
+  runtime and no developer tools is a different claim, and needs a real one.
+
+### Deferred out of F11, and why
+
+Every screen is opened by the suite in both themes and audited; the keyboard
+reaches the calendar; contrast is a test; dialogs behave. What is listed under
+polish and accessibility and is not in the first version:
+
+- **Snap Layouts on the maximise button.** Windows shows the flyout when a
+  window answers `HTMAXBUTTON` to `WM_NCHITTEST`, but the cursor is over the
+  WebView2 child window, which answers for itself; its non-client region support
+  covers the caption drag (`app-region: drag`) and not the caption buttons. Until
+  WebView2 exposes that, maximising works and the flyout does not appear.
+- **Keyboard moves in the month and agenda views.** Both are read-only today;
+  the time grid is where blocks move, and that is where the keyboard works.
+- **Tooltips as a primitive.** Every icon control has a name and a `title`;
+  a styled `Tooltip` with a delay and an arrow is presentation on top of that.
+- **Windows high-contrast (forced colours) mode** was not verified by a person.
+- **A screen-reader pass by a person** (NVDA, Narrator). The live regions and
+  names are in place and audited; how they _sound_ needs ears.
+
+### Deferred out of F10, and why
+
+Settings, backups, restore, export and import ship end to end, with the
+restore test the slice was named for. What is listed in the scope and is not
+in the first version:
+
+- **Choosing the backup folder.** Backups live beside the workspace file, where
+  they are found by the same relocation the workspace uses. A second location —
+  a synced folder, another drive — is a preference for a later slice; Explorer
+  is one click away meanwhile.
+- **Importing other products' files.** Microsoft To Do, Trello, Notion, Todoist
+  and ICS importers are the 1.2 theme; only Tessera's own export imports today.
+- **Merging on import.** Import replaces the workspace. Merging two histories
+  of the same identifiers is a synchronisation problem, and the product does
+  not pretend to have solved it (ADR-017).
+- **Moved occurrences in the iCalendar export.** Cancelled occurrences go out as
+  `EXDATE`; a moved one would need `RECURRENCE-ID` and its own `VEVENT`, and
+  is written down here rather than exported half-right.
+- **Exporting from the command palette** and a keyboard shortcut for "back up
+  now" — both a screen away in Settings.
+
+### Deferred out of F9, and why
+
+Quick capture, the palette and search ship end to end: a global shortcut, a
+floating window, a stated grammar with live chips, one index over tasks and
+events, and a suite that drives the real binary. What is listed in the scope
+and is not in the first version:
+
+- **Choosing the shortcut.** It is `Ctrl+Alt+Space`, fixed. A preference belongs to
+  Settings, which is F10; until then Diagnostics says whether the key registered
+  and the tray menu and palette are the fallback.
+- **Capturing into a collection other than Tasks**, or with a note body. One
+  collection exists today; the request shape already carries the collection.
+- **Acting on a search hit from the palette** — complete, snooze, reschedule.
+  Enter opens the item; the actions are one screen away.
+- **Grammar in other languages.** The parser is English, stated in full in its
+  header. Portuguese is the first candidate and follows the interface's i18n.
+- **Pressing the global shortcut in the end-to-end suite.** WebDriver speaks to
+  the page, not to the operating system; the suite summons the window through
+  the same command the tray uses and proves the rest. The key itself is proved
+  by Diagnostics reporting its registration, and by a person pressing it.
+
+### Deferred out of F8, and why
+
+The alert pipeline ships end to end: reminder rows, a scheduler that survives a
+closed laptop lid, native toasts with working buttons, the tray, autostart and
+catch-up. What is listed in the scope and is not in the first version:
+
+- **The "Today" flyout on the tray.** A compact Acrylic panel is its own window
+  with its own lifecycle; the tray menu's _Today_ opens the main window on the
+  Today view instead, which is the same information one click further away.
+- **A badge on the tray icon.** Windows does not give an ordinary application a
+  badge there. The count lives in the tooltip — visible on hover, honest, and
+  not a fake overlay drawn onto the icon.
+- **The global hotkey** belongs to quick capture, which is F9.
+- **Toast buttons after the process has exited.** A button on a toast that is
+  still in the Action Center after Tessera was quit has nothing to talk to; it
+  opens the application. That is a Windows COM-activator problem, and it is
+  named here rather than left to be discovered.
+
+### Deferred out of F7, and why
+
+The calendar ships with its grid, its layout and its time-blocking. What is
+listed in the scope and is not in the first version:
+
+- **Resize to change duration.** Moving works; stretching needs a second drag
+  affordance and its own snapping.
+- **Drag on empty space to create.** The same machinery as resize.
+- **The mini navigator.** Navigation works by arrows and Today; a month-strip
+  navigator is presentation on top of that.
+- **Categories, multiple overlaid calendars, and a secondary timezone.** The
+  schema carries all three — one calendar is seeded, and its colour already
+  flows through — but the interface for managing them does not exist yet.
+- **The "this occurrence / this and following / all" dialog.** The exceptions
+  behind it are built and tested; what is missing is the question.
+- **Year view with a workload heat map**, which the release train puts in 1.1.
+
+Two of those are worth separating from the rest: the exception model and the
+calendar colour are already complete underneath. What is missing there is a
+screen, not a mechanism.
+
 ### Deferred out of F5, and why
 
 Four things listed under the editor are not in the first version:

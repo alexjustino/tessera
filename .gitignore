@@ -40,3 +40,6 @@ Thumbs.db
 coverage/
 .vitest/
 .eslintcache
+
+# End-to-end screenshots
+e2e/artefacts/

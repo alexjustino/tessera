@@ -2,12 +2,14 @@
 
 ## Supported versions
 
-Tessera is pre-release. Until 1.0.0, only the tip of `main` is supported.
+The latest release is supported. Fixes land on `main` and reach you as the next
+release; there are no long-term support branches.
 
-| Version      | Supported |
-| ------------ | --------- |
-| `main`       | yes       |
-| pre-1.0 tags | no        |
+| Version         | Supported |
+| --------------- | --------- |
+| 1.0.x           | yes       |
+| `main`          | yes       |
+| earlier commits | no        |
 
 ## Reporting a vulnerability
 

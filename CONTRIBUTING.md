@@ -37,12 +37,18 @@ window effects.
 
 ## Branches
 
-| Branch            | Meaning                                                |
-| ----------------- | ------------------------------------------------------ |
-| `main`            | always releasable, tagged; never committed to directly |
-| `develop`         | integration branch; pull requests target this          |
-| `feat/*`, `fix/*` | one slice or one fix                                   |
-| `release/vX.Y`    | release stabilisation                                  |
+| Branch            | Meaning                                              |
+| ----------------- | ---------------------------------------------------- |
+| `main`            | always releasable, tagged; updated only at a release |
+| `develop`         | integration branch; pull requests target this        |
+| `feat/*`, `fix/*` | one slice or one fix                                 |
+| `release/vX.Y`    | release stabilisation                                |
+
+**Both `main` and `develop` are protected on GitHub**, and the protection says
+what this document says: a pull request is required, the gates and the dependency
+audit must be green before it can be merged, and neither branch can be
+force-pushed or deleted. A rule with no gate is a rule that eventually gets
+bypassed — including by the person who wrote it.
 
 Tags follow SemVer: `vMAJOR.MINOR.PATCH`. See [`VERSIONING.md`](VERSIONING.md).
 
@@ -75,15 +81,16 @@ npm run gates
 
 runs, and all of them must pass:
 
-| Gate                       | What it protects                                                     |
-| -------------------------- | -------------------------------------------------------------------- |
-| `cargo fmt --check`        | Rust formatting                                                      |
-| `cargo clippy -D warnings` | Rust correctness and idiom                                           |
-| `cargo test`               | repository, migrations, OS layer                                     |
-| `tsc --noEmit`             | type correctness                                                     |
-| `eslint`                   | **`react-hooks/rules-of-hooks` is an error**, plus the boundary rule |
-| `prettier --check`         | formatting                                                           |
-| `vitest`                   | domain rules, including negative cases                               |
+| Gate                       | What it protects                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------ |
+| `cargo fmt --check`        | Rust formatting                                                                      |
+| `cargo clippy -D warnings` | Rust correctness and idiom                                                           |
+| `cargo test`               | repository, migrations, OS layer                                                     |
+| `tsc --noEmit`             | type correctness                                                                     |
+| `eslint`                   | **`react-hooks/rules-of-hooks` is an error**, plus the boundary rule                 |
+| `prettier --check`         | formatting                                                                           |
+| `vitest`                   | domain rules, including negative cases                                               |
+| `npm run e2e` (separate)   | the real binary through WebDriver — needs a debug build and `msedgedriver` (ADR-016) |
 
 > A hook placed after an early return type-checks cleanly and crashes the screen at runtime.
 > That is why the lint gate is mandatory and not advisory.

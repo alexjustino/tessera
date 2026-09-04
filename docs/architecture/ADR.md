@@ -243,3 +243,65 @@ README and `SECURITY.md`.
 **Why.** A code-signing certificate is a recurring commercial cost that does not change the
 security properties of the software, only the first-run experience. Deferring it is a budget
 decision, taken openly, and reversible at any time.
+
+## ADR-016 — End-to-end tests drive the real binary {#adr-016}
+
+**Decision.** The end-to-end suite (`e2e/`, `npm run e2e`) launches the debug binary through
+`tauri-driver` and the platform's WebDriver (`msedgedriver`, matched to the installed WebView2
+runtime), on a workspace relocated by `TESSERA_DATA_DIR` to an empty temporary directory. The
+client is a small W3C WebDriver implementation kept in the repository, not a framework.
+
+**Why.** Unit tests prove rules; they cannot see the seams. The defects that survived green unit
+suites in earlier slices all lived between two correct components — a cache in one window not
+told about a write in another, a driver attaching to the wrong window, an index row not written
+by one path. Only a test through the real host, the real page and the real file can find those,
+and one did on its first run. The relocated workspace is what makes the suite safe to run on a
+machine that has a real Tessera open, and it doubles as a migration test: every session starts
+from an empty file.
+
+**Cost accepted.** The suite needs a built binary and a driver that matches the WebView2
+runtime, so it is not in the pull-request gate — `npm run gates` stays fast and hermetic. It
+runs on a developer machine and from a manually triggered workflow. A global shortcut cannot be
+pressed through WebDriver; that path is proved by Diagnostics reporting its registration and by
+a person.
+
+## ADR-017 — Backups are file copies; import replaces, never merges {#adr-017}
+
+**Decision.** A backup is `VACUUM INTO` a timestamped file beside the workspace, taken on the
+first start of each day and on request, kept in rotation. A restore closes the live connection,
+copies the backup over the workspace file and reopens it through the same path start-up uses,
+so pending migrations run. Export is the whole database read through `PRAGMA table_info`, one
+JSON document; import replaces every table in one transaction, checked for referential
+integrity before it commits, and rebuilds the search index. Before any restore or import a
+safety backup is taken.
+
+**Why.** `VACUUM INTO` gives a consistent, compacted copy of a live WAL database without
+stopping it. Replacing the file is what a person means by "restore", and it is the one
+strategy that also handles a backup from an older schema — the file comes back whole and the
+migrations bring it forward. Reading the export through the schema means a migration cannot
+leave a column out of it. Merging two histories of the same identifiers is synchronisation,
+which this product has deliberately not built (README); a replace that asks first is honest.
+
+**Cost accepted.** A restore interrupts the connection for the duration of a file copy. An
+import from a different schema version is refused rather than migrated; the backup path
+covers that case. Two backups in the same instant get a collision suffix rather than sharing a
+name — the test that found the collision is `tests/restore.rs`.
+
+## ADR-018 — Accessibility is gated, not reviewed {#adr-018}
+
+**Decision.** Three gates hold the design system's §7: a unit test that parses the token file and
+checks every text-on-surface pair in both themes against WCAG AA (`src/styles/tokens.test.ts`);
+an axe-core audit run by the end-to-end suite on every screen in both themes, failing on any
+serious or critical violation and reporting the rest; and a keyboard-only journey in the same
+suite — tab order, focus rings, a dialog that holds Tab and gives focus back, and a block moved
+on the calendar without a mouse. The keyboard route for moving time is its own pure module
+(`src/domain/moveByKeys.ts`), so what a key means is tested without a window.
+
+**Why.** A review remembers accessibility the week it is discussed. A gate remembers it on every
+pull request. The first run of the contrast test found the light accent below AA on its own
+tint and the strong stroke below the component minimum — both from the original palette, both
+unnoticed by every screen review before it.
+
+**Cost accepted.** axe-core is a development dependency injected into the page by the suite,
+never shipped. The audit cannot judge how a screen reader _sounds_; that stays a person's job,
+and is written down as such.

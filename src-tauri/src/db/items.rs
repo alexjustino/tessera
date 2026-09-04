@@ -15,7 +15,7 @@ use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension, Row};
 use uuid::Uuid;
 
-use super::models::{Collection, Item, ItemSchedule, NewItem};
+use super::models::{CaptureRequest, Collection, Item, ItemSchedule, NewItem};
 use crate::error::{Error, Result};
 
 /// The longest title the interface will store. Long enough for any real title,
@@ -154,23 +154,51 @@ pub fn get_item(conn: &Connection, id: &str) -> Result<Item> {
 
 /// Create an item and index it, in one transaction.
 pub fn create_item(conn: &mut Connection, new: NewItem) -> Result<Item> {
+    let transaction = conn.transaction()?;
+    let id = insert_item(&transaction, &new)?;
+    transaction.commit()?;
+
+    get_item(conn, &id)
+}
+
+/// The two inserts a new item is — the row and its index entry — inside a
+/// transaction the caller owns. Shared by plain creation and by quick capture,
+/// which adds a schedule and values to the same transaction.
+fn insert_item(conn: &Connection, new: &NewItem) -> Result<String> {
     let title = clean_title(&new.title)?;
     check_position(&new.position)?;
 
     let id = new_id();
     let timestamp = now();
 
-    let transaction = conn.transaction()?;
-    transaction.execute(
+    conn.execute(
         "INSERT INTO item (id, collection_id, title, position, created_at, updated_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?5)",
         params![id, new.collection_id, title, new.position, timestamp],
     )?;
-    transaction.execute(
+    conn.execute(
         "INSERT INTO search_fts (owner_kind, owner_id, title, body)
          VALUES ('item', ?1, ?2, '')",
         params![id, title],
     )?;
+    Ok(id)
+}
+
+/// Quick capture: an item with its schedule and property values, atomically.
+///
+/// The parser in the domain layer decides what a line means; this only writes
+/// it. Every part goes through the same validation as the separate commands —
+/// a bad rule or an unknown property option fails the whole capture, and the
+/// person sees the sentence rather than a half-made task.
+pub fn capture_item(conn: &mut Connection, request: CaptureRequest) -> Result<Item> {
+    let transaction = conn.transaction()?;
+    let id = insert_item(&transaction, &request.item)?;
+    if let Some(schedule) = request.schedule {
+        set_schedule(&transaction, &id, schedule)?;
+    }
+    for value in &request.values {
+        super::properties::set_value(&transaction, &id, &value.property_id, &value.value)?;
+    }
     transaction.commit()?;
 
     get_item(conn, &id)
@@ -360,6 +388,11 @@ pub fn set_schedule(conn: &Connection, id: &str, schedule: ItemSchedule) -> Resu
             "a repeating item needs a date to repeat from",
         ));
     }
+
+    // The reminder table is the scheduler's only source. An item's remind_at is
+    // the person's intent; the row is what fires. They are kept in step here so
+    // there is exactly one place where they can drift, and it is this one.
+    super::reminders::sync_for_item(conn, id, schedule.remind_at.as_deref())?;
 
     let changed = conn.execute(
         "UPDATE item

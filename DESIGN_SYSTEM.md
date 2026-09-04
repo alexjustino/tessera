@@ -49,7 +49,9 @@ transparent.
 `src/app/theme.ts` reads the Windows accent **ramp** from the host and writes it into the token
 layer. Windows exposes a ramp rather than a single colour because the shade that reads well on
 white does not read well on near-black: light themes take the base and darker steps, dark
-themes the lighter ones. Re-apply the ramp whenever the theme changes.
+themes the lighter ones. Re-apply the ramp whenever the theme changes. In light, the fill and
+text colour is the ramp's **first dark step**, not the raw accent — what Fluent does, and what keeps
+accent text at 4.5:1 on white and on its own tint.
 
 When the system cannot be asked, the built-in default is used and `fromSystem` is `false` —
 and the interface says so. It does not pretend.
@@ -91,6 +93,26 @@ cannot be undone later without touching every screen.
   accessible name and the tooltip. That requirement is in the type signature so it cannot be
   forgotten.
 
+### The mark
+
+The product's own icon is `src-tauri/icons/tessera.svg`: four tiles, one of them
+lighter and a hair apart — the tessera being set. It is drawn to survive sixteen
+pixels in the tray: four shapes, one accent, no stroke thinner than the gap
+between tiles. The blue is the Windows 11 default accent, the value the token
+layer starts from.
+
+Every raster the platform needs is generated from that one file, never edited by
+hand:
+
+```bash
+node -e "require('sharp')('src-tauri/icons/tessera.svg').resize(1024,1024).png().toFile('src-tauri/icons/tessera-1024.png')"
+npx tauri icon src-tauri/icons/tessera-1024.png --output src-tauri/icons
+```
+
+The same file is `src/assets/mark.svg`, shown beside the name in the title bar
+and on About, so the window, the tray, the installer and the screen all carry one
+mark.
+
 ## 6. Motion
 
 Fluent curves and durations, from the token layer: `--ease-easy`, `--ease-decelerate`,
@@ -113,7 +135,15 @@ component cannot forget it. Nothing animates in a loop.
 - Full keyboard reach, including **dragging by keyboard** on the board and the calendar.
 - Contrast verified in both themes, including accent-on-surface.
 - Minimum target 32 px at comfortable density.
-- Live regions for anything that changes without a click.
+- Live regions for anything that changes without a click — through `announce()` from
+  `ui/announce.ts`, rendered by the one `Announcer` mounted with the providers. A component
+  never renders its own live region for a transient message.
+- Dialogs (`Modal`, `Drawer`, `ConfirmDialog`) hold Tab and give focus back on close, via
+  `useFocusTrap`.
+
+**Held by gates, not by review (ADR-018):** `src/styles/tokens.test.ts` checks every
+text-on-surface pair in both themes; `e2e/accessibility.e2e.ts` runs axe-core on every screen in
+both themes and drives the product by keyboard alone.
 
 ## 8. The canonical primitives
 
@@ -126,8 +156,19 @@ first — not inline in the feature.
 `ContextMenu` · `CommandBar` · `TabStrip` · `Breadcrumb` · `ProgressBar` · `ProgressRing` ·
 `Skeleton` · `EmptyState` · `Toast` · `InfoBar` · `Kbd` · `Resizer` · `VirtualList`
 
-Present today: `Button`, `IconButton`, `Card`, `InfoBar`. The rest arrive with the slice that
-first needs them, and arrive _here_.
+Present today: `Button`, `IconButton`, `Card`, `InfoBar`, `Input`, `Select`, `Checkbox`, `Chip`,
+`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`. The rest arrive with the slice that first
+needs them, and arrive _here_.
+
+A shortcut shown beside the thing it triggers is a `Kbd`, everywhere — the palette, the rail,
+Diagnostics, the capture window — so a person learns to read it once.
+
+### Asking "are you sure"
+
+`ConfirmDialog`, always. It names what will happen, the confirming button repeats the verb, and
+a destructive action takes the danger tone — with the wording carrying the consequence too,
+never colour alone. `window.confirm` is not themed, not keyboard-consistent, and blocks the
+window's own event loop; it does not appear in this codebase.
 
 ## 9. The window
 

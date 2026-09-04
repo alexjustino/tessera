@@ -2,6 +2,7 @@ import { Dismiss20Regular } from '@fluentui/react-icons';
 import { useEffect, useRef, type ReactNode } from 'react';
 
 import { IconButton } from './IconButton';
+import { useFocusTrap } from './useFocusTrap';
 
 /**
  * A panel that slides in from the right for editing one thing.
@@ -31,10 +32,11 @@ export function Drawer({
       if (event.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', onKeyDown);
-    panel.current?.focus();
-
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, onClose]);
+
+  // Tab stays inside while it is open; focus goes back to where it was after.
+  useFocusTrap(panel, open);
 
   if (!open) return null;
 

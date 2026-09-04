@@ -169,7 +169,15 @@ mod tests {
         let names: Vec<_> = views.iter().map(|view| view.name.as_str()).collect();
         assert_eq!(
             names,
-            ["List", "Table", "Board", "Today", "Overdue", "Next 7 days"]
+            [
+                "List",
+                "Table",
+                "Board",
+                "Today",
+                "Overdue",
+                "Next 7 days",
+                "Calendar"
+            ]
         );
     }
 
@@ -187,7 +195,7 @@ mod tests {
     fn seeding_the_default_views_is_idempotent() {
         let conn = workspace();
         migrations::apply(&conn).expect("re-apply");
-        assert_eq!(list_views(&conn, Some("tasks")).expect("list").len(), 6);
+        assert_eq!(list_views(&conn, Some("tasks")).expect("list").len(), 7);
     }
 
     #[test]

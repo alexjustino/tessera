@@ -15,8 +15,9 @@ MAJOR . MINOR . PATCH
 ## Single source of truth
 
 The version is declared in `src-tauri/tauri.conf.json` and mirrored into `package.json` and
-`src-tauri/Cargo.toml`. A gate fails if the three disagree. The About screen reads the version
-from the running binary, never from a constant typed by hand.
+`src-tauri/Cargo.toml`. `scripts/check-version.mjs` fails if the three disagree, and runs as the
+first gate in `npm run gates` — so a bump that misses a file cannot reach a tag. The About screen
+reads the version from the running binary, never from a constant typed by hand.
 
 ## The database schema version is separate
 
@@ -38,3 +39,5 @@ feat/*  ->  develop  ->  release/vX.Y  ->  main  ->  tag vX.Y.Z
    installers and attaches them to the GitHub Release.
 
 Pre-release tags use `-alpha.N`, `-beta.N`, `-rc.N`.
+
+The checklist that runs this flow is [`docs/RELEASE.md`](docs/RELEASE.md).

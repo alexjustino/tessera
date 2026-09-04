@@ -67,6 +67,26 @@ pub struct NewItem {
     pub position: String,
 }
 
+/// One property value to set on a captured item.
+#[derive(Debug, Clone, Deserialize)]
+pub struct CaptureValue {
+    pub property_id: String,
+    pub value: serde_json::Value,
+}
+
+/// Everything one line of quick capture produces, written in one transaction.
+///
+/// A task that exists without its date, or with its date but not its priority,
+/// is a task the person did not describe — so either all of it lands or none of
+/// it does.
+#[derive(Debug, Clone, Deserialize)]
+pub struct CaptureRequest {
+    pub item: NewItem,
+    pub schedule: Option<ItemSchedule>,
+    #[serde(default)]
+    pub values: Vec<CaptureValue>,
+}
+
 /// A typed field a collection declares.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Property {
@@ -159,4 +179,65 @@ pub struct BlockChanges {
     pub creates: Vec<BlockCreate>,
     pub updates: Vec<BlockUpdate>,
     pub deletes: Vec<String>,
+}
+
+// ── Time ───────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct Calendar {
+    pub id: String,
+    pub name: String,
+    pub color: Option<String>,
+    pub visible: bool,
+    pub position: String,
+}
+
+/// A unit of time. See ADR-008 for why this is not an item.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct CalendarEvent {
+    pub id: String,
+    pub calendar_id: String,
+    pub title: String,
+    pub location: Option<String>,
+    /// UTC instants (ADR-013).
+    pub starts_at_utc: String,
+    pub ends_at_utc: String,
+    /// Kept alongside the instants because a recurring 09:00 meeting must stay
+    /// 09:00 after the clocks change, and that cannot be recovered from an
+    /// instant alone.
+    pub tz: String,
+    pub all_day: bool,
+    pub rrule: Option<String>,
+    pub busy: bool,
+    /// Set when this event is time reserved for a task.
+    pub item_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct NewEvent {
+    pub calendar_id: String,
+    pub title: String,
+    pub location: Option<String>,
+    pub starts_at_utc: String,
+    pub ends_at_utc: String,
+    pub tz: String,
+    pub all_day: bool,
+    pub rrule: Option<String>,
+}
+
+/// One occurrence of a series, cancelled or moved.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EventException {
+    pub event_id: String,
+    pub original_start_utc: String,
+    pub kind: String,
+    pub starts_at_utc: Option<String>,
+    pub ends_at_utc: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct WorkHours {
+    pub weekday: i64,
+    pub starts_minute: i64,
+    pub ends_minute: i64,
 }

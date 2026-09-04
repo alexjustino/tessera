@@ -11,9 +11,12 @@
  * about what is on disk instead of about what it hoped would be.
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import type { Capture } from '@/domain/capture';
+import type { Settings } from '@/domain/settings';
 import type { PropertyConfig } from '@/domain/property';
+import { toFtsQuery } from '@/domain/search';
 import type { BoardConfig, Move } from '@/domain/board';
 import type { BlockChanges } from '@/domain/document';
 import type { Schedule } from '@/domain/schedule';
@@ -22,7 +25,13 @@ import type { Query } from '@/domain/query';
 import * as api from './items';
 import * as propertyApi from './properties';
 import * as blockApi from './blocks';
+import * as reminderApi from './reminders';
+import * as calendarApi from './calendar';
 import * as viewApi from './views';
+import * as searchApi from './search';
+import * as captureApi from './capture';
+import * as settingsApi from './settings';
+import * as backupsApi from './backups';
 
 export const keys = {
   collections: ['collections'] as const,
@@ -107,10 +116,15 @@ export function useMoveOnBoard() {
 
 export function useSetSchedule() {
   const invalidate = useInvalidateItems();
+  const client = useQueryClient();
   return useMutation({
     mutationFn: ({ id, schedule }: { id: string; schedule: Schedule }) =>
       api.setSchedule(id, schedule),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate();
+      void client.invalidateQueries({ queryKey: ['reminders'] });
+      void reminderApi.refreshTray();
+    },
   });
 }
 
@@ -327,5 +341,270 @@ export function useApplyBlocks() {
     onSuccess: (blocks, variables) => {
       client.setQueryData(blockKeys.blocks(variables.ownerKind, variables.ownerId), blocks);
     },
+  });
+}
+
+// ── Time ────────────────────────────────────────────────────────────────────
+
+export const calendarKeys = {
+  calendars: ['calendars'] as const,
+  workHours: ['work-hours'] as const,
+  events: (from: string, to: string) => ['events', from, to] as const,
+  exceptions: ['event-exceptions'] as const,
+  timeBlocked: ['time-blocked'] as const,
+};
+
+/** The ids of items that already have a block on the calendar. */
+export function useTimeBlockedItems() {
+  return useQuery({
+    queryKey: calendarKeys.timeBlocked,
+    queryFn: calendarApi.listTimeBlockedItems,
+  });
+}
+
+export function useCalendars() {
+  return useQuery({ queryKey: calendarKeys.calendars, queryFn: calendarApi.listCalendars });
+}
+
+export function useWorkHours() {
+  return useQuery({ queryKey: calendarKeys.workHours, queryFn: calendarApi.listWorkHours });
+}
+
+export function useEvents(from: string, to: string, calendars: calendarApi.Calendar[]) {
+  return useQuery({
+    queryKey: calendarKeys.events(from, to),
+    queryFn: () => calendarApi.listEvents(from, to, calendars),
+    enabled: calendars.length > 0,
+  });
+}
+
+export function useEventExceptions() {
+  return useQuery({ queryKey: calendarKeys.exceptions, queryFn: calendarApi.listExceptions });
+}
+
+function useInvalidateCalendar() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: ['events'] });
+    void client.invalidateQueries({ queryKey: ['event-exceptions'] });
+    void client.invalidateQueries({ queryKey: calendarKeys.timeBlocked });
+    // Reserving time for a task touches the task's own row too.
+    void client.invalidateQueries({ queryKey: ['items'] });
+  };
+}
+
+export function useMoveEvent() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({
+    mutationFn: ({ id, startsAt, endsAt }: { id: string; startsAt: string; endsAt: string }) =>
+      calendarApi.moveEvent(id, startsAt, endsAt),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteEvent() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: calendarApi.deleteEvent, onSuccess: invalidate });
+}
+
+export function useSetException() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: calendarApi.setException, onSuccess: invalidate });
+}
+
+export function useCreateTimeBlock() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: calendarApi.createTimeBlock, onSuccess: invalidate });
+}
+
+// ── Reminders ───────────────────────────────────────────────────────────────
+
+export const reminderKeys = {
+  status: ['reminders', 'status'] as const,
+  autostart: ['autostart'] as const,
+};
+
+export function useReminderStatus() {
+  return useQuery({
+    queryKey: reminderKeys.status,
+    queryFn: reminderApi.reminderStatus,
+    // The one query in the product that is allowed to go stale on a timer: the
+    // queue changes as the clock moves, not only when this application writes.
+    refetchInterval: 30_000,
+  });
+}
+
+function useInvalidateReminders() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: ['reminders'] });
+    void reminderApi.refreshTray();
+  };
+}
+
+export function usePauseReminders() {
+  const invalidate = useInvalidateReminders();
+  return useMutation({ mutationFn: reminderApi.pauseReminders, onSuccess: invalidate });
+}
+
+export function useResumeReminders() {
+  const invalidate = useInvalidateReminders();
+  return useMutation({ mutationFn: reminderApi.resumeReminders, onSuccess: invalidate });
+}
+
+export function useSnoozeReminder() {
+  const invalidate = useInvalidateReminders();
+  return useMutation({
+    mutationFn: ({ id, minutes }: { id: string; minutes: number }) =>
+      reminderApi.snoozeReminder(id, minutes),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDismissReminder() {
+  const invalidate = useInvalidateReminders();
+  return useMutation({ mutationFn: reminderApi.dismissReminder, onSuccess: invalidate });
+}
+
+export function useAutostart() {
+  return useQuery({ queryKey: reminderKeys.autostart, queryFn: reminderApi.autostartEnabled });
+}
+
+export function useSetAutostart() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: reminderApi.setAutostart,
+    onSuccess: () => void client.invalidateQueries({ queryKey: reminderKeys.autostart }),
+  });
+}
+
+// ── Search and quick capture (F9) ──────────────────────────────────────────
+
+/**
+ * One box over items and events. The text is shaped for the index here, so no
+ * component ever hands FTS5 syntax to the host. Nothing is asked for an empty
+ * or punctuation-only query; the previous answer stays while a new one loads,
+ * so the list does not blink between keystrokes.
+ */
+export function useSearch(text: string) {
+  const query = toFtsQuery(text);
+  return useQuery({
+    queryKey: ['search', query] as const,
+    queryFn: () => (query === null ? Promise.resolve([]) : searchApi.search(query, 20)),
+    enabled: query !== null,
+    placeholderData: keepPreviousData,
+    // Unlike the item lists, a search answer is stale as soon as anything is
+    // written; reopening the palette asks again.
+    staleTime: 0,
+  });
+}
+
+/**
+ * Write one parsed line. A capture can touch items, values, reminders and the
+ * search index at once, so everything is invalidated rather than guessing.
+ */
+export function useCaptureItem() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      collectionId,
+      position,
+      capture,
+      priorityPropertyId,
+    }: {
+      collectionId: string;
+      position: string;
+      capture: Capture;
+      /** The collection's priority property, when it has one. */
+      priorityPropertyId: string | null;
+    }) =>
+      api.captureItem(
+        collectionId,
+        position,
+        capture,
+        priorityPropertyId !== null && capture.priority !== null
+          ? [{ propertyId: priorityPropertyId, value: capture.priority }]
+          : [],
+      ),
+    onSuccess: () => {
+      void client.invalidateQueries();
+      void reminderApi.refreshTray();
+    },
+  });
+}
+
+export function useCaptureStatus() {
+  return useQuery({ queryKey: ['capture-status'] as const, queryFn: captureApi.captureStatus });
+}
+
+// ── Settings and data (F10) ────────────────────────────────────────────────
+
+export const settingsKey = ['settings'] as const;
+
+export function useSettings() {
+  return useQuery({ queryKey: settingsKey, queryFn: settingsApi.getSettings });
+}
+
+/**
+ * Replace the settings. The cache takes what the host actually stored, not
+ * what was sent — a refused value never looks accepted — and the capture
+ * status is re-read because the shortcut may have been re-bound.
+ */
+export function useSaveSettings() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (settings: Settings) => settingsApi.setSettings(settings),
+    onSuccess: (saved) => {
+      client.setQueryData(settingsKey, saved);
+      void client.invalidateQueries({ queryKey: ['capture-status'] });
+    },
+  });
+}
+
+export function useBackupsStatus() {
+  return useQuery({
+    queryKey: ['backups'] as const,
+    queryFn: backupsApi.backupsStatus,
+    staleTime: 0,
+  });
+}
+
+export function useBackupNow() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: backupsApi.backupNow,
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['backups'] }),
+  });
+}
+
+/** After the workspace is replaced, nothing in any cache can be trusted. */
+function useWorkspaceReplaced() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries();
+    void reminderApi.refreshTray();
+  };
+}
+
+export function useRestoreBackup() {
+  const replaced = useWorkspaceReplaced();
+  return useMutation({
+    mutationFn: (path: string) => backupsApi.restoreBackup(path),
+    onSuccess: replaced,
+  });
+}
+
+export function useExport() {
+  return useMutation({
+    mutationFn: ({ kind, path }: { kind: backupsApi.ExportKind; path: string }) =>
+      backupsApi.exportTo(kind, path),
+  });
+}
+
+export function useImportJson() {
+  const replaced = useWorkspaceReplaced();
+  return useMutation({
+    mutationFn: (path: string) => backupsApi.importJson(path),
+    onSuccess: replaced,
   });
 }

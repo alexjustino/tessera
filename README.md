@@ -52,7 +52,7 @@ while still being the same task.**
 | **Task becomes a time block** |    ✗     |     ✗      |    ✗     |  weak   |            **✓**             |
 | Native toast + tray           |    ✓     |     ✗      |   weak   |    ✓    |      **✓ with actions**      |
 | Global quick capture          |   weak   |     ✗      |    ✗     |    ✗    |     **✓ Ctrl+Alt+Space**     |
-| Your data, your file          |    ✗     |     ✗      |    ✗     |    ✗    |      **✓ local SQLite**      |
+| Your data, your file          |    ✗     |     ✗      |    ✗     |    ✗    | **✓ SQLite, daily backups**  |
 | Price                         | freemium |  freemium  | freemium | licence |    **free, open source**     |
 
 ## The name
@@ -92,7 +92,15 @@ or export it to JSON, Markdown and ICS at any time.
 ## Requirements
 
 - Windows 11 (Windows 10 21H2+ works; Mica falls back to a solid surface)
-- WebView2 runtime — already present on Windows 11
+- The WebView2 runtime, which Windows 11 always has. On a machine without it the
+  installer fetches it, which needs a network connection **once, at install
+  time**. Nothing the product does afterwards touches a network — the runtime is
+  bootstrapped rather than embedded because embedding it would take the
+  installer from three megabytes to about a hundred and thirty.
+
+The installers are not code-signed, so SmartScreen warns on first run: choose
+**More info → Run anyway**. Verify the download came from the Releases page of
+this repository.
 
 Building additionally needs Node.js 20+, Rust 1.80+, and the MSVC build tools.
 
@@ -111,14 +119,25 @@ Run the full validation battery exactly as CI does:
 npm run gates
 ```
 
+The end-to-end suite drives the real binary through WebDriver on a throwaway workspace. It needs
+a debug build and a [Microsoft Edge WebDriver](https://developer.microsoft.com/microsoft-edge/tools/webdriver/)
+matching your WebView2 runtime (`edge://version` shows it):
+
+```bash
+cargo install tauri-driver --locked
+npm run e2e:build
+$env:TESSERA_E2E_EDGEDRIVER = 'C:\path\to\msedgedriver.exe'
+npm run e2e
+```
+
 ## Roadmap
 
-| Release   | Theme                         | Contents                                                                                                                                                                                                                |
-| --------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1.0.0** | The workspace                 | typed core · List / Table / Board / Calendar · block editor · dates & recurrence · **calendar with time-blocking** · **Windows reminders** · quick capture · full-text search · Fluent design · backup & export · About |
-| 1.1.0     | The project manager           | year view · timeline & Gantt · dependencies with critical path · time tracking · focus mode · reports · templates · daily capacity                                                                                      |
-| 1.2.0     | The adopter                   | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes & wiki space · goals · print and PDF export · GTD review                                                                                              |
-| 2.0       | Optional, only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                                                                                      |
+| Release     | Theme                         | Contents                                                                                                                                                                                                                |
+| ----------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1.0.0** ✓ | The workspace                 | typed core · List / Table / Board / Calendar · block editor · dates & recurrence · **calendar with time-blocking** · **Windows reminders** · quick capture · full-text search · Fluent design · backup & export · About |
+| 1.1.0       | The project manager           | year view · timeline & Gantt · dependencies with critical path · time tracking · focus mode · reports · templates · daily capacity                                                                                      |
+| 1.2.0       | The adopter                   | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes & wiki space · goals · print and PDF export · GTD review                                                                                              |
+| 2.0         | Optional, only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                                                                                      |
 
 Deliberately out of scope: real-time multi-user collaboration, AI, third-party cloud
 integrations.

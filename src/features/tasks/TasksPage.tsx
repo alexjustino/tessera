@@ -1,10 +1,10 @@
 import { Add20Regular, Options20Regular, TaskListSquareLtr24Regular } from '@fluentui/react-icons';
-import { useCallback, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
 import {
+  useCaptureItem,
   useCompleteOccurrence,
-  useCreateItem,
   useDeleteItem,
   useItems,
   useProperties,
@@ -17,10 +17,13 @@ import {
   useViews,
 } from '@/data/hooks';
 import { EMPTY_BOARD_CONFIG, type BoardConfig } from '@/domain/board';
-import { checkTitle, positionForNewItem } from '@/domain/item';
+import type { Capture } from '@/domain/capture';
+import { positionForNewItem } from '@/domain/item';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
 import type { Property, PropertyValue } from '@/domain/property';
 import { EMPTY_QUERY, run, type Query, type Row } from '@/domain/query';
+import { CalendarView } from '@/features/calendar/CalendarView';
+import { CaptureLine } from '@/features/capture/CaptureLine';
 import { PropertyManager } from '@/features/properties/PropertyManager';
 import { BoardView } from '@/features/views/BoardView';
 import { ListView } from '@/features/views/ListView';
@@ -29,8 +32,8 @@ import { TableView } from '@/features/views/TableView';
 import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
-import { Input } from '@/ui/Input';
 import { TabStrip } from '@/ui/TabStrip';
+import { announce } from '@/ui/announce';
 
 import { TaskDetail } from './TaskDetail';
 
@@ -48,11 +51,18 @@ const INLINE_LIMIT = 2;
 /** The types that fit in a row: one tap, one choice, no typing. */
 const INLINE_TYPES = new Set(['status', 'priority', 'select']);
 
-export function TasksPage({ initialViewId = null }: { initialViewId?: string | null }) {
+export function TasksPage({
+  initialViewId = null,
+  initialDetailId = null,
+}: {
+  initialViewId?: string | null;
+  /** An item to open on mount — how the palette lands on a search hit. */
+  initialDetailId?: string | null;
+}) {
   const [draft, setDraft] = useState('');
   const [managingProperties, setManagingProperties] = useState(false);
   const [editingQuery, setEditingQuery] = useState(false);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(initialDetailId);
 
   const [activeViewId, setActiveViewId] = useState<string | null>(initialViewId);
   /** The query as it is being edited. Null means "whatever the view saved". */
@@ -65,7 +75,7 @@ export function TasksPage({ initialViewId = null }: { initialViewId?: string | n
   const values = usePropertyValues(COLLECTION);
   const views = useViews(COLLECTION);
 
-  const create = useCreateItem();
+  const create = useCaptureItem();
   const setCompleted = useSetItemCompleted();
   const rename = useRenameItem();
   const remove = useDeleteItem();
@@ -107,26 +117,31 @@ export function TasksPage({ initialViewId = null }: { initialViewId?: string | n
     [items.data, detailId],
   );
 
-  const check = checkTitle(draft);
+  const priorityPropertyId = useMemo(
+    () => (properties.data ?? []).find((property) => property.type === 'priority')?.id ?? null,
+    [properties.data],
+  );
 
   const submit = useCallback(
-    (event: FormEvent) => {
-      event.preventDefault();
-      const result = checkTitle(draft);
-      if (result.status !== 'ok') return;
-
+    (capture: Capture) => {
       create.mutate(
         {
           collectionId: COLLECTION,
-          title: result.title,
           position: positionForNewItem(items.data ?? []),
+          capture,
+          priorityPropertyId,
         },
         // Clearing only after the host accepted it means a rejected write does
         // not silently swallow what the person typed.
-        { onSuccess: () => setDraft('') },
+        {
+          onSuccess: (item) => {
+            setDraft('');
+            announce(`Added ${item.title}`);
+          },
+        },
       );
     },
-    [create, draft, items.data],
+    [create, items.data, priorityPropertyId],
   );
 
   const failure =
@@ -208,30 +223,18 @@ export function TasksPage({ initialViewId = null }: { initialViewId?: string | n
         </Button>
       </header>
 
-      <form onSubmit={submit} className="flex gap-2">
-        <Input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Add a task and press Enter"
-          aria-label="New task"
-          autoFocus
-          maxLength={2100}
-        />
-        <Button
-          type="submit"
-          appearance="accent"
-          icon={<Add20Regular />}
-          disabled={check.status !== 'ok' || create.isPending}
-        >
-          Add
-        </Button>
-      </form>
-
-      {check.status === 'too-long' && (
-        <InfoBar severity="caution" title="That title is too long">
-          {check.length.toLocaleString()} characters. The limit is 2,000.
-        </InfoBar>
-      )}
+      <CaptureLine value={draft} onChange={setDraft} onSubmit={submit} autoFocus>
+        {({ ready }) => (
+          <Button
+            type="submit"
+            appearance="accent"
+            icon={<Add20Regular />}
+            disabled={!ready || create.isPending}
+          >
+            Add
+          </Button>
+        )}
+      </CaptureLine>
 
       {failure && (
         <InfoBar
@@ -309,6 +312,13 @@ export function TasksPage({ initialViewId = null }: { initialViewId?: string | n
             title="No item matches this view"
             description="The items are still there — this view's filters just do not include any of them."
             action={<Button onClick={() => setEditingQuery(true)}>Change the filters</Button>}
+          />
+        ) : view?.kind === 'calendar' ? (
+          <CalendarView
+            // Work with no time reserved for it. The panel exists so a person
+            // can drag it onto the grid, which is the whole point of the slice.
+            unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
+            onOpenItem={(item) => setDetailId(item.id)}
           />
         ) : view?.kind === 'board' ? (
           <BoardView

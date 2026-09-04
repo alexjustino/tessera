@@ -1,6 +1,6 @@
 [package]
 name = "tessera"
-version = "0.1.0"
+version = "1.0.0"
 description = "A professional local-first workspace for tasks, projects and time"
 authors = ["Alex Justino"]
 license = "Apache-2.0"
@@ -27,9 +27,13 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 log = "0.4"
 uuid = { version = "1.20.0", features = ["v7"] }
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-dialog = "2"
+tokio = { version = "1.53.1", features = ["time", "sync", "macros", "rt"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance = "2"
+tauri-plugin-global-shortcut = "2"
 
 [target.'cfg(windows)'.dependencies]
 tauri-winrt-notification = "0.7"
