@@ -296,13 +296,14 @@ function clustersOf<T extends { top: number; height: number }>(entries: readonly
 
 // ── Which days a view shows ────────────────────────────────────────────────
 
-export type CalendarScale = 'day' | 'workWeek' | 'week' | 'month' | 'agenda';
+export type CalendarScale = 'day' | 'workWeek' | 'week' | 'month' | 'year' | 'agenda';
 
 export const CALENDAR_SCALES: ReadonlyArray<{ id: CalendarScale; label: string }> = [
   { id: 'day', label: 'Day' },
   { id: 'workWeek', label: 'Work week' },
   { id: 'week', label: 'Week' },
   { id: 'month', label: 'Month' },
+  { id: 'year', label: 'Year' },
   { id: 'agenda', label: 'Agenda' },
 ];
 
@@ -360,10 +361,23 @@ export function daysOf(scale: CalendarScale, anchor: string, startsOn = 1): stri
       return days;
     }
 
+    case 'year':
+      return daysOfYear(Number(anchor.slice(0, 4)));
+
     case 'agenda': {
       return Array.from({ length: 14 }, (_, offset) => addLocalDays(anchor, offset));
     }
   }
+}
+
+/** Every day of a year, in order: 366 of them when February has a 29th. */
+export function daysOfYear(year: number): string[] {
+  const length = isLeapYear(year) ? 366 : 365;
+  return Array.from({ length }, (_, offset) => addLocalDays(`${year}-01-01`, offset));
+}
+
+export function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
 export function startOfWeek(day: string, startsOn: number): string {
@@ -381,6 +395,8 @@ export function step(scale: CalendarScale, anchor: string, direction: 1 | -1): s
       return addLocalDays(anchor, 7 * direction);
     case 'agenda':
       return addLocalDays(anchor, 14 * direction);
+    case 'year':
+      return `${Number(anchor.slice(0, 4)) + direction}-01-01`;
     case 'month': {
       const [year, month] = anchor.split('-').map(Number);
       const shifted = new Date(year!, month! - 1 + direction, 1);

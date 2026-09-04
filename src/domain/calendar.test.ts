@@ -394,6 +394,20 @@ describe('the days a scale shows', () => {
     expect(step('workWeek', DAY, -1)).toBe('2026-08-31');
     expect(step('month', '2026-09-15', 1)).toBe('2026-10-01');
     expect(step('month', '2026-01-15', -1)).toBe('2025-12-01');
+    expect(step('year', '2026-09-15', 1)).toBe('2027-01-01');
+    expect(step('year', '2026-01-01', -1)).toBe('2025-01-01');
+  });
+
+  it('a year is every day of it, and a leap year is one longer', () => {
+    const year = daysOf('year', '2026-09-15');
+    expect(year).toHaveLength(365);
+    expect(year[0]).toBe('2026-01-01');
+    expect(year.at(-1)).toBe('2026-12-31');
+
+    const leap = daysOf('year', '2028-06-01');
+    expect(leap).toHaveLength(366);
+    expect(leap).toContain('2028-02-29');
+    expect(daysOf('year', '2100-01-01')).toHaveLength(365);
   });
 });
 
