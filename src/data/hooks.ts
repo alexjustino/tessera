@@ -709,3 +709,28 @@ export function useDeleteTimeEntry() {
     onSuccess: invalidate,
   });
 }
+
+export function useAddTimeEntry() {
+  const invalidate = useInvalidateTime();
+  return useMutation({
+    mutationFn: ({
+      itemId,
+      startedAt,
+      endedAt,
+    }: {
+      itemId: string;
+      startedAt: string;
+      endedAt: string;
+    }) => timeApi.addEntry(itemId, startedAt, endedAt),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateTimeEntry() {
+  const invalidate = useInvalidateTime();
+  return useMutation({
+    mutationFn: ({ id, startedAt, endedAt }: { id: string; startedAt: string; endedAt: string }) =>
+      timeApi.updateEntry(id, startedAt, endedAt),
+    onSuccess: invalidate,
+  });
+}
