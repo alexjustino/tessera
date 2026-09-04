@@ -15,12 +15,14 @@ import {
   useSetSchedule,
   useMoveOnBoard,
   useSetPropertyValue,
+  useTimeEntries,
   useUpdateView,
   useViews,
 } from '@/data/hooks';
 import { EMPTY_BOARD_CONFIG, type BoardConfig } from '@/domain/board';
 import { formatDuration, plan as computePlan } from '@/domain/criticalPath';
 import { isBlocked } from '@/domain/graph';
+import { runningEntry } from '@/domain/time';
 import type { Capture } from '@/domain/capture';
 import { positionForNewItem } from '@/domain/item';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
@@ -124,6 +126,7 @@ export function TasksPage({
   );
 
   const dependencies = useDependencies();
+  const timeEntries = useTimeEntries();
 
   /**
    * The plan over this collection: how long it takes, what decides the end.
@@ -172,6 +175,11 @@ export function TasksPage({
       all.filter((item) => isBlocked(edges, item.id, (id) => done.has(id))).map((item) => item.id),
     );
   }, [dependencies.data, items.data]);
+
+  // The one running clock, if any. The row only needs to know which task it is
+  // on; how long it has been going is the detail panel's business, and only it
+  // ticks.
+  const timingId = runningEntry(timeEntries.data ?? [])?.itemId ?? null;
 
   const priorityPropertyId = useMemo(
     () => (properties.data ?? []).find((property) => property.type === 'priority')?.id ?? null,
@@ -435,6 +443,7 @@ export function TasksPage({
             blockedIds={blockedIds}
             criticalIds={criticalIds}
             milestoneIds={milestoneIds}
+            timingId={timingId}
             inlineProperties={inlineProperties}
             onToggle={toggleRow}
             onRename={(row, title) => rename.mutate({ id: row.item.id, title })}

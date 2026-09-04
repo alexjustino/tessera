@@ -7,6 +7,7 @@ import { Editor } from '@/features/editor/Editor';
 
 import { Dependencies } from './Dependencies';
 import { PlanEditor } from './PlanEditor';
+import { TimeTracker } from './TimeTracker';
 
 import { ScheduleEditor } from './ScheduleEditor';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
@@ -95,6 +96,8 @@ export function TaskDetail({
       )}
 
       {task !== null && <PlanEditor task={task} timing={timing} />}
+
+      {task !== null && <TimeTracker task={task} items={items} />}
 
       {task !== null && <Dependencies task={task} items={items} />}
 

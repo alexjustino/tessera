@@ -3,6 +3,7 @@ import {
   Delete20Regular,
   Diamond16Filled,
   PanelRightExpand20Regular,
+  Play16Regular,
   Warning16Regular,
 } from '@fluentui/react-icons';
 import { useState } from 'react';
@@ -31,6 +32,7 @@ export function ListView({
   blockedIds,
   criticalIds,
   milestoneIds,
+  timingId,
   onToggle,
   onRename,
   onDelete,
@@ -46,6 +48,8 @@ export function ListView({
   criticalIds: ReadonlySet<string>;
   /** Moments in the plan rather than work. */
   milestoneIds: ReadonlySet<string>;
+  /** The task whose clock is running, if any — at most one (P4). */
+  timingId: string | null;
   onToggle: (row: Row, completed: boolean) => void;
   onRename: (row: Row, title: string) => void;
   onDelete: (row: Row) => void;
@@ -75,6 +79,7 @@ export function ListView({
                   blocked={blockedIds.has(row.item.id)}
                   critical={criticalIds.has(row.item.id)}
                   milestone={milestoneIds.has(row.item.id)}
+                  timing={timingId === row.item.id}
                   properties={inlineProperties}
                   values={row.values}
                   onToggle={(completed) => onToggle(row, completed)}
@@ -97,6 +102,7 @@ function TaskRow({
   blocked,
   critical,
   milestone,
+  timing,
   properties,
   values,
   onToggle,
@@ -109,6 +115,7 @@ function TaskRow({
   blocked: boolean;
   critical: boolean;
   milestone: boolean;
+  timing: boolean;
   properties: Property[];
   values: Readonly<Record<string, unknown>>;
   onToggle: (completed: boolean) => void;
@@ -185,6 +192,16 @@ function TaskRow({
         >
           <Diamond16Filled aria-hidden="true" />
         </span>
+      )}
+
+      {/* The clock is running on this one. At most one row ever carries it,
+          which is what makes it worth a chip: it is the answer to "what am I
+          doing", not a property of the task. */}
+      {timing && (
+        <Chip tone="accent" title="The timer is running on this task">
+          <Play16Regular aria-hidden="true" />
+          Timing
+        </Chip>
       )}
 
       {/* On the critical path — shown only when something is not, since a chip
