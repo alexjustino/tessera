@@ -1,3 +1,6 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { startSession, type Session } from './session';
@@ -69,7 +72,12 @@ describe('diagnostics and about', () => {
     await (await driver.findByXPath('//nav//button[normalize-space(.)="About"]')).click();
     await driver.waitForText('Alex Justino');
     await driver.waitForText('Apache');
-    const version = await driver.waitForText('0.1.0');
+    // The version comes from the file that decides it, never typed here: a
+    // release bump must not need a test edit to stay true.
+    const expected = JSON.parse(
+      await readFile(path.join(import.meta.dirname, '..', 'src-tauri', 'tauri.conf.json'), 'utf-8'),
+    ).version;
+    const version = await driver.waitForText(expected);
     expect(await version.displayed()).toBe(true);
     await session.screenshot('about');
   });

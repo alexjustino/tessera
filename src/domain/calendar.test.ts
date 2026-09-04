@@ -205,6 +205,57 @@ describe('minutes into a day', () => {
 describe('laying out a day', () => {
   const layout = (occurrences: Occurrence[]) => layoutDay(occurrences, DAY, ZONE);
 
+  /** An occurrence anywhere, not only on the test day. */
+  const spanning = (id: string, startsAt: string, endsAt: string): Occurrence => ({
+    event: event(id, startsAt, endsAt),
+    originalStart: startsAt,
+    startsAt,
+    endsAt,
+  });
+
+  it('lays out only what touches the day', () => {
+    // Every occurrence in a window is handed to every day's layout. A layout
+    // that clamped instead of filtering drew a sliver at midnight on every
+    // column for every event of every other day — invisible in an empty week,
+    // wrong in a full one.
+    const tomorrow = spanning(
+      'tomorrow',
+      at(9, 0, addLocalDays(DAY, 1)),
+      at(10, 0, addLocalDays(DAY, 1)),
+    );
+    const yesterday = spanning(
+      'yesterday',
+      at(9, 0, addLocalDays(DAY, -1)),
+      at(10, 0, addLocalDays(DAY, -1)),
+    );
+    const today = occurrence('today', 9, 10);
+
+    expect(layout([tomorrow, yesterday, today]).map((box) => box.occurrence.event.id)).toEqual([
+      'today',
+    ]);
+  });
+
+  it('keeps an event that spans midnight on both days', () => {
+    const overnight = spanning('overnight', at(22, 0), at(2, 0, addLocalDays(DAY, 1)));
+
+    const first = layout([overnight]);
+    expect(first).toHaveLength(1);
+    expect(first[0]!.topMinutes).toBe(22 * 60);
+    expect(first[0]!.heightMinutes).toBe(2 * 60);
+
+    const second = layoutDay([overnight], addLocalDays(DAY, 1), ZONE);
+    expect(second).toHaveLength(1);
+    expect(second[0]!.topMinutes).toBe(0);
+    expect(second[0]!.heightMinutes).toBe(2 * 60);
+  });
+
+  it('an event ending exactly at midnight belongs to the day that is ending', () => {
+    const untilMidnight = spanning('late', at(22, 0), at(0, 0, addLocalDays(DAY, 1)));
+
+    expect(layout([untilMidnight])).toHaveLength(1);
+    expect(layoutDay([untilMidnight], addLocalDays(DAY, 1), ZONE)).toHaveLength(0);
+  });
+
   it('gives a lone event the full width', () => {
     const [box] = layout([occurrence('alone', 9, 10)]);
     expect(box!.left).toBe(0);

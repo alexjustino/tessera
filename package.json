@@ -1,7 +1,7 @@
 {
   "name": "tessera",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,7 +18,10 @@
     "gates": "pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/gates.ps1",
     "e2e": "npm run e2e:build && tsc -p tsconfig.e2e.json --noEmit && vitest run --config vitest.e2e.config.ts",
     "e2e:build": "tauri build --debug --no-bundle",
-    "e2e:only": "tsc -p tsconfig.e2e.json --noEmit && vitest run --config vitest.e2e.config.ts"
+    "e2e:only": "tsc -p tsconfig.e2e.json --noEmit && vitest run --config vitest.e2e.config.ts",
+    "check:version": "node scripts/check-version.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "release:check": "npm run gates && npm run tauri build && npm run check:bundle"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

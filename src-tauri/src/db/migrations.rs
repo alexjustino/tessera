@@ -40,6 +40,15 @@ const MIGRATIONS: &[(&str, &str)] = &[
     ),
 ];
 
+/// Every migration, name and SQL, in the order they apply.
+///
+/// Public so the round-trip test can walk the versions one at a time — the
+/// runner itself only ever goes to head, which is right for the product and
+/// wrong for a test that must stand at each step of somebody's history.
+pub fn sources() -> &'static [(&'static str, &'static str)] {
+    MIGRATIONS
+}
+
 /// The schema version this build expects.
 pub fn target_version() -> i64 {
     MIGRATIONS.len() as i64

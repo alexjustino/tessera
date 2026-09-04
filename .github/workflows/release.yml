@@ -37,6 +37,12 @@ jobs:
         run: npm run gates
         shell: pwsh
 
+      - name: Build the installers
+        run: npm run tauri build
+
+      - name: Check the bundle
+        run: npm run check:bundle
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
