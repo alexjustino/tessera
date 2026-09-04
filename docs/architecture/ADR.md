@@ -359,3 +359,29 @@ scheduled and drawn rather than describing it.
 
 **Cost accepted.** A person who estimates nothing gets no plan at all, which is correct and may
 still feel like the feature is missing. The screen says why rather than showing zeros.
+
+## ADR-021 — The timeline draws dates, not the plan's arithmetic {#adr-021}
+
+**Decision.** Bars come from each task's own `start_at` and `due_at`. The critical path from
+P2 only colours them. Dragging a bar writes the dates back. Where a task has a due date and no
+start, the estimate reaches back from the due date; where it has neither, it is left off the
+chart and counted underneath.
+
+**Why.** P2's timings are minutes from the start of the project — "this task begins at 180
+minutes" — which is the right answer to "what decides the end" and the wrong answer to "when
+is this happening". A person reads Thursday. Turning one into the other needs working hours,
+holidays and a project start date, none of which exist yet (P5), and inventing them would put
+bars on a chart at dates nobody chose.
+
+Drawing what the person set also keeps the chart editable in the obvious way: the thing you
+drag is the thing that changes. A Gantt whose bars are computed can only be edited by editing
+the inputs somewhere else, which is a worse product and a much larger one.
+
+**Consequence.** The two can disagree — a dependency whose blocked task starts before its
+blocker finishes. That is not resolved silently: the arrow is drawn broken and the count is at
+the top of the chart. Deciding what to do about it stays with the person, because a plan that
+moves work on its own is precisely what 1.1 said it would not build.
+
+**Cost accepted.** Until P5 there is no "when will this finish" on a calendar, only "how long
+is the longest route" from P2 and "when did you say" from the dates. Two answers to adjacent
+questions, and the product says which is which.
