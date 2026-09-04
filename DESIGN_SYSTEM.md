@@ -56,6 +56,20 @@ accent text at 4.5:1 on white and on its own tint.
 When the system cannot be asked, the built-in default is used and `fromSystem` is `false` —
 and the interface says so. It does not pretend.
 
+### A mark that is always on is not a mark
+
+An indicator earns its place by distinguishing. "Critical" on every row in a straight chain, or
+"Blocked" on nothing, costs a glance and teaches nothing — so the list shows the critical mark
+only when some tasks are not critical, and shows no plan summary at all when nothing is
+estimated (ADR-020).
+
+### An icon's own `title` is not a tooltip
+
+A Fluent icon given `title` renders a `<title>` element inside its SVG: not a tooltip, not an
+accessible name, and not findable as an attribute. An icon that carries meaning goes in a
+wrapper with `role="img"`, `aria-label` and `title` — the same three things `IconButton`
+requires — or it is decorative and `aria-hidden`. There is no third case.
+
 ### One word, one meaning
 
 Before a state gets a word on a row, check the words already on that row. The dependency

@@ -182,6 +182,24 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of P2, and why
+
+The plan is computed, correct on a graph a person can check by hand, editable
+on a task and visible on a row. What it does not do yet:
+
+- **Put the plan on a calendar.** The timings are minutes from the start of the
+  project, not dates: "four hours of work" rather than "finishing on Thursday".
+  Turning one into the other needs working hours and non-working days, which is
+  P5's subject.
+- **The critical path in the board, the table and the calendar.** The list
+  shows it; P3 is where the graph becomes a picture and the other views get
+  their own treatment rather than the same chip dropped in.
+- **Estimates in the quick-capture grammar.** `Build it 2h` would fit the
+  parser, and belongs with a look at the whole grammar rather than bolted on.
+- **Rolling an estimate up from subtasks.** `parent_item_id` has existed since
+  the first migration and nothing uses it; a plan that sums children is worth
+  having once subtasks are a real feature rather than a column.
+
 ### Deferred out of P1, and why
 
 The graph is stored, refused when circular, edited on a task and visible on a

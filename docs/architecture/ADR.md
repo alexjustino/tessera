@@ -333,3 +333,29 @@ testable without a window. What a cycle _means_ is decided once, here, rather th
 **Cost accepted.** Two implementations to keep honest, and a picker that hides options rather
 than refusing them, which needs a sentence saying what is missing and why — otherwise a filtered
 list reads as a bug.
+
+## ADR-020 — A plan says what it is worth {#adr-020}
+
+**Decision.** Duration comes from `estimate_minutes`, and a task without one contributes zero.
+`plan()` returns `unplanned`, `estimatedCount` and `unestimatedOnPath` alongside the timings, and
+the interface refuses to draw a conclusion the data does not support: a workspace where nothing
+is estimated shows no summary and marks nothing critical, and a path with gaps in it says how
+many.
+
+**Why.** The arithmetic is happy to produce a number from nothing. With every duration zero the
+project is zero minutes long, every task has zero slack, and a naive reading marks the entire
+workspace critical — a confident, prominent, meaningless answer. That is worse than silence,
+because a person cannot tell it apart from a real one.
+
+The same reasoning covers the smaller case. Marking the critical path is only informative when
+something is _not_ on it; a straight chain is entirely critical, and a chip on every row costs a
+glance and says nothing. The list shows the marks only when they distinguish.
+
+**Consequence.** Every reading of the plan carries its own confidence, so later slices — the
+timeline, the capacity figures, the reports — inherit the honesty rather than each deciding
+again. `estimate_minutes` stops being the speculative column it has been since migration 001;
+`is_milestone` joins it as a flag rather than a property, because it changes how an item is
+scheduled and drawn rather than describing it.
+
+**Cost accepted.** A person who estimates nothing gets no plan at all, which is correct and may
+still feel like the feature is missing. The screen says why rather than showing zeros.
