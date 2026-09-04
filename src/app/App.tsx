@@ -9,6 +9,7 @@ import { useSaveSettings, useSettings } from '@/data/hooks';
 import { fetchAccentRamp } from '@/data/system';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { AboutPage } from '@/features/about/AboutPage';
+import { ReportsPage } from '@/features/reports/ReportsPage';
 import { FoundationPage } from '@/features/foundation/FoundationPage';
 import { CommandPalette } from '@/features/palette/CommandPalette';
 import { SettingsPage } from '@/features/settings/SettingsPage';
@@ -162,6 +163,7 @@ export function App() {
           {destination === 'today' && <TasksPage key={pageKey} initialViewId="view.today" />}
           {destination === 'board' && <TasksPage key={pageKey} initialViewId="tasks.board" />}
           {destination === 'calendar' && <TasksPage key={pageKey} initialViewId="view.calendar" />}
+          {destination === 'reports' && <ReportsPage />}
           {destination === 'settings' && <SettingsPage />}
           {destination === 'diagnostics' && <FoundationPage />}
           {destination === 'about' && <AboutPage />}
