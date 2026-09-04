@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Time tracking.** Start a clock on a task from its detail panel and stop it
+  there; the row wearing the clock says **Timing**. One timer runs at a time —
+  starting a task stops whatever was running, and the panel names the task it
+  would interrupt before the button is pressed. A running timer survives
+  closing the application: it was never held in memory, only in the workspace.
+
+  The task shows what it has taken, how that compares to its estimate, and
+  what has been tracked today across everything. An entry that crosses
+  midnight is counted on both days it touched, and the two days a year that
+  are not twenty-four hours long add up to what they were.
+
 - **The timeline.** A fifth view: a row per dated task in dependency order, a
   bar from each task's own dates, an arrow for every dependency, and the
   critical path coloured. Move a bar by dragging it or by pressing Move and

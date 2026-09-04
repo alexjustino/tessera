@@ -182,6 +182,27 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of P4, and why
+
+A timer runs on one task, survives a restart, and adds up correctly across
+midnight. What a tracker could also do:
+
+- **Edit an entry.** Start and end are what the clock recorded. A person who
+  forgot to stop last night can remove the entry, not shorten it; typing a
+  corrected end is a small form and a rule about entries that overlap, and
+  both belong with the reports that would read them (P6).
+- **Add time by hand.** "I did two hours on this yesterday" is a legitimate
+  entry the clock never saw. Same form, same slice.
+- **A total on the row.** The row says a clock is running, not how long the
+  task has taken. A duration per row is a column, which is the table view's
+  business rather than the list's.
+- **The clock in the tray or the title.** The running task is visible on its
+  row and in its panel. Focus mode (P8) is where one task and its timer get
+  the whole screen, and the tray belongs to that design rather than this one.
+- **Idle detection.** A clock left running through a night is the most common
+  tracking mistake, and the honest fix — "you were away; keep it or cut it?" —
+  needs the operating system's idle signal. Deferred, not forgotten.
+
 ### Deferred out of P3, and why
 
 The timeline draws the plan and edits it. What a Gantt could also do:
