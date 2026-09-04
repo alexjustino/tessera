@@ -35,6 +35,10 @@ pub struct Item {
     pub recurrence_rrule: Option<String>,
     pub recurrence_mode: Option<String>,
     pub completed_at: Option<String>,
+    /// Minutes of work, or null when nobody has said (P2).
+    pub estimate_minutes: Option<i64>,
+    /// A marker in the plan rather than work: zero duration, always.
+    pub is_milestone: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -53,6 +57,13 @@ pub struct ItemSchedule {
     pub remind_at: Option<String>,
     pub recurrence_rrule: Option<String>,
     pub recurrence_mode: Option<String>,
+}
+
+/// What a task contributes to a plan.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ItemPlan {
+    pub estimate_minutes: Option<i64>,
+    pub is_milestone: bool,
 }
 
 /// What the interface sends to create an item.

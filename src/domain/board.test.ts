@@ -59,6 +59,8 @@ function row(id: string, position: string, status?: string): Row {
     recurrenceRule: null,
     recurrenceMode: 'schedule',
     completedAt: null,
+    estimateMinutes: null,
+    isMilestone: false,
     createdAt: '2026-09-01T10:00:00.000Z',
     updatedAt: '2026-09-01T10:00:00.000Z',
   };

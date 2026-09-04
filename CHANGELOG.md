@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The critical path.** Give tasks estimates — typed the way you say them,
+  `2h 30m`, `1d`, `45` — and Tessera says how long the longest route through
+  the work is, which tasks decide the end, and how much slack the rest have. A
+  task can be marked a **milestone**: a moment in the plan rather than work,
+  with no duration whatever its estimate said.
+
+  The number says what it is worth. A plan nobody has estimated shows nothing
+  rather than marking every task critical, and a path with gaps says how many
+  of its tasks have no estimate.
+
 - **Dependencies.** A task can wait for another: state it in the detail panel,
   see what a task is waiting for and what waits on it, and take it back. A row
   that is waiting says so. The graph stays acyclic — the picker offers only what
