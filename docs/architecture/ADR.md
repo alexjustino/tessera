@@ -416,3 +416,32 @@ state. The end-to-end suite closes the application with a clock running and find
 **Cost accepted.** The rule is one person's rule — a workspace with two people would want two
 clocks, and the index would have to become `(owner_id)`. There is one person (SPEC §2), and a
 migration that widens an index is an ordinary migration.
+
+## ADR-023 — Capacity is the working hours; load is what the calendar reserved {#adr-023}
+
+**Decision.** A day's capacity is its span in `work_hours`, zero on a day off. A day's load is
+the minutes of every timed occurrence on it — events, and the blocks that reserve time for a
+task — split at local midnight where one crosses it. All-day events carry no minutes. Task
+estimates are **not** load: a task with an estimate and no time reserved is not on the map.
+
+**Why.** The alternative reading — count the estimates of tasks due that day — answers a
+different question ("how much is due") with the same colours as this one ("how much is
+spoken for"), and the two disagree whenever a person has not blocked time for what is due.
+Two readings of one fact on one surface that can contradict each other is the rule the time
+panel broke and `DESIGN_SYSTEM.md` now forbids. One source, stated: the calendar.
+
+That source is also the one the product has built its bridge on since F7 — dragging a task
+onto the grid _is_ how work becomes time here. The map rewards the habit the product already
+teaches rather than inventing hours nobody placed.
+
+All-day events are left out for the same honesty: a birthday does not use up a working day,
+and counting it as one would colour every public holiday overloaded.
+
+**Consequence.** An estimated task with no block is invisible to the map. That is a gap and
+it is stated in the year's summary line only as what _is_ there; a count of what is not
+("due this month, no time reserved") is deferred to the reports, where a period exists to
+count over (SPEC, deferred out of P5).
+
+**Cost accepted.** Capacity is a weekday span, so a public holiday on a Tuesday has nine
+hours until a holiday table exists. Working hours are read everywhere and edited nowhere
+yet; the screen is deferred, the reading is not.
