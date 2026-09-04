@@ -50,6 +50,7 @@ pub const TABLES: &[&str] = &[
     "time_block",
     "work_hours",
     "time_entry",
+    "template",
 ];
 
 /// The largest export file this build will read, so a wrong file cannot
