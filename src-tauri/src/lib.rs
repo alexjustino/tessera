@@ -180,6 +180,9 @@ pub fn run() {
             commands::calendar::event_set_exception,
             commands::calendar::time_block_create,
             commands::calendar::time_blocked_items,
+            commands::dependencies::dependencies_list,
+            commands::dependencies::dependency_link,
+            commands::dependencies::dependency_unlink,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");
