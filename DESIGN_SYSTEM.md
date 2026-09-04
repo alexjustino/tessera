@@ -86,6 +86,14 @@ same line. It says **Waiting** now, matching the section that edits it (_Waiting
 one that reports the other direction (_Waited on by_). A glance that has to disambiguate is not
 a glance.
 
+### A number can be opened
+
+A figure on a report is a button, and pressing it lists the rows it was added up from, each
+with its own contribution. A total the reader cannot decompose is a claim; one they can is a
+fact they checked themselves. The button says what it does to a screen reader
+(`aria-expanded`, and a name that says how many rows), and a figure whose rows do not add up
+to it shows a dash and says so rather than the number (ADR-024).
+
 ### Two readings of one fact agree
 
 When a surface shows the same fact twice — a clock and a total, a count and a list — the two

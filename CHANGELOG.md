@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Reports.** A page of its own: a week or a month, and what it held. Time
+  tracked — in total, by task and by day, split at midnight; tasks completed;
+  for the tasks worked on, everything ever tracked beside the estimate; and
+  what the calendar reserved against the working hours the period had.
+
+  **Every number can be opened.** A figure is a button; pressing it lists the
+  rows it was added up from, each with its own contribution, so the total can
+  be checked by eye. The domain promises the rows sum to the figure, the page
+  checks it on every render, and a figure that did not add up would show a
+  dash and say so rather than the number (ADR-024).
+
+- **Time by hand.** An entry can be added without the clock — "I did two hours
+  on this yesterday" — and an entry the clock did record can be corrected. A
+  running entry that is corrected stops: editing the times of a clock is not
+  asking it to keep going. An end before its start is refused in words, by the
+  form, by the host, and by the schema.
+
 - **The year view.** A sixth calendar scale: twelve months, every day a cell,
   each coloured by how much of its working hours the calendar has reserved.
   The shade is never the only cue — every cell names its day and its load in
