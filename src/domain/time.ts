@@ -69,11 +69,22 @@ export interface DayShare {
  * as one share, which is the common case and costs one conversion.
  */
 export function splitByLocalDay(entry: Entry, zone: string, now: string): DayShare[] {
-  const startMs = Date.parse(entry.startedAt);
-  const endMs = Date.parse(entry.endedAt ?? now);
+  return splitInterval(entry.startedAt, entry.endedAt ?? now, zone);
+}
+
+/**
+ * Any interval, divided across the local days it touches.
+ *
+ * Shared with the capacity arithmetic: a reserved block from 22:00 to 01:00
+ * loads two days for the same reason a tracked entry does. One walk, two
+ * readers, so they cannot disagree about where midnight is.
+ */
+export function splitInterval(startedAt: string, endedAt: string, zone: string): DayShare[] {
+  const startMs = Date.parse(startedAt);
+  const endMs = Date.parse(endedAt);
   if (Number.isNaN(startMs) || Number.isNaN(endMs) || endMs <= startMs) return [];
 
-  const firstDay = localPlace(entry.startedAt, zone).day;
+  const firstDay = localPlace(startedAt, zone).day;
   const lastDay = localPlace(new Date(endMs).toISOString(), zone).day;
   if (firstDay === lastDay) {
     return [{ day: firstDay, minutes: Math.round((endMs - startMs) / 60_000) }];
