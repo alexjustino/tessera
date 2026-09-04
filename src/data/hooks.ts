@@ -619,6 +619,22 @@ export const dependencyKey = ['dependencies'] as const;
  * thousands of items — and every question asked of it is global, so it is
  * fetched once and answered in the domain layer.
  */
+export function useSetPlan() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({
+      id,
+      estimateMinutes,
+      isMilestone,
+    }: {
+      id: string;
+      estimateMinutes: number | null;
+      isMilestone: boolean;
+    }) => api.setPlan(id, estimateMinutes, isMilestone),
+    onSuccess: invalidate,
+  });
+}
+
 export function useDependencies() {
   return useQuery({ queryKey: dependencyKey, queryFn: dependencyApi.listDependencies });
 }

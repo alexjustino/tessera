@@ -99,6 +99,8 @@ function row(
     recurrenceRule: null,
     recurrenceMode: 'schedule',
     completedAt: completed ? '2026-09-09T10:00:00.000Z' : null,
+    estimateMinutes: null,
+    isMilestone: false,
     createdAt: stamp,
     updatedAt: stamp,
   };

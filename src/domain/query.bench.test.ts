@@ -109,6 +109,8 @@ function seed(size: number): Row[] {
       recurrenceRule: null,
       recurrenceMode: 'schedule',
       completedAt: random() < 0.3 ? '2026-09-01T10:00:00.000Z' : null,
+      estimateMinutes: null,
+      isMilestone: false,
       createdAt: '2026-09-01T10:00:00.000Z',
       updatedAt: '2026-09-01T10:00:00.000Z',
     };
