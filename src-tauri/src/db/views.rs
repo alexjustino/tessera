@@ -176,7 +176,8 @@ mod tests {
                 "Today",
                 "Overdue",
                 "Next 7 days",
-                "Calendar"
+                "Calendar",
+                "Timeline"
             ]
         );
     }
@@ -195,7 +196,7 @@ mod tests {
     fn seeding_the_default_views_is_idempotent() {
         let conn = workspace();
         migrations::apply(&conn).expect("re-apply");
-        assert_eq!(list_views(&conn, Some("tasks")).expect("list").len(), 7);
+        assert_eq!(list_views(&conn, Some("tasks")).expect("list").len(), 8);
     }
 
     #[test]
