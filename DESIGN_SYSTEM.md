@@ -56,6 +56,15 @@ accent text at 4.5:1 on white and on its own tint.
 When the system cannot be asked, the built-in default is used and `fromSystem` is `false` —
 and the interface says so. It does not pretend.
 
+### One word, one meaning
+
+Before a state gets a word on a row, check the words already on that row. The dependency
+indicator was going to say "Blocked" until the end-to-end suite found that the seeded status
+property already offers an option called Blocked — one set by hand, one computed, both on the
+same line. It says **Waiting** now, matching the section that edits it (_Waiting for_) and the
+one that reports the other direction (_Waited on by_). A glance that has to disambiguate is not
+a glance.
+
 ### Severity is never colour alone
 
 State (`info`, `success`, `caution`, `danger`) is carried by **colour and an icon and the

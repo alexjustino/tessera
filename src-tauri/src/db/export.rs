@@ -39,6 +39,7 @@ pub const TABLES: &[&str] = &[
     "item_property_value",
     "tag",
     "item_tag",
+    "item_dependency",
     "block",
     "view",
     "reminder",

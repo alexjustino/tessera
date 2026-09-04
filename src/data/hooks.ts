@@ -30,6 +30,7 @@ import * as calendarApi from './calendar';
 import * as viewApi from './views';
 import * as searchApi from './search';
 import * as captureApi from './capture';
+import * as dependencyApi from './dependencies';
 import * as settingsApi from './settings';
 import * as backupsApi from './backups';
 
@@ -606,5 +607,45 @@ export function useImportJson() {
   return useMutation({
     mutationFn: (path: string) => backupsApi.importJson(path),
     onSuccess: replaced,
+  });
+}
+
+// ── Dependencies (1.1) ─────────────────────────────────────────────────────
+
+export const dependencyKey = ['dependencies'] as const;
+
+/**
+ * The whole graph. Small — a workspace has hundreds of edges where it has
+ * thousands of items — and every question asked of it is global, so it is
+ * fetched once and answered in the domain layer.
+ */
+export function useDependencies() {
+  return useQuery({ queryKey: dependencyKey, queryFn: dependencyApi.listDependencies });
+}
+
+function useInvalidateGraph() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: dependencyKey });
+    // What is blocked changes what a list shows as ready.
+    void client.invalidateQueries({ queryKey: ['items'] });
+  };
+}
+
+export function useLinkDependency() {
+  const invalidate = useInvalidateGraph();
+  return useMutation({
+    mutationFn: ({ blockerId, blockedId }: { blockerId: string; blockedId: string }) =>
+      dependencyApi.linkDependency(blockerId, blockedId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUnlinkDependency() {
+  const invalidate = useInvalidateGraph();
+  return useMutation({
+    mutationFn: ({ blockerId, blockedId }: { blockerId: string; blockedId: string }) =>
+      dependencyApi.unlinkDependency(blockerId, blockedId),
+    onSuccess: invalidate,
   });
 }

@@ -60,6 +60,33 @@ Gantt · arbitrary attachments · auto-update · AI.
 | 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                      |
 | 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                |
 
+### 1.1.0 — the project manager
+
+1.0 answers "what do I do today". 1.1 answers "will this finish, and when" — which
+is a different question about the same rows, and the reason it is a minor release
+rather than a second product: no new data core, one new relation and the views
+that read it.
+
+The order is not the roadmap's order. Dependencies come first because the
+timeline, the critical path and the capacity figures are all readings of the same
+graph, and a view built before the graph is a view that gets rewritten.
+
+| #      | Slice                            | Proof of done                                                                             |
+| ------ | -------------------------------- | ----------------------------------------------------------------------------------------- |
+| **P1** | Dependencies                     | a cycle is refused in words, by the interface _and_ by the host; order survives a restart |
+| P2     | Milestones and the critical path | the path and the slack are right on a graph a person can check by hand                    |
+| P3     | Timeline (Gantt)                 | 500 items lay out inside the frame budget; dragging a bar changes the dates               |
+| P4     | Time tracking                    | a running timer survives a restart; the day's sum is right across midnight                |
+| P5     | Year view and daily capacity     | a year renders inside the budget; capacity reads the working hours already there          |
+| P6     | Reports                          | every number can be traced to the rows it came from                                       |
+| P7     | Templates                        | a template with dependencies keeps them, with the dates rebased                           |
+| P8     | Focus mode                       | one task, its timer, and nothing else on the screen                                       |
+| P9     | Release 1.1.0                    | a 1.0 workspace opens in 1.1, migrated, without loss                                      |
+
+What 1.1 deliberately does not add: a second data core, resource assignment
+(there is one person), or a scheduler that moves work on its own. A dependency
+says what must come first; it does not get to decide your day.
+
 ## 3. Architecture
 
 ```
@@ -154,6 +181,22 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F10    | Data, Settings, **About**                                            | a restored backup restores everything                                                                                    |
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
+
+### Deferred out of P1, and why
+
+The graph is stored, refused when circular, edited on a task and visible on a
+row. What dependencies could also be and are not yet:
+
+- **A "Waiting" indicator on the board and the table.** The list shows it; the
+  other two views want their own treatment rather than the same chip dropped in,
+  and the timeline (P3) is where the graph becomes a picture.
+- **Kinds of dependency** — start-to-start, finish-to-finish, lag. One relation
+  that means one thing until something asks for more.
+- **A view of what is ready to start.** `readyToStart` is written and tested; it
+  wants the focus mode (P8) to be the screen that uses it.
+- **Dependencies across collections.** The schema allows it; the picker only
+  offers tasks from the one on screen, because a cross-collection picker is a
+  search box, and that is a design rather than an oversight.
 
 ### Deferred out of F12, and why
 

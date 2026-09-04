@@ -157,7 +157,6 @@ function time(label: string, work: () => unknown): number {
   const median = timings[Math.floor(RUNS / 2)]!;
   const verdict = best <= TARGET_MS ? 'within target' : `over the ${TARGET_MS} ms target`;
 
-  // eslint-disable-next-line no-console
   console.log(
     `  ${label.padEnd(28)} best ${best.toFixed(1).padStart(6)} ms` +
       `   median ${median.toFixed(1).padStart(6)} ms   ${verdict}`,

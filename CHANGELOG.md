@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **Dependencies.** A task can wait for another: state it in the detail panel,
+  see what a task is waiting for and what waits on it, and take it back. A row
+  that is waiting says so. The graph stays acyclic — the picker offers only what
+  would not close a loop and says what it is leaving out, and the workspace
+  refuses one anyway, whatever asked (ADR-019).
 
 ## [1.0.0] — 2026-09-03
 
