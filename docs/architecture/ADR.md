@@ -473,3 +473,38 @@ does not get to be on the page.
 **Cost accepted.** Rows are built for figures nobody opens. On a month with a thousand
 entries that is a thousand small objects, computed once per render of the report, and the
 render is memoised on its inputs.
+
+## ADR-025 — A template is the plan for tasks, not tasks {#adr-025}
+
+**Decision.** A template stores no ids and references no `item`. Its tasks have keys of its
+own (`t1`, `t2`…), its dependencies name those keys, and its dates are offsets in calendar
+days from its earliest date plus the minute of the day. Applying it makes new tasks, maps
+keys to the ids that come back, links the edges through the mapping, and does all of that in
+one host transaction (`templates::apply`) — every task and every link, or nothing.
+
+**Why.** The alternative — a template as a set of existing tasks to copy — ties the template
+to rows that will be edited, completed and deleted after it was saved, and copies whatever
+state they are in on the day. A template is what the work _looks like before it has dates_;
+storing it as a shape with no ids is what lets it outlive the tasks it came from and be
+applied twice without the two sets knowing about each other.
+
+Offsets in **calendar days** rather than milliseconds, and the minute of the day rather than
+an instant, are what make "kick-off Monday 09:00, review Thursday 14:00" mean the same thing
+in March and in November. The domain test applies a four-day template across a clock change
+and gets ninety-seven hours: the wall clock was kept, not the elapsed time, and that is the
+correct answer.
+
+One transaction because five tasks and three links are one thing to the person who pressed
+the button. A template half-applied — tasks made, links missing — is the worst outcome: it
+looks done and is wrong, and the missing links are exactly the part the person could not see
+at a glance.
+
+**Consequence.** The body is JSON the host does not read. `readBody` in the domain checks it
+on the way in, and a row that does not read as a template is left out of the list rather than
+shown broken — the same arrangement as `view.config_json` (ADR-004's boundary, applied to a
+new table). A template saved by a newer version with a field this one does not know reads
+fine; one with an edge to a missing key does not read at all.
+
+**Cost accepted.** No editing in place: change the tasks and save again. No property values,
+no notes, no nesting (SPEC, deferred out of P7). Each is a real feature, and each would have
+made this one a different shape.

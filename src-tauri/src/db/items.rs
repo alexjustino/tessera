@@ -166,7 +166,7 @@ pub fn create_item(conn: &mut Connection, new: NewItem) -> Result<Item> {
 /// The two inserts a new item is — the row and its index entry — inside a
 /// transaction the caller owns. Shared by plain creation and by quick capture,
 /// which adds a schedule and values to the same transaction.
-fn insert_item(conn: &Connection, new: &NewItem) -> Result<String> {
+pub(crate) fn insert_item(conn: &Connection, new: &NewItem) -> Result<String> {
     let title = clean_title(&new.title)?;
     check_position(&new.position)?;
 

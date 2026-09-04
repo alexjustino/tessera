@@ -1,4 +1,9 @@
-import { Add20Regular, Options20Regular, TaskListSquareLtr24Regular } from '@fluentui/react-icons';
+import {
+  Add20Regular,
+  CopyAdd20Regular,
+  Options20Regular,
+  TaskListSquareLtr24Regular,
+} from '@fluentui/react-icons';
 import { useCallback, useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
@@ -27,7 +32,7 @@ import type { Capture } from '@/domain/capture';
 import { positionForNewItem } from '@/domain/item';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
 import type { Property, PropertyValue } from '@/domain/property';
-import { EMPTY_QUERY, run, type Query, type Row } from '@/domain/query';
+import { EMPTY_QUERY, flatten, run, type Query, type Row } from '@/domain/query';
 import { CalendarView } from '@/features/calendar/CalendarView';
 import { CaptureLine } from '@/features/capture/CaptureLine';
 import { PropertyManager } from '@/features/properties/PropertyManager';
@@ -43,6 +48,7 @@ import { TabStrip } from '@/ui/TabStrip';
 import { announce } from '@/ui/announce';
 
 import { TaskDetail } from './TaskDetail';
+import { TemplatesDialog } from './TemplatesDialog';
 
 /** The collection seeded by migration 002. */
 const COLLECTION = 'tasks';
@@ -68,6 +74,7 @@ export function TasksPage({
 }) {
   const [draft, setDraft] = useState('');
   const [managingProperties, setManagingProperties] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [editingQuery, setEditingQuery] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(initialDetailId);
 
@@ -278,13 +285,22 @@ export function TasksPage({
             </p>
           )}
         </div>
-        <Button
-          appearance="subtle"
-          icon={<Options20Regular />}
-          onClick={() => setManagingProperties(true)}
-        >
-          Properties
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            appearance="subtle"
+            icon={<CopyAdd20Regular />}
+            onClick={() => setTemplatesOpen(true)}
+          >
+            Templates
+          </Button>
+          <Button
+            appearance="subtle"
+            icon={<Options20Regular />}
+            onClick={() => setManagingProperties(true)}
+          >
+            Properties
+          </Button>
+        </div>
       </header>
 
       {!planned.unplanned && (
@@ -453,6 +469,15 @@ export function TasksPage({
           />
         )}
       </div>
+
+      <TemplatesDialog
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        collectionId={COLLECTION}
+        shown={flatten(result).map((row) => row.item)}
+        all={items.data ?? []}
+        edges={dependencies.data ?? []}
+      />
 
       <PropertyManager
         open={managingProperties}

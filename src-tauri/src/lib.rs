@@ -191,6 +191,10 @@ pub fn run() {
             commands::time_entries::time_entry_delete,
             commands::time_entries::time_entry_add,
             commands::time_entries::time_entry_update,
+            commands::templates::templates_list,
+            commands::templates::template_create,
+            commands::templates::template_delete,
+            commands::templates::template_apply,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");

@@ -182,6 +182,30 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of P7, and why
+
+A template keeps the shape of a set of tasks and makes it again on a day,
+dependencies kept and dates rebased. What templates could also do:
+
+- **Property values.** A template carries what the plan needs — dates,
+  estimates, milestones, links — and not the status or priority the tasks had
+  when they were saved. Those are the state of _those_ tasks; a new set
+  starts fresh. Worth revisiting once a template is used for something like
+  a checklist where the values are the point.
+- **Notes.** The document under a task is not copied. A template of five
+  tasks with five documents is a different feature — a kit — and the
+  document model has its own slice's worth of questions about copying blocks.
+- **Editing a template.** A template is saved from tasks and deleted; it is
+  not edited in place. Change the tasks and save again; the old one goes.
+  An editor for offsets and links is a second timeline, and the first is
+  enough for now.
+- **A template of a template.** Applying makes tasks, and those tasks can be
+  saved as a template again. Nesting — a template that contains templates —
+  is the kind of generality nobody asked for.
+- **Choosing what to save.** The rows the view shows are what is saved, so
+  the filter is the picker. A checkbox per row would be a second picker for
+  the same choice.
+
 ### Deferred out of P6, and why
 
 The report answers four questions about a week or a month and every figure
