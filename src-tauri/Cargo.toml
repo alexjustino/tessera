@@ -1,6 +1,6 @@
 [package]
 name = "tessera"
-version = "1.0.0"
+version = "1.1.0"
 description = "A professional local-first workspace for tasks, projects and time"
 authors = ["Alex Justino"]
 license = "Apache-2.0"

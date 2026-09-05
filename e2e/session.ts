@@ -17,7 +17,7 @@
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -211,12 +211,24 @@ async function teardown(driver: Driver, child: ChildProcess): Promise<void> {
   await waitForDriverGone();
 }
 
-export async function startSession(): Promise<Session> {
+export interface SessionOptions {
+  /**
+   * A workspace file to start from instead of an empty one — how the upgrade
+   * suite opens a workspace an older release wrote. Copied, never opened in
+   * place: the fixture stays what it was.
+   */
+  seedWorkspace?: string;
+}
+
+export async function startSession(options: SessionOptions = {}): Promise<Session> {
   // A previous file's application may still be going down.
   await stopStrayInstances();
   await waitForDriverGone();
 
   const dataDir = await mkdtemp(path.join(tmpdir(), 'tessera-e2e-'));
+  if (options.seedWorkspace !== undefined) {
+    await copyFile(options.seedWorkspace, path.join(dataDir, 'tessera.sqlite3'));
+  }
   let process_ = startDriverProcess(dataDir);
   let driver: Driver;
   try {

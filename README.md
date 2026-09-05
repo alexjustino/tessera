@@ -16,7 +16,7 @@ No cloud. No account. No telemetry. Your data is a file you own.
 ---
 
 > **Status: pre-release.** Tessera is being built in public, one vertical slice at a time.
-> See [the roadmap](#roadmap) for what ships in 1.0.0. There is no installer yet.
+> Installers for every release are on the [Releases page](https://github.com/alexjustino/tessera/releases). See [the roadmap](#roadmap) for what each release holds.
 
 ## Why
 
@@ -135,7 +135,7 @@ npm run e2e
 | Release     | Theme                         | Contents                                                                                                                                                                                                                |
 | ----------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1.0.0** ✓ | The workspace                 | typed core · List / Table / Board / Calendar · block editor · dates & recurrence · **calendar with time-blocking** · **Windows reminders** · quick capture · full-text search · Fluent design · backup & export · About |
-| 1.1.0       | The project manager           | year view · timeline & Gantt · dependencies with critical path · time tracking · focus mode · reports · templates · daily capacity                                                                                      |
+| **1.1.0** ✓ | The project manager           | **dependencies with critical path** · milestones · **timeline & Gantt** · **year view** with daily capacity · **time tracking** · **reports** where every number opens onto its rows · **templates** · **focus mode**   |
 | 1.2.0       | The adopter                   | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes & wiki space · goals · print and PDF export · GTD review                                                                                              |
 | 2.0         | Optional, only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                                                                                      |
 
