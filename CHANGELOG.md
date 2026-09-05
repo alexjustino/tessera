@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.1.0] — 2026-09-04
+
+The project manager. 1.0 was a workspace for tasks, projects and time; 1.1 is
+what lets it plan: tasks that wait for one another, a critical path with slack,
+milestones, a timeline you can drag, a year coloured by how full each day is,
+a clock on every task, reports where every number opens onto its rows,
+templates that keep the shape of work, and a focus mode with one task and
+nothing else on the screen. Still entirely on your machine.
+
+### Migrations
+
+This release adds migrations **008** (`item_dependency`), **009** (`is_milestone`
+on items), **010** (the `view` table rebuilt to admit the timeline; every row,
+its configuration and its order kept), **011** (`time_entry`, with the
+one-running-timer rule as a partial unique index) and **012** (`template`).
+All forward-only. A 1.0.0 workspace — schema version 7 — opens in 1.1.0 and is
+migrated to 12 on first start; the round-trip test walks every version writing
+rows at each, and the end-to-end suite opens a real 1.0.0 file in the 1.1.0
+binary and finds everything it held.
+
 ### Added
 
 - **Focus mode.** One task, its timer, and nothing else on the screen. Enter
