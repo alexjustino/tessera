@@ -238,6 +238,33 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of A2, and why
+
+Two list-shaped sources import with their dates, priorities and completions.
+What was left where it was, and why:
+
+- **Sections, nesting and recurrence from Todoist.** A section is a heading, a
+  sub-task is a tree, a recurrence is a rule in Todoist's own grammar. The
+  first would want a property created on import, the second a parent the
+  product does not use for tasks, the third a translation to RFC 5545 that is
+  a slice of its own. Each is said in a sentence and the tasks are kept.
+- **Reminders and categories from Outlook.** The product has its own reminders
+  and the person should set them here; categories are Outlook's colours and
+  words, not a property the collection has.
+- **Completed tasks from Todoist.** A template export does not contain them.
+  A Todoist _backup_ (a zip of CSVs) does not either. Nothing to carry.
+- **A collection the list can show.** A2 surfaced a 1.0 gap: the interface
+  browses one collection, so a project imported under its own name would be
+  invisible in the list. The preview therefore asks where the tasks go and
+  defaults to the collection the list shows. A collection switcher is real
+  work — the rail, the views, the capture line all assume one — and belongs
+  to a slice that decides what a second collection _is_ to this product.
+- **Locale-formatted dates beyond month/day/year.** Outlook writes the
+  machine's locale. The reader takes month first, day first when the day is
+  over twelve, and dotted dates as day first; an ambiguous `3/4/2026` on a
+  day-first machine reads as March 4th and is listed nowhere, because the file
+  cannot tell. A locale choice on import is a small addition if it bites.
+
 ### Deferred out of A1, and why
 
 The door opens additively, previews, applies once and undoes once. What a

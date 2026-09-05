@@ -3,6 +3,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
 
 import type { ImportPlan } from '@/domain/importing';
 
@@ -99,4 +100,26 @@ export async function listImports(): Promise<ImportBatch[]> {
 
 export async function undoImport(id: string): Promise<ImportBatch> {
   return toBatch(await invoke<RawBatch>('import_undo', { id }));
+}
+
+/** A file another product exported, as text. Size and encoding are the host's. */
+export async function readTextFile(path: string): Promise<string> {
+  return invoke<string>('import_read_text', { path });
+}
+
+/** Ask for a CSV another product exported. Null when the person cancelled. */
+export async function chooseCsvPath(title: string): Promise<string | null> {
+  const chosen = await open({
+    title,
+    multiple: false,
+    directory: false,
+    filters: [{ name: 'Comma-separated values', extensions: ['csv', 'txt'] }],
+  });
+  return typeof chosen === 'string' ? chosen : null;
+}
+
+/** `C:\exports\Errands.csv` → `Errands`: the list the file was, as the file says it. */
+export function nameFromPath(path: string): string {
+  const base = path.split(/[\u005C/]/).pop() ?? '';
+  return base.replace(/\.[^.]+$/, '').trim();
 }

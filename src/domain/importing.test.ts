@@ -8,6 +8,7 @@ import {
   fromTesseraExport,
   normalise,
   preview,
+  redirect,
   type ImportPlan,
 } from './importing';
 import type { Collection, Item } from './item';
@@ -303,5 +304,20 @@ describe('block text', () => {
     expect(blockText({ type: 'text', text: '  x  ' })).toBe('x');
     expect(blockText('not json')).toBe('not json');
     expect(blockText(null)).toBe('');
+  });
+});
+
+describe('redirecting', () => {
+  it('sends every task to one collection and drops the file’s own', () => {
+    const moved = redirect(plan, 'Tasks');
+    expect(moved.collections).toEqual([{ name: 'Tasks', icon: null, color: null }]);
+    expect(new Set(moved.tasks.map((task) => task.collection))).toEqual(new Set(['Tasks']));
+    expect(moved.events).toBe(plan.events);
+    // The preview then reuses the existing collection rather than creating one.
+    expect(preview(moved, existing, ZONE).counts.collectionsToCreate).toBe(0);
+  });
+
+  it('changes nothing for a blank destination', () => {
+    expect(redirect(plan, '   ')).toBe(plan);
   });
 });
