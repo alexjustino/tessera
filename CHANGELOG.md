@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Import from Todoist and Microsoft To Do.** Two more files through the
+  door. A Todoist project's CSV (_Export as a template_) brings its tasks
+  with their descriptions and notes, priorities (p1 to urgent, p2 to high, p3
+  to medium) and due dates read in the zone the file names. A To Do list
+  brings what Outlook exports for it (File → Open & Export → Export to a file →
+  CSV of the Tasks folder): subject, notes, start and due dates, completion
+  with its date, High and Low priority, and the status onto the seeded one.
+  What neither can carry is said in sentences before anything is written —
+  sections, nesting, recurrence, reminders, categories, a date that could not
+  be read. The preview asks where the tasks should go; by default they land in
+  the list you look at.
+
 - **The import door.** Import from another Tessera workspace's export without
   replacing your own. The file is read, set against what you already have, and
   shown before anything is written: what would be created, and what looks like
