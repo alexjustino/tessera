@@ -70,7 +70,7 @@ export function ExportImportCard() {
   return (
     <Card
       title="Export and import"
-      description="Your data as files you own. Import replaces the workspace; it never merges."
+      description="Your data as files you own. Import here replaces the workspace; to add to it instead, use the card below."
     >
       <div className="flex flex-col gap-3">
         {failure && (

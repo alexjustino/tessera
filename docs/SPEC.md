@@ -238,6 +238,31 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of A1, and why
+
+The door opens additively, previews, applies once and undoes once. What a
+door could also do:
+
+- **Dependencies, exceptions and time blocks from a Tessera export.** The plan
+  carries rows, not the links between them; a dependency between two imported
+  tasks needs the ids they are given on the way in, which is the batch's
+  business and a small addition — but not one the foreign importers (A2–A5)
+  will ever use, so it waits for a person who wants it.
+- **Merging a duplicate.** The preview names what a row looks like and offers
+  to skip it. Merging — keeping the existing row and adding what the import
+  knows — is a decision per field, and the product does not guess (SPEC 1.2).
+- **Choosing rows one by one.** Skip all duplicates or none. A checkbox per row
+  is a second list of everything, in a dialog; the person who needs that can
+  import and then delete.
+- **Undo of anything but the last import that touched a collection.** Undo
+  removes what a batch created and refuses when a collection it created has
+  gained rows since. It does not resolve two imports into one collection in
+  either order beyond that rule; that is history-rewriting, and it says so.
+- **Importing into a chosen collection.** Rows land in the collection the file
+  names, created if absent. A picker to redirect them is presentation over
+  the same plan, and the first foreign importer decides what it should look
+  like.
+
 ### Deferred out of P8, and why
 
 Focus mode shows one task and its timer, moves to the next ready task on

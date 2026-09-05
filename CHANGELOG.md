@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **The import door.** Import from another Tessera workspace's export without
+  replacing your own. The file is read, set against what you already have, and
+  shown before anything is written: what would be created, and what looks like
+  something already here — the same title in the same collection on the same
+  day. You choose whether to skip those; nothing is merged by guesswork. The
+  import is one step, and it appears in a list under Settings from where the
+  whole of it can be undone as one thing: after undo, the workspace is what it
+  was, row for row. What the file held that could not be carried is said in
+  sentences, never dropped silently.
 
 ## [1.1.0] — 2026-09-04
 
