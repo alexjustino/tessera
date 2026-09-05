@@ -169,6 +169,10 @@ describe('the import door', () => {
     const row = await driver.waitForElement('[data-testid="import-batch"]');
     expect(await row.text()).toContain('2 tasks');
     expect(await row.text()).toContain('a Tessera export');
+    // The card sits below the fold on Settings; the evidence goes in the frame.
+    await driver.execute('arguments[0].scrollIntoView({ block: "center" })', [
+      { [ELEMENT]: row.id },
+    ]);
     await session.screenshot('import-batch');
   });
 
