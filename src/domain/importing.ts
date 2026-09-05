@@ -213,6 +213,24 @@ export function decide(plan: ImportPlan, shown: Preview, skipDuplicates: boolean
   };
 }
 
+/**
+ * The same plan, every task bound for one collection instead.
+ *
+ * A Todoist project or a To Do list arrives named, and the honest default is
+ * to keep the name. But the list a person looks at shows one collection today,
+ * so the preview offers to put the rows where they will be seen; this is that
+ * choice applied. Events are untouched — they belong to the calendar.
+ */
+export function redirect(plan: ImportPlan, collection: string): ImportPlan {
+  const name = collection.trim();
+  if (name === '') return plan;
+  return {
+    ...plan,
+    collections: [{ name, icon: null, color: null }],
+    tasks: plan.tasks.map((task) => ({ ...task, collection: name })),
+  };
+}
+
 /** `3 tasks, 1 event and a new collection, from Tessera export` */
 export function describe(shown: Preview): string {
   const parts: string[] = [];

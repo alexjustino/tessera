@@ -8,6 +8,7 @@ import {
   describe,
   preview,
   normalise,
+  redirect,
   type ImportPlan,
   type ImportedCollection,
 } from '@/domain/importing';
@@ -18,6 +19,7 @@ import { Button } from '@/ui/Button';
 import { Checkbox } from '@/ui/Checkbox';
 import { InfoBar } from '@/ui/InfoBar';
 import { Modal } from '@/ui/Modal';
+import { Select } from '@/ui/Select';
 import { announce } from '@/ui/announce';
 
 /**
@@ -52,13 +54,34 @@ export function ImportDialog({
   );
   const apply = useApplyImport();
   const [skipDuplicates, setSkipDuplicates] = useState(true);
+  /** Where the tasks go: a collection's name, '' for the file's own, null for the default. */
+  const [destination, setDestination] = useState<string | null>(null);
+
+  // The file names its collections; the list a person looks at shows one.
+  // Default to what the file says when that already exists here, else to the
+  // collection the list shows, so nothing lands out of sight unasked.
+  const fileCollections = useMemo(() => plan?.collections.map((c) => c.name) ?? [], [plan]);
+  const known = useMemo(
+    () => new Set((collections.data ?? []).map((c) => normalise(c.name))),
+    [collections.data],
+  );
+  const defaultDestination =
+    fileCollections.length > 0 && fileCollections.every((name) => known.has(normalise(name)))
+      ? ''
+      : ((collections.data ?? []).find((c) => c.id === 'tasks')?.name ?? '');
+  const chosen = destination ?? defaultDestination;
+
+  const decidedPlan = useMemo(
+    () => (plan === null ? null : chosen === '' ? plan : redirect(plan, chosen)),
+    [plan, chosen],
+  );
 
   const shown = useMemo(
     () =>
-      plan === null
+      decidedPlan === null
         ? null
         : preview(
-            plan,
+            decidedPlan,
             {
               collections: collections.data ?? [],
               items: items.data ?? [],
@@ -66,12 +89,12 @@ export function ImportDialog({
             },
             zone,
           ),
-    [plan, collections.data, items.data, events.data, zone],
+    [decidedPlan, collections.data, items.data, events.data, zone],
   );
 
   const run = () => {
-    if (plan === null || shown === null) return;
-    const decided = decide(plan, shown, skipDuplicates);
+    if (decidedPlan === null || shown === null) return;
+    const decided = decide(decidedPlan, shown, skipDuplicates);
     apply.mutate(place(decided, collections.data ?? [], items.data ?? []), {
       onSuccess: (batch) => {
         const message = `Imported ${batch.summary.tasks} ${batch.summary.tasks === 1 ? 'task' : 'tasks'}, ${batch.summary.events} ${batch.summary.events === 1 ? 'event' : 'events'} and ${batch.summary.collections} new ${batch.summary.collections === 1 ? 'collection' : 'collections'} from ${batch.source}.`;
@@ -136,6 +159,34 @@ export function ImportDialog({
                 {shown.counts.duplicates > 12 && <li>…and {shown.counts.duplicates - 12} more.</li>}
               </ul>
             </section>
+          )}
+
+          {plan !== null && plan.tasks.length > 0 && (
+            <label className="flex items-center gap-3 text-body text-fg">
+              <span className="w-40 shrink-0 text-caption font-semibold text-fg-tertiary uppercase">
+                Put the tasks into
+              </span>
+              <Select
+                aria-label="Put the tasks into"
+                value={chosen === '' ? '__keep__' : chosen}
+                onChange={(event) =>
+                  setDestination(event.target.value === '__keep__' ? '' : event.target.value)
+                }
+              >
+                {fileCollections.some((name) => !known.has(normalise(name))) && (
+                  <option value="__keep__">
+                    {fileCollections.length === 1
+                      ? `A new collection, “${fileCollections[0]}”`
+                      : `The file’s own collections (${fileCollections.length})`}
+                  </option>
+                )}
+                {(collections.data ?? []).map((collection) => (
+                  <option key={collection.id} value={collection.name}>
+                    {collection.name}
+                  </option>
+                ))}
+              </Select>
+            </label>
           )}
 
           <ul className="flex flex-col gap-0.5 text-caption text-fg-secondary">
