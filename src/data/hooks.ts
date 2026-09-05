@@ -35,6 +35,7 @@ import * as settingsApi from './settings';
 import * as backupsApi from './backups';
 import * as timeApi from './time';
 import * as templateApi from './templates';
+import * as importApi from './importing';
 import type { TemplateBody, TemplateEdge } from '@/domain/template';
 
 export const keys = {
@@ -779,5 +780,41 @@ export function useApplyTemplate() {
       void client.invalidateQueries({ queryKey: ['items'] });
       void client.invalidateQueries({ queryKey: dependencyKey });
     },
+  });
+}
+
+// ── The import door (1.2) ──────────────────────────────────────────────────
+
+export const importKey = ['imports'] as const;
+
+export function useImports() {
+  return useQuery({ queryKey: importKey, queryFn: importApi.listImports });
+}
+
+/** An import adds rows of several kinds; everything that lists them refetches. */
+function useImported() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: importKey });
+    void client.invalidateQueries({ queryKey: ['items'] });
+    void client.invalidateQueries({ queryKey: keys.collections });
+    void client.invalidateQueries({ queryKey: ['events'] });
+    void client.invalidateQueries({ queryKey: ['calendar'] });
+  };
+}
+
+export function useApplyImport() {
+  const imported = useImported();
+  return useMutation({
+    mutationFn: (plan: importApi.PlacedPlan) => importApi.applyImport(plan),
+    onSuccess: imported,
+  });
+}
+
+export function useUndoImport() {
+  const imported = useImported();
+  return useMutation({
+    mutationFn: (id: string) => importApi.undoImport(id),
+    onSuccess: imported,
   });
 }
