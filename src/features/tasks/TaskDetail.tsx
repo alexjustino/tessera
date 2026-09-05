@@ -1,11 +1,19 @@
+import { Target20Regular } from '@fluentui/react-icons';
+
 import { useSetPropertyValue, useSetSchedule } from '@/data/hooks';
+import { type Timing } from '@/domain/criticalPath';
 import { type Item } from '@/domain/item';
 import { type Schedule } from '@/domain/schedule';
 import { type Property, type PropertyValue } from '@/domain/property';
 import { Editor } from '@/features/editor/Editor';
 
+import { Dependencies } from './Dependencies';
+import { PlanEditor } from './PlanEditor';
+import { TimeTracker } from './TimeTracker';
+
 import { ScheduleEditor } from './ScheduleEditor';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
+import { Button } from '@/ui/Button';
 import { Drawer } from '@/ui/Drawer';
 import { EmptyState } from '@/ui/EmptyState';
 
@@ -18,14 +26,23 @@ import { EmptyState } from '@/ui/EmptyState';
  */
 export function TaskDetail({
   task,
+  items,
+  timing,
   properties,
   values,
   onClose,
+  onFocus,
 }: {
   task: Item | null;
+  /** Every task in the collection — what the dependency picker offers. */
+  items: readonly Item[];
+  /** This task's place in the plan, from the whole collection (P2). */
+  timing: Timing | undefined;
   properties: Property[];
   values: Readonly<Record<string, unknown>>;
   onClose: () => void;
+  /** Enter focus mode on this task. */
+  onFocus?: ((id: string) => void) | undefined;
 }) {
   const setValue = useSetPropertyValue();
   const setSchedule = useSetSchedule();
@@ -49,6 +66,21 @@ export function TaskDetail({
 
   return (
     <Drawer open={task !== null} title={task?.title ?? ''} onClose={onClose}>
+      {task !== null && onFocus !== undefined && task.completedAt === null && (
+        <div className="mb-4">
+          <Button
+            appearance="accent"
+            icon={<Target20Regular />}
+            onClick={() => {
+              onClose();
+              onFocus(task.id);
+            }}
+          >
+            Focus on this
+          </Button>
+        </div>
+      )}
+
       {task !== null && (
         <section className="mb-5 border-b border-stroke-subtle pb-5">
           <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Schedule</h3>
@@ -83,6 +115,12 @@ export function TaskDetail({
           ))}
         </dl>
       )}
+
+      {task !== null && <PlanEditor task={task} timing={timing} />}
+
+      {task !== null && <TimeTracker task={task} items={items} />}
+
+      {task !== null && <Dependencies task={task} items={items} />}
 
       {task !== null && (
         <section className="mt-6 border-t border-stroke-subtle pt-4">

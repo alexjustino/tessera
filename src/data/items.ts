@@ -13,7 +13,7 @@ import type { Collection, Item } from '@/domain/item';
 import type { PropertyValue } from '@/domain/property';
 import type { Schedule } from '@/domain/schedule';
 
-interface RawItem {
+export interface RawItem {
   id: string;
   collection_id: string;
   parent_item_id: string | null;
@@ -25,6 +25,8 @@ interface RawItem {
   recurrence_rrule: string | null;
   recurrence_mode: string | null;
   completed_at: string | null;
+  estimate_minutes: number | null;
+  is_milestone: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -37,7 +39,7 @@ interface RawCollection {
   position: string;
 }
 
-function toItem(raw: RawItem): Item {
+export function toItem(raw: RawItem): Item {
   return {
     id: raw.id,
     collectionId: raw.collection_id,
@@ -52,6 +54,8 @@ function toItem(raw: RawItem): Item {
     // row: a schedule is a better guess than no item at all.
     recurrenceMode: raw.recurrence_mode === 'after_completion' ? 'after_completion' : 'schedule',
     completedAt: raw.completed_at,
+    estimateMinutes: raw.estimate_minutes,
+    isMilestone: raw.is_milestone,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
   };
@@ -186,6 +190,19 @@ export async function captureItem(
         : null,
       values: values.map((entry) => ({ property_id: entry.propertyId, value: entry.value })),
     },
+  });
+  return toItem(raw);
+}
+
+/** How long this task takes, and whether it takes any time at all (P2). */
+export async function setPlan(
+  id: string,
+  estimateMinutes: number | null,
+  isMilestone: boolean,
+): Promise<Item> {
+  const raw = await invoke<RawItem>('item_set_plan', {
+    id,
+    plan: { estimate_minutes: estimateMinutes, is_milestone: isMilestone },
   });
   return toItem(raw);
 }

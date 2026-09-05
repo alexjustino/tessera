@@ -6,7 +6,7 @@
 
 use tauri::State;
 
-use crate::db::models::{CaptureRequest, Collection, Item, ItemSchedule, NewItem};
+use crate::db::models::{CaptureRequest, Collection, Item, ItemPlan, ItemSchedule, NewItem};
 use crate::db::{items, Db};
 use crate::error::Result;
 
@@ -110,4 +110,11 @@ pub fn item_complete_occurrence(
 ) -> Result<Item> {
     let mut conn = db.0.lock().expect("the database lock was poisoned");
     items::complete_occurrence(&mut conn, &id, next_due_at.as_deref())
+}
+
+/// How long this task takes, and whether it takes any time at all.
+#[tauri::command]
+pub fn item_set_plan(db: State<'_, Db>, id: String, plan: ItemPlan) -> Result<Item> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    items::set_plan(&conn, &id, plan)
 }

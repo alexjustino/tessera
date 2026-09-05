@@ -1,7 +1,10 @@
 import {
   ArrowRepeatAll16Regular,
   Delete20Regular,
+  Diamond16Filled,
   PanelRightExpand20Regular,
+  Play16Regular,
+  Warning16Regular,
 } from '@fluentui/react-icons';
 import { useState } from 'react';
 
@@ -26,6 +29,10 @@ export function ListView({
   groups,
   grouped,
   inlineProperties,
+  blockedIds,
+  criticalIds,
+  milestoneIds,
+  timingId,
   onToggle,
   onRename,
   onDelete,
@@ -35,6 +42,14 @@ export function ListView({
   groups: readonly Group[];
   grouped: boolean;
   inlineProperties: Property[];
+  /** Tasks waiting on something unfinished (P1). */
+  blockedIds: ReadonlySet<string>;
+  /** Tasks that decide when the project ends. Empty when saying so is useless. */
+  criticalIds: ReadonlySet<string>;
+  /** Moments in the plan rather than work. */
+  milestoneIds: ReadonlySet<string>;
+  /** The task whose clock is running, if any — at most one (P4). */
+  timingId: string | null;
   onToggle: (row: Row, completed: boolean) => void;
   onRename: (row: Row, title: string) => void;
   onDelete: (row: Row) => void;
@@ -61,6 +76,10 @@ export function ListView({
                 <TaskRow
                   key={row.item.id}
                   task={row.item}
+                  blocked={blockedIds.has(row.item.id)}
+                  critical={criticalIds.has(row.item.id)}
+                  milestone={milestoneIds.has(row.item.id)}
+                  timing={timingId === row.item.id}
                   properties={inlineProperties}
                   values={row.values}
                   onToggle={(completed) => onToggle(row, completed)}
@@ -80,6 +99,10 @@ export function ListView({
 
 function TaskRow({
   task,
+  blocked,
+  critical,
+  milestone,
+  timing,
   properties,
   values,
   onToggle,
@@ -89,6 +112,10 @@ function TaskRow({
   onSetValue,
 }: {
   task: Item;
+  blocked: boolean;
+  critical: boolean;
+  milestone: boolean;
+  timing: boolean;
   properties: Property[];
   values: Readonly<Record<string, unknown>>;
   onToggle: (completed: boolean) => void;
@@ -150,6 +177,57 @@ function TaskRow({
       )}
 
       <DueChip task={task} />
+
+      {/* A moment in the plan rather than work. A diamond because that is what
+          a plan draws — and never the shape alone: the wrapper carries the
+          accessible name and the tooltip, the way `IconButton` does. A Fluent
+          icon's own `title` becomes a `<title>` inside the SVG, which is not a
+          tooltip and not a name. */}
+      {milestone && (
+        <span
+          role="img"
+          aria-label="A milestone"
+          title="A milestone"
+          className="shrink-0 text-accent"
+        >
+          <Diamond16Filled aria-hidden="true" />
+        </span>
+      )}
+
+      {/* The clock is running on this one. At most one row ever carries it,
+          which is what makes it worth a chip: it is the answer to "what am I
+          doing", not a property of the task. */}
+      {timing && (
+        <Chip tone="accent" title="The timer is running on this task">
+          <Play16Regular aria-hidden="true" />
+          Timing
+        </Chip>
+      )}
+
+      {/* On the critical path — shown only when something is not, since a chip
+          on every row costs a glance and says nothing. */}
+      {critical && !done && (
+        <Chip tone="accent" title="On the critical path: any delay here moves the end">
+          Critical
+        </Chip>
+      )}
+
+      {/* Waiting on something unfinished.
+          Not "Blocked": the seeded status property already offers an option by
+          that name, which a person sets by hand and means something else. Two
+          different things wearing one word on the same row is how a glance
+          starts lying. The whole feature says "waiting" instead — the section
+          is Waiting for, the other direction is Waited on by.
+          Colour is not the only cue: the word says it, and so does the title. */}
+      {blocked && !done && (
+        <Chip
+          tone="caution"
+          title="Waiting for another task to finish — see Waiting for in the detail panel"
+        >
+          <Warning16Regular aria-hidden="true" />
+          Waiting
+        </Chip>
+      )}
 
       {properties.map((property) => (
         <span key={property.id} className="hidden shrink-0 sm:block">

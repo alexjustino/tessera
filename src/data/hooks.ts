@@ -30,8 +30,12 @@ import * as calendarApi from './calendar';
 import * as viewApi from './views';
 import * as searchApi from './search';
 import * as captureApi from './capture';
+import * as dependencyApi from './dependencies';
 import * as settingsApi from './settings';
 import * as backupsApi from './backups';
+import * as timeApi from './time';
+import * as templateApi from './templates';
+import type { TemplateBody, TemplateEdge } from '@/domain/template';
 
 export const keys = {
   collections: ['collections'] as const,
@@ -606,5 +610,174 @@ export function useImportJson() {
   return useMutation({
     mutationFn: (path: string) => backupsApi.importJson(path),
     onSuccess: replaced,
+  });
+}
+
+// ── Dependencies (1.1) ─────────────────────────────────────────────────────
+
+export const dependencyKey = ['dependencies'] as const;
+
+/**
+ * The whole graph. Small — a workspace has hundreds of edges where it has
+ * thousands of items — and every question asked of it is global, so it is
+ * fetched once and answered in the domain layer.
+ */
+export function useSetPlan() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({
+      id,
+      estimateMinutes,
+      isMilestone,
+    }: {
+      id: string;
+      estimateMinutes: number | null;
+      isMilestone: boolean;
+    }) => api.setPlan(id, estimateMinutes, isMilestone),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDependencies() {
+  return useQuery({ queryKey: dependencyKey, queryFn: dependencyApi.listDependencies });
+}
+
+function useInvalidateGraph() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: dependencyKey });
+    // What is blocked changes what a list shows as ready.
+    void client.invalidateQueries({ queryKey: ['items'] });
+  };
+}
+
+export function useLinkDependency() {
+  const invalidate = useInvalidateGraph();
+  return useMutation({
+    mutationFn: ({ blockerId, blockedId }: { blockerId: string; blockedId: string }) =>
+      dependencyApi.linkDependency(blockerId, blockedId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUnlinkDependency() {
+  const invalidate = useInvalidateGraph();
+  return useMutation({
+    mutationFn: ({ blockerId, blockedId }: { blockerId: string; blockedId: string }) =>
+      dependencyApi.unlinkDependency(blockerId, blockedId),
+    onSuccess: invalidate,
+  });
+}
+
+// ── Time tracking (1.1) ────────────────────────────────────────────────────
+
+export const timeKey = ['time-entries'] as const;
+
+/**
+ * Every entry in the workspace.
+ *
+ * One query, like the dependency graph and for the same reason: the questions
+ * — this task's total, today's total, the week — are all walks over the same
+ * few hundred rows, and answering them in the domain layer beats a round trip
+ * each.
+ */
+export function useTimeEntries() {
+  return useQuery({ queryKey: timeKey, queryFn: timeApi.listEntries });
+}
+
+function useInvalidateTime() {
+  const client = useQueryClient();
+  return () => client.invalidateQueries({ queryKey: timeKey });
+}
+
+/** Start timing a task. Whatever was running stops, in one transaction. */
+export function useStartTimer() {
+  const invalidate = useInvalidateTime();
+  return useMutation({
+    mutationFn: (itemId: string) => timeApi.startTimer(itemId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useStopTimer() {
+  const invalidate = useInvalidateTime();
+  return useMutation({ mutationFn: () => timeApi.stopTimer(), onSuccess: invalidate });
+}
+
+export function useDeleteTimeEntry() {
+  const invalidate = useInvalidateTime();
+  return useMutation({
+    mutationFn: (id: string) => timeApi.deleteEntry(id),
+    onSuccess: invalidate,
+  });
+}
+
+export function useAddTimeEntry() {
+  const invalidate = useInvalidateTime();
+  return useMutation({
+    mutationFn: ({
+      itemId,
+      startedAt,
+      endedAt,
+    }: {
+      itemId: string;
+      startedAt: string;
+      endedAt: string;
+    }) => timeApi.addEntry(itemId, startedAt, endedAt),
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateTimeEntry() {
+  const invalidate = useInvalidateTime();
+  return useMutation({
+    mutationFn: ({ id, startedAt, endedAt }: { id: string; startedAt: string; endedAt: string }) =>
+      timeApi.updateEntry(id, startedAt, endedAt),
+    onSuccess: invalidate,
+  });
+}
+
+// ── Templates (1.1) ────────────────────────────────────────────────────────
+
+export const templateKey = ['templates'] as const;
+
+export function useTemplates() {
+  return useQuery({ queryKey: templateKey, queryFn: templateApi.listTemplates });
+}
+
+export function useCreateTemplate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, body }: { name: string; body: TemplateBody }) =>
+      templateApi.createTemplate(name, body),
+    onSuccess: () => client.invalidateQueries({ queryKey: templateKey }),
+  });
+}
+
+export function useDeleteTemplate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => templateApi.deleteTemplate(id),
+    onSuccess: () => client.invalidateQueries({ queryKey: templateKey }),
+  });
+}
+
+/** Applying makes tasks and links: both lists change. */
+export function useApplyTemplate() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      collectionId,
+      tasks,
+      edges,
+    }: {
+      collectionId: string;
+      tasks: templateApi.PlannedTaskRequest[];
+      edges: TemplateEdge[];
+    }) => templateApi.applyTemplate(collectionId, tasks, edges),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['items'] });
+      void client.invalidateQueries({ queryKey: dependencyKey });
+    },
   });
 }

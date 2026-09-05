@@ -7,6 +7,7 @@
 pub mod backup;
 pub mod blocks;
 pub mod calendar;
+pub mod dependencies;
 pub mod export;
 pub mod items;
 pub mod migrations;
@@ -15,6 +16,8 @@ pub mod properties;
 pub mod reminders;
 pub mod search;
 pub mod settings;
+pub mod templates;
+pub mod time_entries;
 pub mod views;
 
 use std::path::PathBuf;

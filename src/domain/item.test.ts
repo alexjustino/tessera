@@ -23,6 +23,8 @@ function item(overrides: Partial<Item> & Pick<Item, 'id' | 'position'>): Item {
     recurrenceRule: null,
     recurrenceMode: 'schedule',
     completedAt: null,
+    estimateMinutes: null,
+    isMilestone: false,
     createdAt: '2026-09-02T12:00:00.000Z',
     updatedAt: '2026-09-02T12:00:00.000Z',
     ...overrides,

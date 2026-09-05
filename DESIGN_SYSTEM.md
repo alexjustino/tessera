@@ -56,6 +56,58 @@ accent text at 4.5:1 on white and on its own tint.
 When the system cannot be asked, the built-in default is used and `fromSystem` is `false` —
 and the interface says so. It does not pretend.
 
+### A chart says what it left out
+
+A view that cannot place every row does not quietly show the rest. The timeline counts the
+tasks with no due date under the chart, and says so in its empty state when there is nothing
+to draw at all. The same rule as ADR-020's plan summary: an incomplete picture presented as a
+complete one is worse than an admission.
+
+### A mark that is always on is not a mark
+
+An indicator earns its place by distinguishing. "Critical" on every row in a straight chain, or
+"Blocked" on nothing, costs a glance and teaches nothing — so the list shows the critical mark
+only when some tasks are not critical, and shows no plan summary at all when nothing is
+estimated (ADR-020).
+
+### An icon's own `title` is not a tooltip
+
+A Fluent icon given `title` renders a `<title>` element inside its SVG: not a tooltip, not an
+accessible name, and not findable as an attribute. An icon that carries meaning goes in a
+wrapper with `role="img"`, `aria-label` and `title` — the same three things `IconButton`
+requires — or it is decorative and `aria-hidden`. There is no third case.
+
+### One word, one meaning
+
+Before a state gets a word on a row, check the words already on that row. The dependency
+indicator was going to say "Blocked" until the end-to-end suite found that the seeded status
+property already offers an option called Blocked — one set by hand, one computed, both on the
+same line. It says **Waiting** now, matching the section that edits it (_Waiting for_) and the
+one that reports the other direction (_Waited on by_). A glance that has to disambiguate is not
+a glance.
+
+### A screen that removes everything keeps the way out
+
+Focus mode takes the rail, the list and the panel away. What it may not take away is the exit:
+a labelled button at the top, Escape from anywhere, and the key named on the screen. Anything
+that hides the chrome earns it by making leaving the most obvious thing there.
+
+### A number can be opened
+
+A figure on a report is a button, and pressing it lists the rows it was added up from, each
+with its own contribution. A total the reader cannot decompose is a claim; one they can is a
+fact they checked themselves. The button says what it does to a screen reader
+(`aria-expanded`, and a name that says how many rows), and a figure whose rows do not add up
+to it shows a dash and says so rather than the number (ADR-024).
+
+### Two readings of one fact agree
+
+When a surface shows the same fact twice — a clock and a total, a count and a list — the two
+must never contradict each other, whatever their units. The time panel showed a running clock
+at `0:02` beside "Nothing tracked yet", because the total is in minutes and two seconds round
+to none. Both were correct; together they were a lie. A screenshot found it; the tests, which
+checked each reading alone, did not. When one reading is live, the other defers to it.
+
 ### Severity is never colour alone
 
 State (`info`, `success`, `caution`, `danger`) is carried by **colour and an icon and the

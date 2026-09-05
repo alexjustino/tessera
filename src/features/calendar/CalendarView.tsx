@@ -45,6 +45,8 @@ import { Button } from '@/ui/Button';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { TabStrip } from '@/ui/TabStrip';
+
+import { YearView } from './YearView';
 import { announce } from '@/ui/announce';
 
 /** How tall an hour is, in pixels. Everything on the grid derives from this. */
@@ -298,6 +300,18 @@ export function CalendarView({
         >
           {scale === 'month' ? (
             <MonthGrid days={days} anchor={anchor} occurrences={occurrences} zone={zone} />
+          ) : scale === 'year' ? (
+            <YearView
+              year={Number(anchor.slice(0, 4))}
+              occurrences={occurrences}
+              workHours={workHours.data ?? []}
+              zone={zone}
+              today={todayIn(now, zone)}
+              onOpenDay={(day) => {
+                setAnchor(day);
+                setScale('day');
+              }}
+            />
           ) : scale === 'agenda' ? (
             <AgendaList days={days} occurrences={occurrences} zone={zone} />
           ) : (
@@ -735,6 +749,7 @@ function titleOf(days: string[], scale: CalendarScale): string {
   const start = new Date(year!, month! - 1, date!);
 
   if (scale === 'day') return start.toLocaleDateString(undefined, { dateStyle: 'full' });
+  if (scale === 'year') return String(year);
   if (scale === 'month')
     return new Date(year!, month! - 1, 15).toLocaleDateString(undefined, {
       month: 'long',

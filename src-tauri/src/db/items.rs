@@ -15,7 +15,7 @@ use chrono::Utc;
 use rusqlite::{params, Connection, OptionalExtension, Row};
 use uuid::Uuid;
 
-use super::models::{CaptureRequest, Collection, Item, ItemSchedule, NewItem};
+use super::models::{CaptureRequest, Collection, Item, ItemPlan, ItemSchedule, NewItem};
 use crate::error::{Error, Result};
 
 /// The longest title the interface will store. Long enough for any real title,
@@ -91,6 +91,8 @@ fn read_item(row: &Row<'_>) -> rusqlite::Result<Item> {
         recurrence_rrule: row.get("recurrence_rrule")?,
         recurrence_mode: row.get("recurrence_mode")?,
         completed_at: row.get("completed_at")?,
+        estimate_minutes: row.get("estimate_minutes")?,
+        is_milestone: row.get::<_, i64>("is_milestone")? != 0,
         created_at: row.get("created_at")?,
         updated_at: row.get("updated_at")?,
     })
@@ -120,7 +122,7 @@ pub fn list_items(
     let sql = format!(
         "SELECT id, collection_id, parent_item_id, title, position,
                 start_at, due_at, remind_at, recurrence_rrule, recurrence_mode,
-                completed_at, created_at, updated_at
+                completed_at, estimate_minutes, is_milestone, created_at, updated_at
          FROM item
          WHERE archived_at IS NULL
            AND (?1 IS NULL OR collection_id = ?1)
@@ -143,7 +145,7 @@ pub fn get_item(conn: &Connection, id: &str) -> Result<Item> {
     conn.query_row(
         "SELECT id, collection_id, parent_item_id, title, position,
                 start_at, due_at, remind_at, recurrence_rrule, recurrence_mode,
-                completed_at, created_at, updated_at
+                completed_at, estimate_minutes, is_milestone, created_at, updated_at
          FROM item WHERE id = ?1",
         params![id],
         read_item,
@@ -164,7 +166,7 @@ pub fn create_item(conn: &mut Connection, new: NewItem) -> Result<Item> {
 /// The two inserts a new item is — the row and its index entry — inside a
 /// transaction the caller owns. Shared by plain creation and by quick capture,
 /// which adds a schedule and values to the same transaction.
-fn insert_item(conn: &Connection, new: &NewItem) -> Result<String> {
+pub(crate) fn insert_item(conn: &Connection, new: &NewItem) -> Result<String> {
     let title = clean_title(&new.title)?;
     check_position(&new.position)?;
 
@@ -202,6 +204,27 @@ pub fn capture_item(conn: &mut Connection, request: CaptureRequest) -> Result<It
     transaction.commit()?;
 
     get_item(conn, &id)
+}
+
+/// What this task contributes to a plan: how long it takes, and whether it
+/// takes any time at all.
+///
+/// A negative estimate is refused rather than clamped: it is a typo, and
+/// silently turning it into something else teaches nothing.
+pub fn set_plan(conn: &Connection, id: &str, plan: ItemPlan) -> Result<Item> {
+    if plan.estimate_minutes.is_some_and(|minutes| minutes < 0) {
+        return Err(Error::InvalidInput("an estimate cannot be negative"));
+    }
+
+    let changed = conn.execute(
+        "UPDATE item SET estimate_minutes = ?2, is_milestone = ?3, updated_at = ?4
+         WHERE id = ?1",
+        params![id, plan.estimate_minutes, plan.is_milestone as i64, now()],
+    )?;
+    if changed == 0 {
+        return Err(Error::NotFound);
+    }
+    get_item(conn, id)
 }
 
 /// Mark an item complete or bring it back.
@@ -979,5 +1002,97 @@ mod tests {
 
         assert_eq!(items, 0, "a rejected create left an item row");
         assert_eq!(indexed, 0, "a rejected create left a search row");
+    }
+
+    #[test]
+    fn a_plan_is_stored_and_read_back() {
+        let mut conn = workspace();
+        let id = add(&mut conn, "Build it", "a").id;
+
+        let planned = set_plan(
+            &conn,
+            &id,
+            ItemPlan {
+                estimate_minutes: Some(150),
+                is_milestone: false,
+            },
+        )
+        .unwrap();
+        assert_eq!(planned.estimate_minutes, Some(150));
+        assert!(!planned.is_milestone);
+        assert_eq!(get_item(&conn, &id).unwrap().estimate_minutes, Some(150));
+    }
+
+    #[test]
+    fn a_new_item_has_no_estimate_and_is_not_a_milestone() {
+        let mut conn = workspace();
+        let id = add(&mut conn, "Fresh", "a").id;
+        let item = get_item(&conn, &id).unwrap();
+
+        assert_eq!(item.estimate_minutes, None);
+        assert!(!item.is_milestone);
+    }
+
+    #[test]
+    fn an_estimate_can_be_taken_back_and_a_milestone_declared() {
+        let mut conn = workspace();
+        let id = add(&mut conn, "Gate", "a").id;
+
+        set_plan(
+            &conn,
+            &id,
+            ItemPlan {
+                estimate_minutes: Some(60),
+                is_milestone: false,
+            },
+        )
+        .unwrap();
+        let cleared = set_plan(
+            &conn,
+            &id,
+            ItemPlan {
+                estimate_minutes: None,
+                is_milestone: true,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(cleared.estimate_minutes, None);
+        assert!(cleared.is_milestone);
+    }
+
+    #[test]
+    fn a_negative_estimate_is_refused_rather_than_clamped() {
+        let mut conn = workspace();
+        let id = add(&mut conn, "Typo", "a").id;
+
+        let error = set_plan(
+            &conn,
+            &id,
+            ItemPlan {
+                estimate_minutes: Some(-30),
+                is_milestone: false,
+            },
+        )
+        .unwrap_err();
+        assert!(matches!(error, Error::InvalidInput(_)));
+        assert_eq!(get_item(&conn, &id).unwrap().estimate_minutes, None);
+    }
+
+    #[test]
+    fn planning_a_task_that_is_gone_says_so() {
+        let conn = workspace();
+        assert!(matches!(
+            set_plan(
+                &conn,
+                "ghost",
+                ItemPlan {
+                    estimate_minutes: Some(30),
+                    is_milestone: false,
+                },
+            )
+            .unwrap_err(),
+            Error::NotFound
+        ));
     }
 }

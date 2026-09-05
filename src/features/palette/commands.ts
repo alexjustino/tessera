@@ -10,6 +10,7 @@ import type { Destination } from '@/features/shell/Sidebar';
 export type CommandId =
   | `go.${Destination}`
   | 'new.task'
+  | 'focus.start'
   | 'capture.open'
   | 'reminders.pause'
   | 'reminders.resume'
@@ -34,6 +35,18 @@ export const COMMANDS: readonly PaletteCommand[] = [
   },
   { id: 'go.diagnostics', title: 'Go to Diagnostics', group: 'navigate', keywords: ['probe'] },
   { id: 'go.about', title: 'Go to About', group: 'navigate', keywords: ['version', 'licence'] },
+  {
+    id: 'go.reports',
+    title: 'Go to Reports',
+    group: 'navigate',
+    keywords: ['tracked', 'week', 'month', 'estimate'],
+  },
+  {
+    id: 'focus.start',
+    title: 'Focus on one task',
+    group: 'navigate',
+    keywords: ['timer', 'zen', 'concentrate', 'next'],
+  },
   { id: 'new.task', title: 'New task', group: 'create', keywords: ['add', 'create'] },
   {
     id: 'capture.open',

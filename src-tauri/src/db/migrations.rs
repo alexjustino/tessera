@@ -38,6 +38,23 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "007_calendar",
         include_str!("../../migrations/007_calendar.sql"),
     ),
+    (
+        "008_dependencies",
+        include_str!("../../migrations/008_dependencies.sql"),
+    ),
+    ("009_plan", include_str!("../../migrations/009_plan.sql")),
+    (
+        "010_timeline",
+        include_str!("../../migrations/010_timeline.sql"),
+    ),
+    (
+        "011_time_entries",
+        include_str!("../../migrations/011_time_entries.sql"),
+    ),
+    (
+        "012_templates",
+        include_str!("../../migrations/012_templates.sql"),
+    ),
 ];
 
 /// Every migration, name and SQL, in the order they apply.

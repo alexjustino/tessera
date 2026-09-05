@@ -157,6 +157,17 @@ fn a_workspace_written_at_every_version_survives_the_walk_to_head() {
     )
     .unwrap();
 
+    // A view of a person's own, written before the rebuild that migration 010
+    // performs on this table. SQLite cannot widen a CHECK in place, so 010
+    // copies every row into a new table — and a copy is exactly the kind of
+    // migration that loses things quietly.
+    conn.execute(
+        "INSERT INTO view (id, collection_id, name, kind, config_json, position)
+         VALUES ('mine', 'tasks', 'My own view', 'board', '{\"mine\":true}', 'zz')",
+        [],
+    )
+    .unwrap();
+
     // ── Everything after v7, in one go, the way a real upgrade arrives ─────
     migrations::apply(&conn).expect("migrate to head");
     assert_eq!(migrations::current_version(&conn), head);
@@ -192,6 +203,44 @@ fn a_workspace_written_at_every_version_survives_the_walk_to_head() {
         ),
         1,
         "the index row written at version one was lost"
+    );
+
+    // The rebuilt `view` table kept every row, its configuration and its order.
+    let (name, kind, config, position): (String, String, String, String) = conn
+        .query_row(
+            "SELECT name, kind, config_json, position FROM view WHERE id = 'mine'",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+        )
+        .expect("the view written before the rebuild was lost");
+    assert_eq!(name, "My own view");
+    assert_eq!(kind, "board");
+    assert_eq!(config, "{\"mine\":true}");
+    assert_eq!(position, "zz");
+    assert_eq!(
+        count(&conn, "SELECT count(*) FROM view WHERE id = 'view.today'"),
+        1,
+        "a seeded view was lost in the rebuild"
+    );
+
+    // The one-running-timer index arrives with migration 011 on an upgraded
+    // database, not only on a fresh one — the unit tests only ever see fresh.
+    conn.execute(
+        "INSERT INTO time_entry (id, item_id, started_at, ended_at, created_at)
+         VALUES ('timer', 'item-v1', '2026-03-01T09:00:00.000Z', NULL,
+                 '2026-03-01T09:00:00.000Z')",
+        [],
+    )
+    .unwrap();
+    assert!(
+        conn.execute(
+            "INSERT INTO time_entry (id, item_id, started_at, ended_at, created_at)
+             VALUES ('second', 'item-v2', '2026-03-01T09:05:00.000Z', NULL,
+                     '2026-03-01T09:05:00.000Z')",
+            [],
+        )
+        .is_err(),
+        "the upgraded database accepted a second running timer"
     );
 
     // The foreign keys the walk relied on still hold.

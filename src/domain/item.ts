@@ -27,6 +27,10 @@ export interface Item {
   recurrenceMode: 'schedule' | 'after_completion';
   /** ISO-8601 UTC, or null while the item is open. */
   completedAt: string | null;
+  /** Minutes of work, or null when nobody has said (P2). */
+  estimateMinutes: number | null;
+  /** A marker in the plan rather than work: zero duration, always. */
+  isMilestone: boolean;
   createdAt: string;
   updatedAt: string;
 }

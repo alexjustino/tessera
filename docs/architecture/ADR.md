@@ -305,3 +305,206 @@ unnoticed by every screen review before it.
 **Cost accepted.** axe-core is a development dependency injected into the page by the suite,
 never shipped. The audit cannot judge how a screen reader _sounds_; that stays a person's job,
 and is written down as such.
+
+## ADR-019 — The dependency graph is acyclic, and two layers say so {#adr-019}
+
+**Decision.** A dependency is one edge with one meaning: `blocker_id` must finish before
+`blocked_id` may start. The graph is acyclic, and that is enforced twice, differently. The
+interface asks `src/domain/graph.ts` before it offers a link, and only offers what would not
+close a loop — naming the chain when it must explain a refusal. The repository asks SQLite the
+reachability question with a recursive CTE before every insert, and refuses on its own.
+
+**Why.** These are not the same check written twice. They answer different questions for
+different audiences. `cycleFrom` returns the _path_ — `Ship it → Test it → Fix it → Ship it` —
+because it has the titles and a person needs to see which loop; a boolean would be useless to
+them. The repository answers _whether_, for the file, because storage integrity delegated to a
+caller is not integrity: a cycle stored is a workspace whose timeline, critical path and
+capacity figures are all lies, and no interface should be the only thing standing between the
+file and that.
+
+The recursive CTE is not an algorithm duplicated in SQL. Reachability is a question a database
+answers natively, and `UNION` de-duplicates, which makes the walk terminate even on a graph that
+somehow already holds a cycle.
+
+**Consequence.** The domain module is where every later reading of the graph lives — the
+critical path, the timeline's arrows, what is ready to start — and it is pure, so all of it is
+testable without a window. What a cycle _means_ is decided once, here, rather than in each view.
+
+**Cost accepted.** Two implementations to keep honest, and a picker that hides options rather
+than refusing them, which needs a sentence saying what is missing and why — otherwise a filtered
+list reads as a bug.
+
+## ADR-020 — A plan says what it is worth {#adr-020}
+
+**Decision.** Duration comes from `estimate_minutes`, and a task without one contributes zero.
+`plan()` returns `unplanned`, `estimatedCount` and `unestimatedOnPath` alongside the timings, and
+the interface refuses to draw a conclusion the data does not support: a workspace where nothing
+is estimated shows no summary and marks nothing critical, and a path with gaps in it says how
+many.
+
+**Why.** The arithmetic is happy to produce a number from nothing. With every duration zero the
+project is zero minutes long, every task has zero slack, and a naive reading marks the entire
+workspace critical — a confident, prominent, meaningless answer. That is worse than silence,
+because a person cannot tell it apart from a real one.
+
+The same reasoning covers the smaller case. Marking the critical path is only informative when
+something is _not_ on it; a straight chain is entirely critical, and a chip on every row costs a
+glance and says nothing. The list shows the marks only when they distinguish.
+
+**Consequence.** Every reading of the plan carries its own confidence, so later slices — the
+timeline, the capacity figures, the reports — inherit the honesty rather than each deciding
+again. `estimate_minutes` stops being the speculative column it has been since migration 001;
+`is_milestone` joins it as a flag rather than a property, because it changes how an item is
+scheduled and drawn rather than describing it.
+
+**Cost accepted.** A person who estimates nothing gets no plan at all, which is correct and may
+still feel like the feature is missing. The screen says why rather than showing zeros.
+
+## ADR-021 — The timeline draws dates, not the plan's arithmetic {#adr-021}
+
+**Decision.** Bars come from each task's own `start_at` and `due_at`. The critical path from
+P2 only colours them. Dragging a bar writes the dates back. Where a task has a due date and no
+start, the estimate reaches back from the due date; where it has neither, it is left off the
+chart and counted underneath.
+
+**Why.** P2's timings are minutes from the start of the project — "this task begins at 180
+minutes" — which is the right answer to "what decides the end" and the wrong answer to "when
+is this happening". A person reads Thursday. Turning one into the other needs working hours,
+holidays and a project start date, none of which exist yet (P5), and inventing them would put
+bars on a chart at dates nobody chose.
+
+Drawing what the person set also keeps the chart editable in the obvious way: the thing you
+drag is the thing that changes. A Gantt whose bars are computed can only be edited by editing
+the inputs somewhere else, which is a worse product and a much larger one.
+
+**Consequence.** The two can disagree — a dependency whose blocked task starts before its
+blocker finishes. That is not resolved silently: the arrow is drawn broken and the count is at
+the top of the chart. Deciding what to do about it stays with the person, because a plan that
+moves work on its own is precisely what 1.1 said it would not build.
+
+**Cost accepted.** Until P5 there is no "when will this finish" on a calendar, only "how long
+is the longest route" from P2 and "when did you say" from the dates. Two answers to adjacent
+questions, and the product says which is which.
+
+## ADR-022 — An invariant the schema can state, the schema states {#adr-022}
+
+**Decision.** "At most one timer runs at a time" is a partial unique index over a constant
+expression, in migration 011:
+
+```sql
+CREATE UNIQUE INDEX idx_one_timer_running ON time_entry ((1)) WHERE ended_at IS NULL;
+```
+
+Every running row indexes the same key, so a second one collides; a stopped row leaves the
+index. The repository keeps the rule by stopping the running entry in the same transaction as
+starting the next — but the rule does not depend on the repository.
+
+**Why.** A rule enforced in application code holds on the path that remembered to check. An
+import, a restore, a repair script and the command written next week are all paths that did
+not. The same reasoning already put the dependency graph's acyclicity in the host (ADR-019) and
+the schema version in the workspace row: the closer to the data a rule lives, the fewer ways
+there are around it.
+
+The general form: **when SQLite can express an invariant — a CHECK, a foreign key, a unique
+index, partial or over an expression — it does.** The application enforces what SQL cannot
+say, and says so in a comment where it does.
+
+**Consequence.** A running timer is a row with no end, which is also why it survives a
+restart: nothing is written at shutdown and nothing is restored at start-up. The row _is_ the
+state. The end-to-end suite closes the application with a clock running and finds it running.
+
+**Cost accepted.** The rule is one person's rule — a workspace with two people would want two
+clocks, and the index would have to become `(owner_id)`. There is one person (SPEC §2), and a
+migration that widens an index is an ordinary migration.
+
+## ADR-023 — Capacity is the working hours; load is what the calendar reserved {#adr-023}
+
+**Decision.** A day's capacity is its span in `work_hours`, zero on a day off. A day's load is
+the minutes of every timed occurrence on it — events, and the blocks that reserve time for a
+task — split at local midnight where one crosses it. All-day events carry no minutes. Task
+estimates are **not** load: a task with an estimate and no time reserved is not on the map.
+
+**Why.** The alternative reading — count the estimates of tasks due that day — answers a
+different question ("how much is due") with the same colours as this one ("how much is
+spoken for"), and the two disagree whenever a person has not blocked time for what is due.
+Two readings of one fact on one surface that can contradict each other is the rule the time
+panel broke and `DESIGN_SYSTEM.md` now forbids. One source, stated: the calendar.
+
+That source is also the one the product has built its bridge on since F7 — dragging a task
+onto the grid _is_ how work becomes time here. The map rewards the habit the product already
+teaches rather than inventing hours nobody placed.
+
+All-day events are left out for the same honesty: a birthday does not use up a working day,
+and counting it as one would colour every public holiday overloaded.
+
+**Consequence.** An estimated task with no block is invisible to the map. That is a gap and
+it is stated in the year's summary line only as what _is_ there; a count of what is not
+("due this month, no time reserved") is deferred to the reports, where a period exists to
+count over (SPEC, deferred out of P5).
+
+**Cost accepted.** Capacity is a weekday span, so a public holiday on a Tuesday has nine
+hours until a holiday table exists. Working hours are read everywhere and edited nowhere
+yet; the screen is deferred, the reading is not.
+
+## ADR-024 — A figure carries the rows it came from {#adr-024}
+
+**Decision.** In `src/domain/report.ts` a number is never bare. A `Figure` is a value, a unit
+(minutes or a count) and the list of `ReportRow`s it was built from, and `traceable(figure)`
+states the invariant: the value is the sum of the rows' minutes, or their number, and no row
+appears twice. Every figure a report produces is checked against it in the unit tests, the
+page checks it on every render, and a figure that fails shows a dash and an explanation rather
+than the number.
+
+**Why.** A report that shows "12h" without being able to say which twelve hours is a report
+nobody can argue with, which is the same as a report nobody can trust. Carrying the rows makes
+the number _checkable by the person reading it_, in the product, without a developer — the
+proof of done for P6 written as a data structure. It also makes the report's correctness a
+property rather than a set of examples: the test does not need to know what the right total
+is, only that the total is what the rows say.
+
+The same reason capacity is _not_ a figure: it comes from a table of working hours, not from
+rows a person could open, and the type says so by making it a plain number.
+
+**Consequence.** Building a figure means keeping its rows, which costs memory proportional to
+the entries in the period — a handful of hundreds — and forbids any aggregation that cannot
+name its parts. That is the constraint working as intended: a number that cannot be traced
+does not get to be on the page.
+
+**Cost accepted.** Rows are built for figures nobody opens. On a month with a thousand
+entries that is a thousand small objects, computed once per render of the report, and the
+render is memoised on its inputs.
+
+## ADR-025 — A template is the plan for tasks, not tasks {#adr-025}
+
+**Decision.** A template stores no ids and references no `item`. Its tasks have keys of its
+own (`t1`, `t2`…), its dependencies name those keys, and its dates are offsets in calendar
+days from its earliest date plus the minute of the day. Applying it makes new tasks, maps
+keys to the ids that come back, links the edges through the mapping, and does all of that in
+one host transaction (`templates::apply`) — every task and every link, or nothing.
+
+**Why.** The alternative — a template as a set of existing tasks to copy — ties the template
+to rows that will be edited, completed and deleted after it was saved, and copies whatever
+state they are in on the day. A template is what the work _looks like before it has dates_;
+storing it as a shape with no ids is what lets it outlive the tasks it came from and be
+applied twice without the two sets knowing about each other.
+
+Offsets in **calendar days** rather than milliseconds, and the minute of the day rather than
+an instant, are what make "kick-off Monday 09:00, review Thursday 14:00" mean the same thing
+in March and in November. The domain test applies a four-day template across a clock change
+and gets ninety-seven hours: the wall clock was kept, not the elapsed time, and that is the
+correct answer.
+
+One transaction because five tasks and three links are one thing to the person who pressed
+the button. A template half-applied — tasks made, links missing — is the worst outcome: it
+looks done and is wrong, and the missing links are exactly the part the person could not see
+at a glance.
+
+**Consequence.** The body is JSON the host does not read. `readBody` in the domain checks it
+on the way in, and a row that does not read as a template is left out of the list rather than
+shown broken — the same arrangement as `view.config_json` (ADR-004's boundary, applied to a
+new table). A template saved by a newer version with a field this one does not know reads
+fine; one with an edge to a missing key does not read at all.
+
+**Cost accepted.** No editing in place: change the tasks and save again. No property values,
+no notes, no nesting (SPEC, deferred out of P7). Each is a real feature, and each would have
+made this one a different shape.

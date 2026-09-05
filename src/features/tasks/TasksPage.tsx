@@ -1,27 +1,38 @@
-import { Add20Regular, Options20Regular, TaskListSquareLtr24Regular } from '@fluentui/react-icons';
+import {
+  Add20Regular,
+  CopyAdd20Regular,
+  Options20Regular,
+  TaskListSquareLtr24Regular,
+} from '@fluentui/react-icons';
 import { useCallback, useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
 import {
   useCaptureItem,
   useCompleteOccurrence,
+  useDependencies,
   useDeleteItem,
   useItems,
   useProperties,
   usePropertyValues,
   useRenameItem,
   useSetItemCompleted,
+  useSetSchedule,
   useMoveOnBoard,
   useSetPropertyValue,
+  useTimeEntries,
   useUpdateView,
   useViews,
 } from '@/data/hooks';
 import { EMPTY_BOARD_CONFIG, type BoardConfig } from '@/domain/board';
+import { formatDuration, plan as computePlan } from '@/domain/criticalPath';
+import { isBlocked } from '@/domain/graph';
+import { runningEntry } from '@/domain/time';
 import type { Capture } from '@/domain/capture';
 import { positionForNewItem } from '@/domain/item';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
 import type { Property, PropertyValue } from '@/domain/property';
-import { EMPTY_QUERY, run, type Query, type Row } from '@/domain/query';
+import { EMPTY_QUERY, flatten, run, type Query, type Row } from '@/domain/query';
 import { CalendarView } from '@/features/calendar/CalendarView';
 import { CaptureLine } from '@/features/capture/CaptureLine';
 import { PropertyManager } from '@/features/properties/PropertyManager';
@@ -29,6 +40,7 @@ import { BoardView } from '@/features/views/BoardView';
 import { ListView } from '@/features/views/ListView';
 import { QueryBar } from '@/features/views/QueryBar';
 import { TableView } from '@/features/views/TableView';
+import { TimelineView } from '@/features/views/TimelineView';
 import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
@@ -36,6 +48,7 @@ import { TabStrip } from '@/ui/TabStrip';
 import { announce } from '@/ui/announce';
 
 import { TaskDetail } from './TaskDetail';
+import { TemplatesDialog } from './TemplatesDialog';
 
 /** The collection seeded by migration 002. */
 const COLLECTION = 'tasks';
@@ -54,13 +67,17 @@ const INLINE_TYPES = new Set(['status', 'priority', 'select']);
 export function TasksPage({
   initialViewId = null,
   initialDetailId = null,
+  onFocus,
 }: {
   initialViewId?: string | null;
   /** An item to open on mount — how the palette lands on a search hit. */
   initialDetailId?: string | null;
+  /** Enter focus mode on a task (P8). Absent where the page has no shell to hand it to. */
+  onFocus?: (id: string) => void;
 }) {
   const [draft, setDraft] = useState('');
   const [managingProperties, setManagingProperties] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [editingQuery, setEditingQuery] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(initialDetailId);
 
@@ -83,6 +100,7 @@ export function TasksPage({
   const moveOnBoard = useMoveOnBoard();
   const completeOccurrence = useCompleteOccurrence();
   const saveView = useUpdateView();
+  const setSchedule = useSetSchedule();
 
   const view = useMemo(() => {
     const all = views.data ?? [];
@@ -116,6 +134,62 @@ export function TasksPage({
     () => (items.data ?? []).find((item) => item.id === detailId) ?? null,
     [items.data, detailId],
   );
+
+  const dependencies = useDependencies();
+  const timeEntries = useTimeEntries();
+
+  /**
+   * The plan over this collection: how long it takes, what decides the end.
+   *
+   * Computed over every task, completed ones included — the critical path is a
+   * statement about the plan as designed, not about what is left to do.
+   */
+  const planned = useMemo(
+    () =>
+      computePlan(
+        (items.data ?? []).map((item) => ({
+          id: item.id,
+          estimateMinutes: item.estimateMinutes,
+          isMilestone: item.isMilestone,
+        })),
+        dependencies.data ?? [],
+      ),
+    [items.data, dependencies.data],
+  );
+
+  /**
+   * Marking the critical path is only worth doing when something is *not* on
+   * it. A straight chain is entirely critical, and a chip on every row says
+   * nothing while costing a glance.
+   */
+  const criticalIds = useMemo(
+    () =>
+      planned.unplanned || planned.critical.size === (items.data ?? []).length
+        ? new Set<string>()
+        : planned.critical,
+    [planned, items.data],
+  );
+
+  const milestoneIds = useMemo(
+    () => new Set((items.data ?? []).filter((item) => item.isMilestone).map((item) => item.id)),
+    [items.data],
+  );
+
+  // What is waiting on something unfinished. Computed once here, from the
+  // whole graph, rather than asked per row.
+  const blockedIds = useMemo(() => {
+    const edges = dependencies.data ?? [];
+    const all = items.data ?? [];
+    const done = new Set(all.filter((item) => item.completedAt !== null).map((item) => item.id));
+    return new Set(
+      all.filter((item) => isBlocked(edges, item.id, (id) => done.has(id))).map((item) => item.id),
+    );
+  }, [dependencies.data, items.data]);
+
+  // The one running clock, if any. The row only needs to know which task it is
+  // on; how long it has been going is the detail panel's business, and only it
+  // ticks.
+  const timingId = runningEntry(timeEntries.data ?? [])?.itemId ?? null;
 
   const priorityPropertyId = useMemo(
     () => (properties.data ?? []).find((property) => property.type === 'priority')?.id ?? null,
@@ -214,14 +288,33 @@ export function TasksPage({
             </p>
           )}
         </div>
-        <Button
-          appearance="subtle"
-          icon={<Options20Regular />}
-          onClick={() => setManagingProperties(true)}
-        >
-          Properties
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            appearance="subtle"
+            icon={<CopyAdd20Regular />}
+            onClick={() => setTemplatesOpen(true)}
+          >
+            Templates
+          </Button>
+          <Button
+            appearance="subtle"
+            icon={<Options20Regular />}
+            onClick={() => setManagingProperties(true)}
+          >
+            Properties
+          </Button>
+        </div>
       </header>
+
+      {!planned.unplanned && (
+        <p className="-mt-1 text-caption text-fg-tertiary">
+          {formatDuration(planned.durationMinutes)} of work on the longest route
+          {planned.longestChain.length > 1 && `, through ${planned.longestChain.length} tasks`}
+          {planned.unestimatedOnPath.length > 0 &&
+            ` · ${planned.unestimatedOnPath.length} of them without an estimate`}
+          .
+        </p>
+      )}
 
       <CaptureLine value={draft} onChange={setDraft} onSubmit={submit} autoFocus>
         {({ ready }) => (
@@ -320,6 +413,25 @@ export function TasksPage({
             unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
             onOpenItem={(item) => setDetailId(item.id)}
           />
+        ) : view?.kind === 'timeline' ? (
+          <TimelineView
+            items={items.data ?? []}
+            edges={dependencies.data ?? []}
+            critical={criticalIds}
+            onOpen={(item) => setDetailId(item.id)}
+            onShift={(item, startAt, dueAt) =>
+              setSchedule.mutate({
+                id: item.id,
+                schedule: {
+                  startAt,
+                  dueAt,
+                  remindAt: item.remindAt,
+                  rule: item.recurrenceRule,
+                  mode: item.recurrenceMode,
+                },
+              })
+            }
+          />
         ) : view?.kind === 'board' ? (
           <BoardView
             groups={result.groups}
@@ -347,6 +459,10 @@ export function TasksPage({
           <ListView
             groups={result.groups}
             grouped={query.groupBy !== null}
+            blockedIds={blockedIds}
+            criticalIds={criticalIds}
+            milestoneIds={milestoneIds}
+            timingId={timingId}
             inlineProperties={inlineProperties}
             onToggle={toggleRow}
             onRename={(row, title) => rename.mutate({ id: row.item.id, title })}
@@ -357,6 +473,15 @@ export function TasksPage({
         )}
       </div>
 
+      <TemplatesDialog
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        collectionId={COLLECTION}
+        shown={flatten(result).map((row) => row.item)}
+        all={items.data ?? []}
+        edges={dependencies.data ?? []}
+      />
+
       <PropertyManager
         open={managingProperties}
         onClose={() => setManagingProperties(false)}
@@ -366,9 +491,12 @@ export function TasksPage({
 
       <TaskDetail
         task={detailTask}
+        items={items.data ?? []}
+        timing={detailTask ? planned.timing.get(detailTask.id) : undefined}
         properties={properties.data ?? []}
         values={detailTask ? (values.data?.[detailTask.id] ?? {}) : {}}
         onClose={() => setDetailId(null)}
+        onFocus={onFocus}
       />
     </div>
   );

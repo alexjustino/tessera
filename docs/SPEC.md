@@ -60,6 +60,33 @@ Gantt · arbitrary attachments · auto-update · AI.
 | 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                      |
 | 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                |
 
+### 1.1.0 — the project manager
+
+1.0 answers "what do I do today". 1.1 answers "will this finish, and when" — which
+is a different question about the same rows, and the reason it is a minor release
+rather than a second product: no new data core, one new relation and the views
+that read it.
+
+The order is not the roadmap's order. Dependencies come first because the
+timeline, the critical path and the capacity figures are all readings of the same
+graph, and a view built before the graph is a view that gets rewritten.
+
+| #      | Slice                            | Proof of done                                                                             |
+| ------ | -------------------------------- | ----------------------------------------------------------------------------------------- |
+| **P1** | Dependencies                     | a cycle is refused in words, by the interface _and_ by the host; order survives a restart |
+| P2     | Milestones and the critical path | the path and the slack are right on a graph a person can check by hand                    |
+| P3     | Timeline (Gantt)                 | 500 items lay out inside the frame budget; dragging a bar changes the dates               |
+| P4     | Time tracking                    | a running timer survives a restart; the day's sum is right across midnight                |
+| P5     | Year view and daily capacity     | a year renders inside the budget; capacity reads the working hours already there          |
+| P6     | Reports                          | every number can be traced to the rows it came from                                       |
+| P7     | Templates                        | a template with dependencies keeps them, with the dates rebased                           |
+| P8     | Focus mode                       | one task, its timer, and nothing else on the screen                                       |
+| P9     | Release 1.1.0                    | a 1.0 workspace opens in 1.1, migrated, without loss                                      |
+
+What 1.1 deliberately does not add: a second data core, resource assignment
+(there is one person), or a scheduler that moves work on its own. A dependency
+says what must come first; it does not get to decide your day.
+
 ## 3. Architecture
 
 ```
@@ -154,6 +181,167 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F10    | Data, Settings, **About**                                            | a restored backup restores everything                                                                                    |
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
+
+### Deferred out of P8, and why
+
+Focus mode shows one task and its timer, moves to the next ready task on
+Done, and leaves on Escape. What a focus screen could also do:
+
+- **Start the clock on entry.** Deliberately not. A person who wants the
+  clock presses Start; a screen that starts timing because it was opened
+  files time under whatever was on it, and the tracker's whole value is that
+  its entries are true.
+- **A pomodoro.** Intervals and breaks are a different product's opinion
+  about how to work. The clock counts up; a count-down with a bell is a
+  setting, a sound, and a notification, and belongs with the reminders.
+- **The notes under the task.** The screen shows the title and nothing else
+  by design. The document is one click away in the panel; putting it on the
+  focus screen makes the focus screen the panel.
+- **Choosing from the queue.** Next moves forward through what is ready;
+  there is no list to pick from, because a list is what focus mode removed.
+  The palette's search opens any task, and the panel's button focuses it.
+- **A global shortcut.** Quick capture has one; focus does not yet. It wants
+  the same registration and the same Diagnostics line as capture, and a
+  decision about which key.
+
+### Deferred out of P7, and why
+
+A template keeps the shape of a set of tasks and makes it again on a day,
+dependencies kept and dates rebased. What templates could also do:
+
+- **Property values.** A template carries what the plan needs — dates,
+  estimates, milestones, links — and not the status or priority the tasks had
+  when they were saved. Those are the state of _those_ tasks; a new set
+  starts fresh. Worth revisiting once a template is used for something like
+  a checklist where the values are the point.
+- **Notes.** The document under a task is not copied. A template of five
+  tasks with five documents is a different feature — a kit — and the
+  document model has its own slice's worth of questions about copying blocks.
+- **Editing a template.** A template is saved from tasks and deleted; it is
+  not edited in place. Change the tasks and save again; the old one goes.
+  An editor for offsets and links is a second timeline, and the first is
+  enough for now.
+- **A template of a template.** Applying makes tasks, and those tasks can be
+  saved as a template again. Nesting — a template that contains templates —
+  is the kind of generality nobody asked for.
+- **Choosing what to save.** The rows the view shows are what is saved, so
+  the filter is the picker. A checkbox per row would be a second picker for
+  the same choice.
+
+### Deferred out of P6, and why
+
+The report answers four questions about a week or a month and every figure
+opens onto its rows. What a reports page could also do:
+
+- **A custom range.** Week and month are what people ask about; "the last
+  ninety days" is a date picker and a wider events window. The period model
+  already takes any two days; only the picker is missing.
+- **Export.** The rows are on the screen and the workspace exports as JSON
+  (F10). A CSV of one report is a small addition once somebody needs it in a
+  spreadsheet.
+- **Counting unreserved estimates.** Deferred from P5 to here, and here to
+  the templates slice: "due this month with no time reserved" wants the
+  templates' notion of what a task's dates mean before it says anything.
+- **Editing the working hours.** Deferred from P5 again; still no screen. It
+  is Settings work, and Settings is where it goes.
+- **Trends.** This week against last week is two reports side by side, which
+  the arrows already give a person. A sparkline is presentation over that.
+
+### Deferred out of P5, and why
+
+The year is drawn from the calendar's reservations against the working hours
+already there. What the same figures could also drive:
+
+- **Editing the working hours.** They are seeded (nine to six, Monday to
+  Friday) and read everywhere; there is no screen to change them yet. It
+  belongs in Settings, with the day-off rule and the first day of the week,
+  and is small enough to arrive with the reports (P6).
+- **Capacity on the week and day scales.** The year says how full a day is;
+  the day itself does not yet — the same `dayLoad` reading, under each day's
+  header. Presentation over arithmetic that exists.
+- **Counting unreserved estimates.** A task due in a month with four hours of
+  estimate and no block is not on the map, by decision (ADR-023). A count
+  beside the month — "3 tasks due, no time reserved" — would keep the map
+  honest without putting invented hours on it. Wants the reports' notion of
+  a period first.
+- **Public holidays.** A day off that is not a weekend has capacity today.
+  A holiday table is a small migration and a bigger question about whose
+  calendar; deferred with the working-hours screen.
+- **Zoom from the year to a month.** A cell opens the day. Opening the month
+  from its heading is a second affordance and a small one.
+
+### Deferred out of P4, and why
+
+A timer runs on one task, survives a restart, and adds up correctly across
+midnight. What a tracker could also do:
+
+- **Edit an entry.** Start and end are what the clock recorded. A person who
+  forgot to stop last night can remove the entry, not shorten it; typing a
+  corrected end is a small form and a rule about entries that overlap, and
+  both belong with the reports that would read them (P6).
+- **Add time by hand.** "I did two hours on this yesterday" is a legitimate
+  entry the clock never saw. Same form, same slice.
+- **A total on the row.** The row says a clock is running, not how long the
+  task has taken. A duration per row is a column, which is the table view's
+  business rather than the list's.
+- **The clock in the tray or the title.** The running task is visible on its
+  row and in its panel. Focus mode (P8) is where one task and its timer get
+  the whole screen, and the tray belongs to that design rather than this one.
+- **Idle detection.** A clock left running through a night is the most common
+  tracking mistake, and the honest fix — "you were away; keep it or cut it?" —
+  needs the operating system's idle signal. Deferred, not forgotten.
+
+### Deferred out of P3, and why
+
+The timeline draws the plan and edits it. What a Gantt could also do:
+
+- **Resize a bar** to change its length. Moving works; stretching needs a
+  second grab affordance and a decision about which end moves — the same shape
+  the calendar deferred in F7, and worth doing once for both.
+- **Zoom.** The grid is one column per day. Weeks and months are a scale
+  factor, and a quarter at day resolution already scrolls further than anyone
+  wants to drag.
+- **Rescheduling what a move breaks.** Moving a task can leave a dependency
+  contradicted; the chart says so and changes nothing else. A plan that moves
+  work on its own is exactly what 1.1 said it would not do.
+- **Grouping and filtering.** The timeline reads the view's query but ignores
+  its grouping; a grouped Gantt wants swimlanes, which the board deferred too.
+- **A today marker that scrolls into view.** Today is ruled and coloured, but
+  the chart opens at the beginning of the window rather than at now.
+
+### Deferred out of P2, and why
+
+The plan is computed, correct on a graph a person can check by hand, editable
+on a task and visible on a row. What it does not do yet:
+
+- **Put the plan on a calendar.** The timings are minutes from the start of the
+  project, not dates: "four hours of work" rather than "finishing on Thursday".
+  Turning one into the other needs working hours and non-working days, which is
+  P5's subject.
+- **The critical path in the board, the table and the calendar.** The list
+  shows it; P3 is where the graph becomes a picture and the other views get
+  their own treatment rather than the same chip dropped in.
+- **Estimates in the quick-capture grammar.** `Build it 2h` would fit the
+  parser, and belongs with a look at the whole grammar rather than bolted on.
+- **Rolling an estimate up from subtasks.** `parent_item_id` has existed since
+  the first migration and nothing uses it; a plan that sums children is worth
+  having once subtasks are a real feature rather than a column.
+
+### Deferred out of P1, and why
+
+The graph is stored, refused when circular, edited on a task and visible on a
+row. What dependencies could also be and are not yet:
+
+- **A "Waiting" indicator on the board and the table.** The list shows it; the
+  other two views want their own treatment rather than the same chip dropped in,
+  and the timeline (P3) is where the graph becomes a picture.
+- **Kinds of dependency** — start-to-start, finish-to-finish, lag. One relation
+  that means one thing until something asks for more.
+- **A view of what is ready to start.** `readyToStart` is written and tested; it
+  wants the focus mode (P8) to be the screen that uses it.
+- **Dependencies across collections.** The schema allows it; the picker only
+  offers tasks from the one on screen, because a cross-collection picker is a
+  search box, and that is a design rather than an oversight.
 
 ### Deferred out of F12, and why
 

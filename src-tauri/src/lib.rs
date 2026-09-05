@@ -156,6 +156,7 @@ pub fn run() {
             commands::items::item_delete,
             commands::items::item_move_on_board,
             commands::items::item_set_schedule,
+            commands::items::item_set_plan,
             commands::items::item_complete_occurrence,
             commands::properties::properties_list,
             commands::properties::property_create,
@@ -180,6 +181,20 @@ pub fn run() {
             commands::calendar::event_set_exception,
             commands::calendar::time_block_create,
             commands::calendar::time_blocked_items,
+            commands::dependencies::dependencies_list,
+            commands::dependencies::dependency_link,
+            commands::dependencies::dependency_unlink,
+            commands::time_entries::time_entries_list,
+            commands::time_entries::time_running,
+            commands::time_entries::time_start,
+            commands::time_entries::time_stop,
+            commands::time_entries::time_entry_delete,
+            commands::time_entries::time_entry_add,
+            commands::time_entries::time_entry_update,
+            commands::templates::templates_list,
+            commands::templates::template_create,
+            commands::templates::template_delete,
+            commands::templates::template_apply,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");
