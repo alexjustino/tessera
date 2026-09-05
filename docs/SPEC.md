@@ -87,6 +87,62 @@ What 1.1 deliberately does not add: a second data core, resource assignment
 (there is one person), or a scheduler that moves work on its own. A dependency
 says what must come first; it does not get to decide your day.
 
+### 1.2.0 — the adopter
+
+1.1 answered "will this finish, and when". 1.2 answers "can I move in" — for the
+person arriving with years of tasks in another product, and for the person who
+already lives here and wants the rest of their thinking (notes, goals, a weekly
+review) to live here too. The two halves share one property: they are about
+**rows that did not start as Tessera rows**, whether they arrive from a file or
+from a page that is not a task.
+
+The order is, again, not the roadmap's order. Every importer lands rows through
+the same door, and the door today only replaces (F10: import is Tessera's own
+export, all or nothing). So the door comes first — additive, previewed,
+undoable — and each importer after it is a parser and a mapping, nothing more.
+Importers are then ordered by the shape of the source: a list, a board, a
+database, a calendar. Notes and goals add kinds of row; print reads them all;
+the review reads everything and comes last before the release.
+
+| #      | Slice                       | Proof of done                                                                                                                        |
+| ------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **A1** | The import door             | an import is previewed, applied in one transaction, and undone; after undo the workspace equals the one before, row for row          |
+| A2     | Todoist and Microsoft To Do | a real export from each imports with dates in the right zone, priorities mapped and completions kept; what cannot map is listed      |
+| A3     | Trello                      | a board becomes a board: the same columns, the same cards in the same order, labels as options, checklists as blocks                 |
+| A4     | Notion                      | a database export becomes a collection whose properties keep their types where they can be inferred, and whose pages keep their text |
+| A5     | ICS                         | a recurring event with an exception imports and expands identically to the source on the two daylight-saving days                    |
+| A6     | Notes and wiki space        | a page links to another by name; renaming the target keeps the link; backlinks say who points here; search finds page text           |
+| A7     | Goals                       | a goal's progress is the sum of its rows and opens onto them — the report's rule (ADR-024), applied to intent                        |
+| A8     | Print and PDF export        | a printed report is the report on screen, paginated, without chrome; the timeline prints across pages without cutting a bar          |
+| A9     | GTD weekly review           | the review shows every project without a next action and every task waiting on nothing, and finishes with neither                    |
+| A10    | Release 1.2.0               | a 1.1 workspace opens in 1.2 without loss, and every importer's fixture imports on the release binary                                |
+
+Three rules for every importer, written once here so no slice relitigates them:
+
+- **Files, never accounts.** An importer reads a file the person exported; it
+  never signs in, never calls an API (SPEC §4: no network). Where a product
+  offers no file export, the importer reads what the product _does_ let out
+  (Microsoft To Do: the Outlook tasks CSV) and the SPEC says so.
+- **Hostile input.** Parsers never throw, are capped in size, and treat every
+  string as text (SPEC §4). A malformed file imports what it can and lists what
+  it could not, by line — it does not import nothing and it does not import
+  garbage silently.
+- **Every importer has a fixture.** A real export file, committed, small,
+  scrubbed of anything personal, opened by the end-to-end suite on the real
+  binary. The proof of done is not "the parser passes"; it is "this file
+  imports".
+
+What 1.2 picks up from 1.1's deferrals, because a slice here finally uses it:
+editing the working hours and the first day of the week (Settings; the review
+reads them), a custom period range (the report, when it prints), counting
+unreserved estimates beside a month (the review's "planned but not scheduled").
+
+What 1.2 deliberately does not add: sync or a second data core (2.0, only if it
+earns it); importing from a live account; merging two histories on import
+beyond what the preview shows as a duplicate — the person decides, the product
+does not guess; property values in templates; a plugin surface for importers
+written outside this repository.
+
 ## 3. Architecture
 
 ```
