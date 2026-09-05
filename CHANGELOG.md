@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Focus mode.** One task, its timer, and nothing else on the screen. Enter
+  it from a task's panel or from the palette; the rail and the list go away,
+  and what is left is the title, a clock you can read from across the room,
+  and four things to do: start or stop the clock, mark the task done, move to
+  the next task that is ready, or leave. Escape always leaves.
+
+  Which task is shown follows one rule: the one you pointed at, else the one
+  the clock is on, else the first task that is ready to start — open, not
+  waiting on anything unfinished, and not a milestone. Nothing starts the
+  clock for you; focusing is a decision, and so is timing.
+
+- **Go to Reports** in the palette, which the Reports slice forgot to add.
+
 - **Templates.** Save what the view is showing as a template — the tasks,
   their estimates, which are milestones, which wait for which, and how the
   dates fall relative to the first — and make it again on any day. Applying

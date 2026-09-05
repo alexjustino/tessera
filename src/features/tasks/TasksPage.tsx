@@ -67,10 +67,13 @@ const INLINE_TYPES = new Set(['status', 'priority', 'select']);
 export function TasksPage({
   initialViewId = null,
   initialDetailId = null,
+  onFocus,
 }: {
   initialViewId?: string | null;
   /** An item to open on mount — how the palette lands on a search hit. */
   initialDetailId?: string | null;
+  /** Enter focus mode on a task (P8). Absent where the page has no shell to hand it to. */
+  onFocus?: (id: string) => void;
 }) {
   const [draft, setDraft] = useState('');
   const [managingProperties, setManagingProperties] = useState(false);
@@ -493,6 +496,7 @@ export function TasksPage({
         properties={properties.data ?? []}
         values={detailTask ? (values.data?.[detailTask.id] ?? {}) : {}}
         onClose={() => setDetailId(null)}
+        onFocus={onFocus}
       />
     </div>
   );

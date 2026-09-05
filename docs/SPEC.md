@@ -182,6 +182,28 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of P8, and why
+
+Focus mode shows one task and its timer, moves to the next ready task on
+Done, and leaves on Escape. What a focus screen could also do:
+
+- **Start the clock on entry.** Deliberately not. A person who wants the
+  clock presses Start; a screen that starts timing because it was opened
+  files time under whatever was on it, and the tracker's whole value is that
+  its entries are true.
+- **A pomodoro.** Intervals and breaks are a different product's opinion
+  about how to work. The clock counts up; a count-down with a bell is a
+  setting, a sound, and a notification, and belongs with the reminders.
+- **The notes under the task.** The screen shows the title and nothing else
+  by design. The document is one click away in the panel; putting it on the
+  focus screen makes the focus screen the panel.
+- **Choosing from the queue.** Next moves forward through what is ready;
+  there is no list to pick from, because a list is what focus mode removed.
+  The palette's search opens any task, and the panel's button focuses it.
+- **A global shortcut.** Quick capture has one; focus does not yet. It wants
+  the same registration and the same Diagnostics line as capture, and a
+  decision about which key.
+
 ### Deferred out of P7, and why
 
 A template keeps the shape of a set of tasks and makes it again on a day,

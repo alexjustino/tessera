@@ -9,6 +9,7 @@ import { useSaveSettings, useSettings } from '@/data/hooks';
 import { fetchAccentRamp } from '@/data/system';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { AboutPage } from '@/features/about/AboutPage';
+import { FocusMode } from '@/features/focus/FocusMode';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { FoundationPage } from '@/features/foundation/FoundationPage';
 import { CommandPalette } from '@/features/palette/CommandPalette';
@@ -39,6 +40,8 @@ export function App() {
   const [destination, setDestination] = useState<Destination>('tasks');
   const [focus, setFocus] = useState<Focus>({ itemId: null, nonce: 0 });
   const [paletteOpen, setPaletteOpen] = useState(false);
+  /** Focus mode: `undefined` off; null lets the queue choose; an id points at a task. */
+  const [focused, setFocused] = useState<string | null | undefined>(undefined);
   const client = useQueryClient();
   const settings = useSettings();
   const saveSettings = useSaveSettings();
@@ -119,6 +122,9 @@ export function App() {
         case 'go.about':
           go(id.slice('go.'.length) as Destination);
           break;
+        case 'focus.start':
+          setFocused(null);
+          break;
         case 'new.task':
           // Tasks mounts with its capture line focused.
           go('tasks');
@@ -154,21 +160,33 @@ export function App() {
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg">
       <TitleBar />
-      <div className="flex min-h-0 flex-1">
-        <Sidebar active={destination} onNavigate={go} onSearch={() => setPaletteOpen(true)} />
-        <main className="min-w-0 flex-1 overflow-y-auto bg-layer">
-          {/* Today is the same page opened on a different saved view — it is
+      {focused !== undefined ? (
+        <FocusMode
+          requestedId={focused}
+          onLeave={() => setFocused(undefined)}
+          onSwitch={(id) => setFocused(id)}
+        />
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          <Sidebar active={destination} onNavigate={go} onSearch={() => setPaletteOpen(true)} />
+          <main className="min-w-0 flex-1 overflow-y-auto bg-layer">
+            {/* Today is the same page opened on a different saved view — it is
               a query over the same items, not a second screen. */}
-          {destination === 'tasks' && <TasksPage key={pageKey} initialDetailId={focus.itemId} />}
-          {destination === 'today' && <TasksPage key={pageKey} initialViewId="view.today" />}
-          {destination === 'board' && <TasksPage key={pageKey} initialViewId="tasks.board" />}
-          {destination === 'calendar' && <TasksPage key={pageKey} initialViewId="view.calendar" />}
-          {destination === 'reports' && <ReportsPage />}
-          {destination === 'settings' && <SettingsPage />}
-          {destination === 'diagnostics' && <FoundationPage />}
-          {destination === 'about' && <AboutPage />}
-        </main>
-      </div>
+            {destination === 'tasks' && (
+              <TasksPage key={pageKey} initialDetailId={focus.itemId} onFocus={setFocused} />
+            )}
+            {destination === 'today' && <TasksPage key={pageKey} initialViewId="view.today" />}
+            {destination === 'board' && <TasksPage key={pageKey} initialViewId="tasks.board" />}
+            {destination === 'calendar' && (
+              <TasksPage key={pageKey} initialViewId="view.calendar" />
+            )}
+            {destination === 'reports' && <ReportsPage />}
+            {destination === 'settings' && <SettingsPage />}
+            {destination === 'diagnostics' && <FoundationPage />}
+            {destination === 'about' && <AboutPage />}
+          </main>
+        </div>
+      )}
 
       <CommandPalette
         open={paletteOpen}

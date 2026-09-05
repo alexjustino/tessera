@@ -86,6 +86,12 @@ same line. It says **Waiting** now, matching the section that edits it (_Waiting
 one that reports the other direction (_Waited on by_). A glance that has to disambiguate is not
 a glance.
 
+### A screen that removes everything keeps the way out
+
+Focus mode takes the rail, the list and the panel away. What it may not take away is the exit:
+a labelled button at the top, Escape from anywhere, and the key named on the screen. Anything
+that hides the chrome earns it by making leaving the most obvious thing there.
+
 ### A number can be opened
 
 A figure on a report is a button, and pressing it lists the rows it was added up from, each
