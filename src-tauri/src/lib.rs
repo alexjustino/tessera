@@ -195,6 +195,10 @@ pub fn run() {
             commands::templates::template_create,
             commands::templates::template_delete,
             commands::templates::template_apply,
+            commands::importing::import_read_export,
+            commands::importing::import_apply,
+            commands::importing::imports_list,
+            commands::importing::import_undo,
         ])
         .run(tauri::generate_context!())
         .expect("Tessera failed to start");

@@ -51,6 +51,8 @@ pub const TABLES: &[&str] = &[
     "work_hours",
     "time_entry",
     "template",
+    "import_batch",
+    "import_row",
 ];
 
 /// The largest export file this build will read, so a wrong file cannot
@@ -181,6 +183,28 @@ pub fn read_export(path: &Path) -> Result<Export> {
         return Err(Error::InvalidInput(
             "that export comes from a different version of Tessera; restore a backup instead",
         ));
+    }
+    Ok(document)
+}
+
+/// An export read for the additive import door: it must be one of ours and
+/// not absurdly large, but it may come from an older schema — the domain layer
+/// reads named columns and says what it left out (ADR-026).
+pub fn read_export_lenient(path: &Path) -> Result<Export> {
+    let size = fs::metadata(path)
+        .map_err(|_| Error::InvalidInput("that file could not be read"))?
+        .len();
+    if size > MAX_IMPORT_BYTES {
+        return Err(Error::InvalidInput(
+            "that file is too large to be an export",
+        ));
+    }
+    let text =
+        fs::read_to_string(path).map_err(|_| Error::InvalidInput("that file could not be read"))?;
+    let document: Export = serde_json::from_str(&text)
+        .map_err(|_| Error::InvalidInput("that file is not a Tessera export"))?;
+    if document.format != FORMAT || document.version != FORMAT_VERSION {
+        return Err(Error::InvalidInput("that file is not a Tessera export"));
     }
     Ok(document)
 }
