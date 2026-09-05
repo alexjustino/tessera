@@ -46,3 +46,30 @@ pub fn import_undo(app: AppHandle, db: State<'_, Db>, id: String) -> Result<Batc
     let _ = app.emit(WORKSPACE_CHANGED, ());
     Ok(batch)
 }
+
+/// The largest text file an importer will read.
+const MAX_TEXT_BYTES: u64 = 64 * 1024 * 1024;
+
+/// A file another product exported, as text. The host checks size and
+/// encoding; the domain layer decides whether it is a Todoist project, an
+/// Outlook task folder, or nothing it knows.
+#[tauri::command]
+pub fn import_read_text(path: String) -> Result<String> {
+    let path = Path::new(&path);
+    let size = std::fs::metadata(path)
+        .map_err(|_| crate::error::Error::InvalidInput("that file could not be read"))?
+        .len();
+    if size > MAX_TEXT_BYTES {
+        return Err(crate::error::Error::InvalidInput(
+            "that file is too large to be imported",
+        ));
+    }
+    let bytes = std::fs::read(path)
+        .map_err(|_| crate::error::Error::InvalidInput("that file could not be read"))?;
+    // UTF-8 first; a Windows export in the machine's code page is read as
+    // Latin-1 so that at least the ASCII survives, with the rest as it is.
+    Ok(match String::from_utf8(bytes) {
+        Ok(text) => text,
+        Err(error) => error.into_bytes().iter().map(|&b| b as char).collect(),
+    })
+}
