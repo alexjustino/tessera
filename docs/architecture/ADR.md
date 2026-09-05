@@ -508,3 +508,39 @@ fine; one with an edge to a missing key does not read at all.
 **Cost accepted.** No editing in place: change the tasks and save again. No property values,
 no notes, no nesting (SPEC, deferred out of P7). Each is a real feature, and each would have
 made this one a different shape.
+
+## ADR-026 — An import is a plan, previewed, applied once, and undone as one thing {#adr-026}
+
+**Decision.** Every importer produces an `ImportPlan` (pure TypeScript, `src/domain/importing.ts`):
+rows that do not exist yet, named by collection and by property, with no ids. The plan is set
+against the workspace by `preview`, which names what each row looks like and lets the person
+decide; the host applies the decided plan in one transaction and records every row it created in
+`import_batch` and `import_row` (migration 013). `undo` walks those rows backwards and removes
+exactly them — or refuses before touching anything.
+
+**Why a plan.** Five importers are coming (Tessera, Todoist, Microsoft To Do, Trello, Notion,
+ICS). If each wrote rows its own way there would be five doors, five previews and five undos,
+and they would disagree. One intermediate shape makes each importer a parser and a mapping, and
+puts the judgement — duplicates, positions, what a person sees — in one place with one test.
+
+**Why preview, not merge.** A duplicate is a guess. The product can say _this looks like that_
+by a stated rule (same normalised title, same collection, same due day; same title at the same
+instant for an event) and let the person skip it. It cannot know whether two rows _are_ the same
+thing, and a product that merges on a guess destroys information quietly. So: the preview names
+its guess, the person decides, and 1.2 does not merge (SPEC).
+
+**Why one transaction and a written record.** Five tasks, an event and a new collection are one
+thing to the person who pressed the button. Half an import — the tasks made, the collection not,
+or the reverse — looks done and is wrong. Recording what was created at the time is what makes
+undo _exact_: it removes those rows and no others, whatever else happened since. The test is the
+promise: export before, import, undo, export after — equal, row for row.
+
+**Why undo refuses.** A collection the import created may have gained the person's own tasks
+since. Removing the collection would take them; keeping the collection would leave the undo
+incomplete. The honest answer is to refuse and say why. A row the person already deleted is not
+a problem: undo finds nothing and moves on.
+
+**Cost accepted.** Rows carry no links yet — a dependency between two imported tasks is dropped
+with a sentence, not carried (SPEC, deferred out of A1). Positions are the caller's to hand in,
+because the host does not own the ordering key scheme (`domain/ordering.ts`). Bookkeeping tables
+are part of the export, so a restore carries the import history with it.
