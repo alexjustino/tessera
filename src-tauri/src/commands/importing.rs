@@ -2,8 +2,9 @@
 
 use std::path::Path;
 
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
+use crate::commands::items::WORKSPACE_CHANGED;
 use crate::db::export;
 use crate::db::importing::{self, Batch, Plan};
 use crate::db::Db;
@@ -18,10 +19,16 @@ pub fn import_read_export(path: String) -> Result<serde_json::Value> {
         .map_err(|_| crate::error::Error::InvalidInput("that file could not be read"))
 }
 
+/// Rows of several kinds arrive at once; every window is told to read afresh,
+/// the way the replacing import and a restore already do.
 #[tauri::command]
-pub fn import_apply(db: State<'_, Db>, plan: Plan) -> Result<Batch> {
-    let mut conn = db.0.lock().expect("the database lock was poisoned");
-    importing::apply(&mut conn, &plan)
+pub fn import_apply(app: AppHandle, db: State<'_, Db>, plan: Plan) -> Result<Batch> {
+    let batch = {
+        let mut conn = db.0.lock().expect("the database lock was poisoned");
+        importing::apply(&mut conn, &plan)?
+    };
+    let _ = app.emit(WORKSPACE_CHANGED, ());
+    Ok(batch)
 }
 
 #[tauri::command]
@@ -31,7 +38,11 @@ pub fn imports_list(db: State<'_, Db>) -> Result<Vec<Batch>> {
 }
 
 #[tauri::command]
-pub fn import_undo(db: State<'_, Db>, id: String) -> Result<Batch> {
-    let mut conn = db.0.lock().expect("the database lock was poisoned");
-    importing::undo(&mut conn, &id)
+pub fn import_undo(app: AppHandle, db: State<'_, Db>, id: String) -> Result<Batch> {
+    let batch = {
+        let mut conn = db.0.lock().expect("the database lock was poisoned");
+        importing::undo(&mut conn, &id)?
+    };
+    let _ = app.emit(WORKSPACE_CHANGED, ());
+    Ok(batch)
 }
