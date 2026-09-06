@@ -238,6 +238,26 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of A3, and why
+
+A board becomes a board: lists as columns, cards in order, labels as a
+property, checklists as blocks. What stayed on Trello's side:
+
+- **Comments and attachments.** A comment is a conversation with people who
+  are not here; an attachment is a file the export does not contain, only a
+  link to Trello's servers. Both are counted and said.
+- **Members.** There is one person in this product. A card's members are
+  counted in a sentence and nothing is invented.
+- **Custom fields.** Trello's Power-Up fields have their own types and their
+  export shape varies by field. A property per custom field is the Notion
+  slice's problem (A4), where typed columns are the whole point.
+- **Card colours and covers, stickers, votes.** Decoration. The label colour
+  is carried as the design system's token, and that is the colour that means
+  something.
+- **Deleting a Status option the import added.** Undo restores the property's
+  options exactly. Removing one column by hand later is the property editor's
+  business and works as it always did.
+
 ### Deferred out of A2, and why
 
 Two list-shaped sources import with their dates, priorities and completions.

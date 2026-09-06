@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Import from Trello.** A board's JSON export becomes a board here. Its
+  lists become the columns — options of the Status property; a list named
+  like a column you already have ("Done") lands in it, any other becomes a
+  new column, placed as to do, doing or done by what its name says. Cards
+  arrive in list order then card order, with the description as notes and
+  each checklist as a heading and a real checklist of ticked and unticked
+  items. Labels become a Labels property, one choice per label. A card marked
+  complete is completed on its due date. Archived lists and cards,
+  attachments, comments, members and custom fields are said, not carried —
+  and undoing the import puts the Status options back exactly as they were.
+
 - **Import from Todoist and Microsoft To Do.** Two more files through the
   door. A Todoist project's CSV (_Export as a template_) brings its tasks
   with their descriptions and notes, priorities (p1 to urgent, p2 to high, p3
