@@ -25,6 +25,33 @@ export interface ImportedCollection {
   color: string | null;
 }
 
+/** A block for the task's document, as the editor's own node JSON. */
+export interface ImportedBlock {
+  /** The node type: `paragraph`, `heading`, `taskList`… */
+  type: string;
+  content: unknown;
+}
+
+/** One choice a select, multi-select or status property should offer. */
+export interface SelectOptionPlan {
+  id: string;
+  label: string;
+  color: string | null;
+  group?: 'todo' | 'doing' | 'done';
+}
+
+/**
+ * A property the plan needs on its collection. Created if absent; if present,
+ * the options it does not have yet are added — and undo puts them back the
+ * way they were.
+ */
+export interface ImportedProperty {
+  collection: string;
+  name: string;
+  type: 'select' | 'multi_select' | 'status';
+  options: SelectOptionPlan[];
+}
+
 export interface ImportedTask {
   /** Local to the plan; what the preview refers to. */
   key: string;
@@ -40,6 +67,8 @@ export interface ImportedTask {
   isMilestone: boolean;
   /** Property values by property *name*, as the source called them. */
   values: Record<string, unknown>;
+  /** Blocks for the task's document, in order. Written after `notes`. */
+  blocks?: ImportedBlock[];
 }
 
 export interface ImportedEvent {
@@ -60,6 +89,8 @@ export interface ImportPlan {
   events: ImportedEvent[];
   /** What the importer could not carry, in sentences. Never silent. */
   warnings: string[];
+  /** Properties the tasks' values need, created or extended before the tasks. */
+  properties?: ImportedProperty[];
 }
 
 export const EMPTY_PLAN: ImportPlan = {
@@ -228,6 +259,9 @@ export function redirect(plan: ImportPlan, collection: string): ImportPlan {
     ...plan,
     collections: [{ name, icon: null, color: null }],
     tasks: plan.tasks.map((task) => ({ ...task, collection: name })),
+    ...(plan.properties === undefined
+      ? {}
+      : { properties: plan.properties.map((property) => ({ ...property, collection: name })) }),
   };
 }
 
