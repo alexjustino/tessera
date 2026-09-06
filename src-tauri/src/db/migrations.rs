@@ -59,6 +59,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "013_imports",
         include_str!("../../migrations/013_imports.sql"),
     ),
+    (
+        "014_import_before",
+        include_str!("../../migrations/014_import_before.sql"),
+    ),
 ];
 
 /// Every migration, name and SQL, in the order they apply.

@@ -261,13 +261,29 @@ function place(
     });
   }
 
+  // A created property goes after the collection's last; the host places
+  // nothing itself. Blocks within a task take consecutive keys from the first.
+  const propertyPositions = sequence(null, null, plan.properties?.length ?? 0);
+
   return {
     source: plan.source,
     collections: plan.collections.map((collection: ImportedCollection, index) => ({
       ...collection,
       position: collectionPositions[index]!,
     })),
-    tasks: plan.tasks.map((task, index) => ({ ...task, position: positions[index]! })),
+    tasks: plan.tasks.map((task, index) => {
+      const { blocks = [], ...rest } = task;
+      const blockPositions = sequence(null, null, blocks.length);
+      return {
+        ...rest,
+        position: positions[index]!,
+        blocks: blocks.map((block, at) => ({ ...block, position: blockPositions[at]! })),
+      };
+    }),
     events: plan.events,
+    properties: (plan.properties ?? []).map((property, index) => ({
+      ...property,
+      position: propertyPositions[index]!,
+    })),
   };
 }
