@@ -254,6 +254,13 @@ property, checklists as blocks. What stayed on Trello's side:
 - **Card colours and covers, stickers, votes.** Decoration. The label colour
   is carried as the design system's token, and that is the colour that means
   something.
+- **Column order.** New Status options are appended after the ones the
+  property already has, so Trello's Ideas and Review columns sit to the right
+  of To do, In progress, Blocked and Done rather than in the board's own order.
+  The proof of done asks for the same columns and the same cards in order,
+  which holds; putting the new columns in Trello's positions would mean
+  reordering a property's existing options on import, which is the person's
+  arrangement to change, not a file's.
 - **Deleting a Status option the import added.** Undo restores the property's
   options exactly. Removing one column by hand later is the property editor's
   business and works as it always did.
