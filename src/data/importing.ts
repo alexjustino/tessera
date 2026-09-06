@@ -57,11 +57,21 @@ export async function readExportFile(path: string): Promise<unknown> {
  * A decided plan, with the positions the new rows take. Positions are the
  * caller's: it knows the current order of each collection.
  */
+export interface PlacedBlock {
+  type: string;
+  content: unknown;
+  position: string;
+}
+
 export interface PlacedPlan {
   source: string;
   collections: { name: string; icon: string | null; color: string | null; position: string }[];
-  tasks: (ImportPlan['tasks'][number] & { position: string })[];
+  tasks: (Omit<ImportPlan['tasks'][number], 'blocks'> & {
+    position: string;
+    blocks: PlacedBlock[];
+  })[];
   events: ImportPlan['events'];
+  properties: (NonNullable<ImportPlan['properties']>[number] & { position: string })[];
 }
 
 export async function applyImport(plan: PlacedPlan): Promise<ImportBatch> {
@@ -80,6 +90,18 @@ export async function applyImport(plan: PlacedPlan): Promise<ImportBatch> {
         estimate_minutes: task.estimateMinutes,
         is_milestone: task.isMilestone,
         values: task.values,
+        blocks: task.blocks.map((block) => ({
+          type: block.type,
+          content: block.content,
+          position: block.position,
+        })),
+      })),
+      properties: plan.properties.map((property) => ({
+        collection: property.collection,
+        name: property.name,
+        type: property.type,
+        options: property.options,
+        position: property.position,
       })),
       events: plan.events.map((event) => ({
         title: event.title,
@@ -122,4 +144,15 @@ export async function chooseCsvPath(title: string): Promise<string | null> {
 export function nameFromPath(path: string): string {
   const base = path.split(/[\u005C/]/).pop() ?? '';
   return base.replace(/\.[^.]+$/, '').trim();
+}
+
+/** Ask for a JSON file another product exported. Null when the person cancelled. */
+export async function chooseJsonPath(title: string): Promise<string | null> {
+  const chosen = await open({
+    title,
+    multiple: false,
+    directory: false,
+    filters: [{ name: 'JSON', extensions: ['json'] }],
+  });
+  return typeof chosen === 'string' ? chosen : null;
 }

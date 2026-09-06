@@ -3,11 +3,19 @@ import { useState } from 'react';
 
 import { chooseImportPath } from '@/data/backups';
 import { describeError } from '@/data/errors';
-import { useImports, useUndoImport } from '@/data/hooks';
-import { chooseCsvPath, nameFromPath, readExportFile, readTextFile } from '@/data/importing';
+import { useImports, useProperties, useUndoImport } from '@/data/hooks';
+import {
+  chooseCsvPath,
+  chooseJsonPath,
+  nameFromPath,
+  readExportFile,
+  readTextFile,
+} from '@/data/importing';
 import { fromTesseraExport, type ImportPlan } from '@/domain/importing';
 import { fromOutlookTasks, looksLikeOutlookTasks } from '@/domain/importers/outlookTasks';
 import { fromTodoist, looksLikeTodoist } from '@/domain/importers/todoist';
+import { fromTrello, looksLikeTrello } from '@/domain/importers/trello';
+import { optionsOf } from '@/domain/property';
 import { systemZone } from '@/domain/schedule';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
@@ -26,6 +34,9 @@ import { ImportDialog } from './ImportDialog';
 export function ImportsCard() {
   const imports = useImports();
   const undo = useUndoImport();
+  // The Status options the list shows, so a Trello list called "Done" lands in
+  // the column already called Done rather than beside it.
+  const properties = useProperties('tasks');
   const [plan, setPlan] = useState<ImportPlan | null>(null);
   const [complaint, setComplaint] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -66,6 +77,18 @@ export function ImportsCard() {
         return looksLikeTodoist(text) ? fromTodoist(text, nameFromPath(path), systemZone()) : null;
       },
       'That file is not a Todoist project export. In Todoist, open the project menu and choose Export as a template (CSV).',
+    );
+
+  const startTrello = () =>
+    begin(
+      () => chooseJsonPath('Import a Trello board (JSON)'),
+      async (path) => {
+        const raw: unknown = JSON.parse(await readTextFile(path));
+        if (!looksLikeTrello(raw)) return null;
+        const status = (properties.data ?? []).find((property) => property.type === 'status');
+        return fromTrello(raw, status === undefined ? [] : optionsOf(status));
+      },
+      'That file is not a Trello board export. In Trello, open the board menu → More → Print and export → Export as JSON.',
     );
 
   const startToDo = () =>
@@ -125,6 +148,21 @@ export function ImportsCard() {
             </Button>
             <span className="text-caption text-fg-tertiary">
               the CSV from Export as a template; one file per project
+            </span>
+          </li>
+          <li className="flex items-center gap-3">
+            <Button
+              icon={<ArrowImport20Regular />}
+
+              onClick={() => void startTrello()}
+
+              className="w-56 justify-start"
+            >
+              Trello board…
+            </Button>
+
+            <span className="text-caption text-fg-tertiary">
+              the board's JSON export; lists become columns, labels a property
             </span>
           </li>
           <li className="flex items-center gap-3">
