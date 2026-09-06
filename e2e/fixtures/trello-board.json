@@ -1,0 +1,119 @@
+{
+  "id": "5f3a9c1e0b7d2a001c3e4f50",
+  "name": "Website relaunch",
+  "desc": "",
+  "closed": false,
+  "lists": [
+    { "id": "l1", "name": "Ideas", "closed": false, "pos": 16384 },
+    { "id": "l2", "name": "In progress", "closed": false, "pos": 32768 },
+    { "id": "l3", "name": "Review", "closed": false, "pos": 49152 },
+    { "id": "l4", "name": "Done", "closed": false, "pos": 65536 },
+    { "id": "l5", "name": "Old backlog", "closed": true, "pos": 81920 }
+  ],
+  "labels": [
+    { "id": "lab1", "idBoard": "5f3a9c1e0b7d2a001c3e4f50", "name": "Design", "color": "purple" },
+    { "id": "lab2", "idBoard": "5f3a9c1e0b7d2a001c3e4f50", "name": "Urgent", "color": "red" },
+    { "id": "lab3", "idBoard": "5f3a9c1e0b7d2a001c3e4f50", "name": "", "color": "green" }
+  ],
+  "cards": [
+    {
+      "id": "c1",
+      "name": "Sketch the new home page",
+      "desc": "Three directions, one afternoon.",
+      "idList": "l2",
+      "closed": false,
+      "pos": 65536,
+      "due": "2026-09-18T15:00:00.000Z",
+      "start": "2026-09-14T12:00:00.000Z",
+      "dueComplete": false,
+      "idLabels": ["lab1", "lab2"],
+      "idChecklists": ["ck1"],
+      "idMembers": ["m1"],
+      "badges": { "attachments": 2, "comments": 3 }
+    },
+    {
+      "id": "c2",
+      "name": "Write the copy",
+      "desc": "",
+      "idList": "l1",
+      "closed": false,
+      "pos": 131072,
+      "due": null,
+      "start": null,
+      "dueComplete": false,
+      "idLabels": [],
+      "idChecklists": [],
+      "badges": { "attachments": 0, "comments": 0 }
+    },
+    {
+      "id": "c3",
+      "name": "Pick a typeface",
+      "desc": "",
+      "idList": "l1",
+      "closed": false,
+      "pos": 65536,
+      "due": null,
+      "start": null,
+      "dueComplete": false,
+      "idLabels": ["lab1"],
+      "idChecklists": [],
+      "badges": { "attachments": 0, "comments": 0 }
+    },
+    {
+      "id": "c4",
+      "name": "Set up the repository",
+      "desc": "",
+      "idList": "l4",
+      "closed": false,
+      "pos": 65536,
+      "due": "2026-09-05T12:00:00.000Z",
+      "start": null,
+      "dueComplete": true,
+      "idLabels": ["lab3"],
+      "idChecklists": [],
+      "badges": { "attachments": 0, "comments": 1 }
+    },
+    {
+      "id": "c5",
+      "name": "An old idea",
+      "desc": "",
+      "idList": "l5",
+      "closed": false,
+      "pos": 65536,
+      "due": null,
+      "start": null,
+      "dueComplete": false,
+      "idLabels": [],
+      "idChecklists": [],
+      "badges": { "attachments": 0, "comments": 0 }
+    },
+    {
+      "id": "c6",
+      "name": "Archived card",
+      "desc": "",
+      "idList": "l1",
+      "closed": true,
+      "pos": 1,
+      "due": null,
+      "start": null,
+      "dueComplete": false,
+      "idLabels": [],
+      "idChecklists": [],
+      "badges": { "attachments": 0, "comments": 0 }
+    }
+  ],
+  "checklists": [
+    {
+      "id": "ck1",
+      "name": "Directions",
+      "idCard": "c1",
+      "pos": 16384,
+      "checkItems": [
+        { "id": "i1", "name": "Bold and dark", "state": "complete", "pos": 16384 },
+        { "id": "i2", "name": "Light and airy", "state": "incomplete", "pos": 32768 },
+        { "id": "i3", "name": "Editorial", "state": "incomplete", "pos": 49152 }
+      ]
+    }
+  ],
+  "actions": []
+}
