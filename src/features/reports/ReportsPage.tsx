@@ -18,7 +18,6 @@ import {
   periodOf,
   shiftPeriod,
   traceable,
-  type Figure,
   type Period,
   type PeriodKind,
 } from '@/domain/report';
@@ -30,6 +29,9 @@ import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { TabStrip } from '@/ui/TabStrip';
 import { useNow } from '@/ui/useNow';
+
+import { describeDay } from './describeDay';
+import { FigureRow } from './FigureRow';
 
 /**
  * Reports: a week or a month, and what happened in it.
@@ -270,83 +272,6 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
  * button says so to a screen reader through `aria-expanded`. A figure that
  * does not add up shows no number at all — the rule the page is built on.
  */
-function FigureRow({
-  figure,
-  broken,
-  big = false,
-}: {
-  figure: Figure;
-  broken: Figure[];
-  big?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const isBroken = broken.some((candidate) => candidate.id === figure.id);
-  const shown =
-    figure.unit === 'minutes'
-      ? formatDuration(figure.value)
-      : `${figure.value} ${figure.value === 1 ? 'task' : 'tasks'}`;
-
-  return (
-    <div data-testid="figure" data-figure={figure.id}>
-      <div className="flex items-center gap-3">
-        <span
-          className={[
-            'min-w-0 flex-1 truncate',
-            big ? 'text-body text-fg' : 'text-body text-fg-secondary',
-          ].join(' ')}
-        >
-          {figure.label}
-        </span>
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-label={`${figure.label}: ${shown}. ${open ? 'Hide' : 'Show'} the ${figure.rows.length} ${figure.rows.length === 1 ? 'row' : 'rows'} it came from`}
-          disabled={figure.rows.length === 0}
-          onClick={() => setOpen((value) => !value)}
-          className={[
-            'rounded-md px-2 py-0.5 tabular-nums transition-colors duration-100 ease-easy',
-            big ? 'text-subtitle font-semibold text-fg' : 'text-body text-fg',
-            'hover:bg-card-hover disabled:cursor-default disabled:hover:bg-transparent',
-            'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent',
-          ].join(' ')}
-          data-testid="figure-value"
-        >
-          {isBroken ? '—' : shown}
-        </button>
-      </div>
-
-      {open && (
-        <ul className="mt-1 mb-2 ml-3 flex flex-col gap-0.5 border-l border-stroke-subtle pl-3">
-          {figure.rows.map((row) => (
-            <li
-              key={row.key}
-              className="flex items-center gap-3 text-caption text-fg-secondary"
-              data-testid="figure-row"
-            >
-              <span className="min-w-0 flex-1 truncate">{row.title}</span>
-              {row.day !== null && <span className="tabular-nums">{describeDay(row.day)}</span>}
-              {figure.unit === 'minutes' && (
-                <span className="w-16 text-right tabular-nums" data-testid="row-minutes">
-                  {formatDuration(row.minutes)}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function describeDay(day: string): string {
-  const [year, month, date] = day.split('-').map(Number);
-  return new Date(year!, month! - 1, date!).toLocaleDateString(undefined, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-}
-
 function describePeriod(period: Period): string {
   const [year, month, date] = period.firstDay.split('-').map(Number);
   const start = new Date(year!, month! - 1, date!);
