@@ -9,6 +9,7 @@ pub mod blocks;
 pub mod calendar;
 pub mod dependencies;
 pub mod export;
+pub mod goals;
 pub mod importing;
 pub mod items;
 pub mod migrations;
