@@ -195,6 +195,49 @@ describe('a calendar file', () => {
     expect(await standUps()).toHaveLength(1);
   });
 
+  it('reads back what this product writes, and says what that file does not carry', async () => {
+    // Tessera exports iCalendar itself (Settings → Export iCalendar), so the
+    // reader has one file it can be held to: the product's own.
+    const written = path.join(session.dataDir, 'roundtrip.ics');
+    const failure = await invoke<null | { __error: string }>('export_ics', { path: written });
+    if (failure !== null && typeof failure === 'object' && '__error' in failure) {
+      throw new Error('export_ics refused: ' + failure.__error);
+    }
+
+    const back = fromIcs(
+      await invoke<string>('import_read_text', { path: written }),
+      'Tessera',
+      systemZone(),
+    )!;
+    expect(back.events.map((event) => event.title).sort()).toEqual([
+      'Office closed',
+      'Quarterly review',
+      'Stand-up',
+    ]);
+
+    const standUp = back.events.find((event) => event.title === 'Stand-up')!;
+    expect(standUp.rrule).toBe('FREQ=WEEKLY;BYDAY=TU');
+    // The instant survives; the zone does not — the export writes UTC with no
+    // TZID, so a re-read event is read in the workspace's zone. It is the same
+    // moment, and it would drift by an hour after a change of clocks. Worth
+    // knowing, and not this slice's to change: the export is a shipped format.
+    expect(standUp.startsAt).toBe('2026-10-06T08:00:00.000Z');
+    expect(standUp.tz).toBe(systemZone());
+    // The cancelled Tuesday is carried; the moved one is not — the exporter
+    // writes EXDATE and has no second VEVENT for an occurrence that moved.
+    expect(standUp.exceptions).toEqual([
+      {
+        originalStart: '2026-11-24T09:00:00.000Z',
+        kind: 'cancelled',
+        startsAt: null,
+        endsAt: null,
+      },
+    ]);
+
+    // The dated task comes back as a task.
+    expect(back.tasks.map((task) => task.title)).toContain('Renew the passport');
+  });
+
   it('undo takes the series, its exceptions and the task with it', async () => {
     const { driver } = session;
     await goTo('Settings');

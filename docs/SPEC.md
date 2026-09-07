@@ -262,9 +262,15 @@ tasks become tasks. What it keeps to itself:
 - **Attachments, categories, free/busy and journals.** Files it does not
   store, colours from another product, and components that are neither an
   event nor a task.
-- **Exporting an ICS.** The door is an import (SPEC 1.2). Writing one is a
-  different feature, and worth doing when somebody wants their calendar back
-  out — A8 prints; this would publish.
+- **Making this product's own ICS export carry its zones.** Tessera already
+  writes iCalendar (Settings → Export iCalendar), and the reader is held to
+  it: the end-to-end suite exports and reads the file back. Two things that
+  file does not carry, found by doing that — it writes UTC with no `TZID`, so
+  a re-read event loses the zone it was written in and would drift an hour
+  after a change of clocks; and it writes `EXDATE` for a cancelled occurrence
+  but has no second `VEVENT` for one that moved. Both are the exporter's, in
+  a format that has shipped, and neither is A5's to change: an importer that
+  quietly rewrote what the product publishes would be a different slice.
 
 ### Deferred out of A4, and why
 
