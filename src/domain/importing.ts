@@ -76,6 +76,24 @@ export interface ImportedTask {
   blocks?: ImportedBlock[];
 }
 
+/**
+ * One occurrence of a series that does not follow the rule: called off, or
+ * moved to another time.
+ *
+ * It belongs to the event rather than sitting beside it, because it is only
+ * meaningful against that event's rule — and because it needs the id the host
+ * gives the event on the way in, which the plan does not have. The door's
+ * deferral about links between imported rows stands; this is not one.
+ */
+export interface ImportedException {
+  /** The instant the rule would have produced, which is what it matches on. */
+  originalStart: string;
+  kind: 'cancelled' | 'moved';
+  /** Where it went, for a moved occurrence; null for a cancelled one. */
+  startsAt: string | null;
+  endsAt: string | null;
+}
+
 export interface ImportedEvent {
   key: string;
   title: string;
@@ -84,6 +102,8 @@ export interface ImportedEvent {
   tz: string;
   allDay: boolean;
   rrule: string | null;
+  /** Occurrences of this series that were moved or called off. */
+  exceptions?: ImportedException[];
 }
 
 export interface ImportPlan {
