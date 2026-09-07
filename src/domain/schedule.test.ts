@@ -278,6 +278,39 @@ describe('expanding a window', () => {
       occurrencesBetween(NO_SCHEDULE, '2026-09-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z', SP),
     ).toEqual([]);
   });
+
+  it('ends a series on the day UNTIL names, whatever zone the series is in', () => {
+    // UNTIL is a UTC instant (RFC 5545) and the expansion runs in wall clock.
+    // 08:00 UTC on the 30th of March 2027 is 09:00 in London: the last
+    // Tuesday is inside the rule, and it has to survive the difference.
+    const weekly = schedule({
+      dueAt: '2027-03-16T09:00:00.000Z',
+      rule: 'FREQ=WEEKLY;BYDAY=TU;UNTIL=20270330T080000Z',
+    });
+    expect(
+      occurrencesBetween(
+        weekly,
+        '2027-03-01T00:00:00.000Z',
+        '2027-04-30T00:00:00.000Z',
+        'Europe/London',
+      ),
+    ).toEqual(['2027-03-16T09:00:00.000Z', '2027-03-23T09:00:00.000Z', '2027-03-30T08:00:00.000Z']);
+  });
+
+  it('does not carry a series past the day UNTIL names', () => {
+    const weekly = schedule({
+      dueAt: '2027-03-16T09:00:00.000Z',
+      rule: 'FREQ=WEEKLY;BYDAY=TU;UNTIL=20270323T090000Z',
+    });
+    expect(
+      occurrencesBetween(
+        weekly,
+        '2027-03-01T00:00:00.000Z',
+        '2027-04-30T00:00:00.000Z',
+        'Europe/London',
+      ),
+    ).toEqual(['2027-03-16T09:00:00.000Z', '2027-03-23T09:00:00.000Z']);
+  });
 });
 
 describe('saying a due date out loud', () => {

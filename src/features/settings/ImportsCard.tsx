@@ -5,6 +5,7 @@ import { chooseImportPath } from '@/data/backups';
 import { describeError } from '@/data/errors';
 import { useImports, useProperties, useUndoImport } from '@/data/hooks';
 import {
+  chooseCalendarPath,
   chooseCsvPath,
   chooseJsonPath,
   nameFromPath,
@@ -15,6 +16,7 @@ import {
 import { fromTesseraExport, type ImportPlan } from '@/domain/importing';
 import { fromOutlookTasks, looksLikeOutlookTasks } from '@/domain/importers/outlookTasks';
 import { fromTodoist, looksLikeTodoist } from '@/domain/importers/todoist';
+import { fromIcs, looksLikeIcs } from '@/domain/importers/ics';
 import { fromNotion, looksLikeNotion } from '@/domain/importers/notion';
 import { fromTrello, looksLikeTrello } from '@/domain/importers/trello';
 import { optionsOf } from '@/domain/property';
@@ -107,6 +109,19 @@ export function ImportsCard() {
       'That file is not a Notion database export. In Notion, open the database menu → Export → Markdown & CSV, unzip it, and choose the .csv inside.',
     );
 
+  const startCalendar = () =>
+    begin(
+      () => chooseCalendarPath('Import a calendar (ICS)'),
+      async (path) => {
+        const text = await readTextFile(path);
+        if (!looksLikeIcs(text)) return null;
+        // The file names its own calendar when it has one; otherwise the file
+        // is the name, which is what a person picked it by.
+        return fromIcs(text, nameFromPath(path), systemZone());
+      },
+      'That file is not a calendar. Export one from your calendar as .ics — in Outlook, Google Calendar or Apple Calendar — and choose it here.',
+    );
+
   const startToDo = () =>
     begin(
       () => chooseCsvPath('Import a Microsoft To Do list (Outlook CSV)'),
@@ -191,6 +206,18 @@ export function ImportsCard() {
             </Button>
             <span className="text-caption text-fg-tertiary">
               the .csv from an unzipped Markdown &amp; CSV export; pages become documents
+            </span>
+          </li>
+          <li className="flex items-center gap-3">
+            <Button
+              icon={<ArrowImport20Regular />}
+              onClick={() => void startCalendar()}
+              className="w-56 justify-start"
+            >
+              Calendar (ICS)…
+            </Button>
+            <span className="text-caption text-fg-tertiary">
+              events with their repeats and their exceptions; reminders stay where they are
             </span>
           </li>
           <li className="flex items-center gap-3">

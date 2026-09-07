@@ -584,3 +584,35 @@ before anything is written, and undo restores the adopted property exactly (migr
 **Cost accepted.** Reconciliation matches by name, so two columns a person considers the same
 but named differently stay two. Renaming on clash can leave two similar columns until somebody
 tidies them; that is visible, reversible and theirs to do.
+
+## ADR-028 — A zone is a name, not a rule set {#adr-028}
+
+**Decision.** The ICS reader resolves `TZID` by **name** and never reads the file's own
+`VTIMEZONE` blocks. Three shapes are accepted: IANA as written (`Europe/London`), the names
+Windows uses, which is what Outlook exports (`GMT Standard Time`), and IANA behind a vendor
+prefix (`/mozilla.org/20050126_1/Europe/London`). A name that resolves to nothing the platform
+knows falls back to the workspace's zone, and the preview says which name it could not read.
+
+**Why.** A `VTIMEZONE` block is a small timezone database: offsets, abbreviations, and the
+rules by which they change, in the file. Reading it means implementing the resolution of those
+rules — for dates in the past, dates in the future, and the hour that happens twice — beside
+the one the platform already ships and keeps up to date. Two databases disagree eventually, and
+the one in the file is a snapshot of what some other product believed on the day it exported.
+
+The names, by contrast, are stable and few. Outlook's list changes about as often as the world
+adds a zone, and everything else already writes IANA.
+
+**Why fall back rather than refuse.** A file with one unrecognised zone is otherwise a good
+file. Refusing it imports nothing; reading its times in the workspace's zone imports everything
+and is wrong by an offset the person can see and correct, on the events that named that zone.
+The preview names the zone before anything is written, which is the difference between a wrong
+answer and a silent one (SPEC §4).
+
+**Consequence.** The reader is a parser, not a timezone implementation, and every stamp goes
+through `asInstant` in one place. A zone that only exists inside a `VTIMEZONE` — a private one,
+or a historical rule the platform no longer carries — is not honoured; the fallback and its
+sentence are what a person gets. Adding a Windows name later is one line in a table.
+
+**Cost accepted.** The Windows table is a list this product now maintains. It is ordinary
+maintenance, and a missing entry degrades to the fallback rather than to a wrong time with no
+warning.

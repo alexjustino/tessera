@@ -69,6 +69,19 @@ pub struct PlannedTask {
     pub blocks: Vec<PlannedBlock>,
 }
 
+/// One occurrence of an imported series that was moved or called off.
+///
+/// It arrives inside its event rather than beside it: the exception is keyed
+/// on the event id, which only exists once the event has been written, and the
+/// plan has no ids in it.
+#[derive(Debug, Clone, Deserialize)]
+pub struct PlannedException {
+    pub original_start: String,
+    pub kind: String,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct PlannedEvent {
     pub title: String,
@@ -77,6 +90,8 @@ pub struct PlannedEvent {
     pub tz: String,
     pub all_day: bool,
     pub rrule: Option<String>,
+    #[serde(default)]
+    pub exceptions: Vec<PlannedException>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -99,6 +114,9 @@ pub struct Summary {
     pub notes: i64,
     /// Values whose property the target collection does not have.
     pub values_dropped: i64,
+    /// Occurrences of an imported series that were moved or called off.
+    #[serde(default)]
+    pub exceptions: i64,
     /// Properties created, and existing ones whose options were extended.
     #[serde(default)]
     pub properties_created: i64,
@@ -448,6 +466,21 @@ pub fn apply(conn: &mut Connection, plan: &Plan) -> Result<Batch> {
             )?;
             recorder.record("event", &created.id)?;
             summary.events += 1;
+
+            // The exceptions go in with their event, and go out with it: the
+            // rows cascade on delete, and undo removes them itself as well so
+            // it does not depend on a pragma being on.
+            for exception in &event.exceptions {
+                calendar::set_exception(
+                    &transaction,
+                    &created.id,
+                    &exception.original_start,
+                    &exception.kind,
+                    exception.starts_at.as_deref(),
+                    exception.ends_at.as_deref(),
+                )?;
+                summary.exceptions += 1;
+            }
         }
     }
 
@@ -564,6 +597,10 @@ pub fn undo(conn: &mut Connection, batch_id: &str) -> Result<Batch> {
             }
             "event" => {
                 transaction.execute(
+                    "DELETE FROM event_exception WHERE event_id = ?1",
+                    params![id],
+                )?;
+                transaction.execute(
                     "DELETE FROM search_fts WHERE owner_kind = 'event' AND owner_id = ?1",
                     params![id],
                 )?;
@@ -646,6 +683,7 @@ mod tests {
                 tz: "America/Sao_Paulo".into(),
                 all_day: false,
                 rrule: None,
+                exceptions: Vec::new(),
             }],
             properties: Vec::new(),
         }
@@ -896,6 +934,69 @@ mod tests {
             .query_row("SELECT count(*) FROM block", [], |r| r.get(0))
             .unwrap();
         assert_eq!(left, 0);
+    }
+
+    #[test]
+    fn a_series_keeps_its_exceptions_and_undo_takes_them_with_it() {
+        let mut conn = workspace();
+        let before = snapshot(&conn);
+        let mut plan = plan();
+        plan.tasks.clear();
+        plan.collections.clear();
+        plan.events = vec![PlannedEvent {
+            title: "Stand-up".into(),
+            starts_at: "2026-10-20T08:00:00.000Z".into(),
+            ends_at: "2026-10-20T08:15:00.000Z".into(),
+            tz: "Europe/London".into(),
+            all_day: false,
+            rrule: Some("FREQ=WEEKLY;BYDAY=TU".into()),
+            exceptions: vec![
+                PlannedException {
+                    original_start: "2026-10-27T09:00:00.000Z".into(),
+                    kind: "cancelled".into(),
+                    starts_at: None,
+                    ends_at: None,
+                },
+                PlannedException {
+                    original_start: "2026-11-03T09:00:00.000Z".into(),
+                    kind: "moved".into(),
+                    starts_at: Some("2026-11-03T14:00:00.000Z".into()),
+                    ends_at: Some("2026-11-03T14:15:00.000Z".into()),
+                },
+            ],
+        }];
+
+        let batch = apply(&mut conn, &plan).unwrap();
+        assert_eq!(batch.summary.events, 1);
+        assert_eq!(batch.summary.exceptions, 2);
+
+        let kinds: Vec<String> = conn
+            .prepare("SELECT kind FROM event_exception ORDER BY original_start_utc")
+            .unwrap()
+            .query_map([], |row| row.get(0))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        assert_eq!(kinds, vec!["cancelled".to_string(), "moved".to_string()]);
+
+        undo(&mut conn, &batch.id).unwrap();
+        assert_eq!(snapshot(&conn), before);
+    }
+
+    #[test]
+    fn an_exception_of_a_kind_the_calendar_does_not_have_is_refused() {
+        let mut conn = workspace();
+        let before = snapshot(&conn);
+        let mut plan = plan();
+        plan.events[0].exceptions = vec![PlannedException {
+            original_start: "2026-09-23T14:00:00.000Z".into(),
+            kind: "postponed".into(),
+            starts_at: None,
+            ends_at: None,
+        }];
+
+        assert!(apply(&mut conn, &plan).is_err());
+        assert_eq!(snapshot(&conn), before);
     }
 
     #[test]
