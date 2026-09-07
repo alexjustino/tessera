@@ -238,6 +238,28 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of A7, and why
+
+A goal has a target, the tasks that count for it, and progress that opens onto
+its rows. What a goal could also do:
+
+- **Count what a filter finds.** A goal over a saved search is the obvious
+  next thing and is deliberately not first: membership by filter is membership
+  that changes when the filter does (ADR-030). It also needs saved searches a
+  person can make, which the product does not have yet — views are seeded, not
+  written. When they are, a goal can point at one.
+- **Sub-goals.** A goal made of goals is a tree, and this product's answer to
+  "what is this made of" is the rows themselves.
+- **A pace line.** "You need three a week to finish by the 31st" is real and
+  useful, and it is a forecast: it needs a rule about what counts as on track
+  through a holiday, and the review (A9) is where that conversation belongs.
+- **A goal on the Today screen.** Goals are looked at weekly, not hourly.
+  Putting one on the daily screen is a decision about attention, and it is
+  cheaper to make after the review exists.
+- **Counting anything but tasks and time.** Pages read, kilometres run — a
+  goal over a number a person types is a different kind of row (a measurement),
+  and this product has no such row yet.
+
 ### Deferred out of A6, and why
 
 A page is a name and a document, it links to other pages, and it says what
