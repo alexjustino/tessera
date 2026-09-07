@@ -40,7 +40,9 @@ pub const TABLES: &[&str] = &[
     "tag",
     "item_tag",
     "item_dependency",
+    "page",
     "block",
+    "page_link",
     "view",
     "reminder",
     "activity",
@@ -280,7 +282,7 @@ pub fn import(conn: &mut Connection, document: &Export) -> Result<Counts> {
     counts(conn)
 }
 
-/// Rebuild `search_fts` from items, events and their documents.
+/// Rebuild `search_fts` from items, events, pages and their documents.
 pub fn rebuild_search_index(conn: &Connection) -> Result<()> {
     conn.execute("DELETE FROM search_fts", [])?;
     conn.execute(
@@ -291,6 +293,11 @@ pub fn rebuild_search_index(conn: &Connection) -> Result<()> {
     conn.execute(
         "INSERT INTO search_fts (owner_kind, owner_id, title, body)
          SELECT 'event', id, title, '' FROM event",
+        [],
+    )?;
+    conn.execute(
+        "INSERT INTO search_fts (owner_kind, owner_id, title, body)
+         SELECT 'page', id, title, '' FROM page",
         [],
     )?;
     let mut statement = conn.prepare(

@@ -67,7 +67,7 @@ export function splitSnippet(snippet: string): SnippetSegment[] {
   return segments;
 }
 
-export type SearchOwner = 'item' | 'event';
+export type SearchOwner = 'item' | 'event' | 'page';
 
 export interface SearchHit {
   ownerKind: SearchOwner;
