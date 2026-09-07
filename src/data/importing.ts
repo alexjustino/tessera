@@ -110,6 +110,12 @@ export async function applyImport(plan: PlacedPlan): Promise<ImportBatch> {
         tz: event.tz,
         all_day: event.allDay,
         rrule: event.rrule,
+        exceptions: (event.exceptions ?? []).map((exception) => ({
+          original_start: exception.originalStart,
+          kind: exception.kind,
+          starts_at: exception.startsAt,
+          ends_at: exception.endsAt,
+        })),
       })),
     },
   });
@@ -136,6 +142,17 @@ export async function chooseCsvPath(title: string): Promise<string | null> {
     multiple: false,
     directory: false,
     filters: [{ name: 'Comma-separated values', extensions: ['csv', 'txt'] }],
+  });
+  return typeof chosen === 'string' ? chosen : null;
+}
+
+/** A calendar file: `.ics` is what every calendar exports. */
+export async function chooseCalendarPath(title: string): Promise<string | null> {
+  const chosen = await open({
+    title,
+    multiple: false,
+    directory: false,
+    filters: [{ name: 'Calendar', extensions: ['ics', 'ical', 'ifb'] }],
   });
   return typeof chosen === 'string' ? chosen : null;
 }
