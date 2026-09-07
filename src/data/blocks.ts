@@ -8,6 +8,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import type { Block, BlockChanges, DocNode } from '@/domain/document';
+import type { Link } from '@/domain/page';
 
 interface RawBlock {
   id: string;
@@ -28,16 +29,19 @@ export async function listBlocks(ownerKind: string, ownerId: string): Promise<Bl
 }
 
 /**
- * Apply a change set and reindex, in one host transaction.
+ * Apply a change set, reindex, and record what the document points at, in one
+ * host transaction.
  *
- * `plainText` is the flattened document. It travels with the change set so the
- * search index cannot end up describing a document that was never saved.
+ * `plainText` is the flattened document and `links` the pages it links to.
+ * Both travel with the change set so neither the search index nor the
+ * backlinks can end up describing a document that was never saved.
  */
 export async function applyBlocks(
   ownerKind: string,
   ownerId: string,
   changes: BlockChanges,
   plainText: string,
+  links: readonly Link[] = [],
 ): Promise<Block[]> {
   const raw = await invoke<RawBlock[]>('blocks_apply', {
     ownerKind,
@@ -58,6 +62,7 @@ export async function applyBlocks(
       deletes: changes.deletes,
     },
     plainText,
+    links: links.map((link) => ({ pageId: link.pageId, title: link.title })),
   });
   return raw.map(toBlock);
 }
