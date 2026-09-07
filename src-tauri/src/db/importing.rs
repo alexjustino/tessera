@@ -984,7 +984,7 @@ mod tests {
     }
 
     #[test]
-    fn an_exception_on_no_occurrence_is_refused_and_nothing_is_written() {
+    fn an_exception_of_a_kind_the_calendar_does_not_have_is_refused() {
         let mut conn = workspace();
         let before = snapshot(&conn);
         let mut plan = plan();
