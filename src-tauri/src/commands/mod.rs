@@ -11,6 +11,7 @@ pub mod data;
 pub mod dependencies;
 pub mod importing;
 pub mod items;
+pub mod pages;
 pub mod properties;
 pub mod reminders;
 pub mod search;
