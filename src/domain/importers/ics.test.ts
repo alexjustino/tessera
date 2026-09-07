@@ -463,7 +463,19 @@ describe('what a calendar carries that this product does not', () => {
   });
 
   it('says when a calendar has nothing in it', () => {
-    expect(fromIcs(file(), 'Empty', ZONE)!.warnings).toEqual(['The file has no events in it.']);
+    expect(fromIcs(file(), 'Empty', ZONE)!.warnings).toEqual([
+      'The file has nothing in it to import.',
+    ]);
+  });
+
+  it('does not call a file of tasks empty', () => {
+    const plan = fromIcs(
+      file('BEGIN:VTODO', 'UID:t1', 'SUMMARY:Renew the passport', 'END:VTODO'),
+      'Reminders',
+      ZONE,
+    )!;
+    expect(plan.tasks).toHaveLength(1);
+    expect(plan.warnings).toEqual([]);
   });
 });
 

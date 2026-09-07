@@ -476,7 +476,7 @@ export function fromIcs(text: string, calendarName: string, zone: string): Impor
     collections: tasks.length > 0 ? [{ name: collection, icon: null, color: null }] : [],
     tasks,
     events,
-    warnings: describe(counter, events),
+    warnings: describe(counter, events.length + tasks.length),
   };
 }
 
@@ -656,7 +656,7 @@ function count(component: IcsComponent, counter: Counter): void {
   counter.rdates += component.lines.filter((line) => line.name.toUpperCase() === 'RDATE').length;
 }
 
-function describe(counter: Counter, events: readonly ImportedEvent[]): string[] {
+function describe(counter: Counter, carried: number): string[] {
   const warnings: string[] = [];
   const plural = (count: number, one: string, many: string) => (count === 1 ? one : many);
 
@@ -703,8 +703,8 @@ function describe(counter: Counter, events: readonly ImportedEvent[]): string[] 
   if (skipped.length > 0) {
     warnings.push(`${skipped.join(', ')} entries are not events or tasks and were left out.`);
   }
-  if (events.length === 0 && warnings.length === 0) {
-    warnings.push('The file has no events in it.');
+  if (carried === 0 && warnings.length === 0) {
+    warnings.push('The file has nothing in it to import.');
   }
   return warnings;
 }
