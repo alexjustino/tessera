@@ -1,0 +1,5 @@
+Name,Status,Owner,Estimate,Due,Done,Link,Tags,Notes,Archive
+Draft the brief,In progress,Ana,3,2026-09-15,Yes,https://example.com/brief,"design, urgent",Something to say,
+Review the brief,To do,Bruno,1.5,2026-09-18,No,https://example.com/review,design,,
+Ship it,To do,Ana,8,2026-09-25,No,https://example.com/ship,urgent,,
+Write the notes,Done,Bruno,2,2026-09-10,Yes,https://example.com/notes,design,,
