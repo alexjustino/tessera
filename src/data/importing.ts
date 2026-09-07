@@ -100,7 +100,7 @@ export async function applyImport(plan: PlacedPlan): Promise<ImportBatch> {
         collection: property.collection,
         name: property.name,
         type: property.type,
-        options: property.options,
+        options: property.options ?? [],
         position: property.position,
       })),
       events: plan.events.map((event) => ({
@@ -155,4 +155,9 @@ export async function chooseJsonPath(title: string): Promise<string | null> {
     filters: [{ name: 'JSON', extensions: ['json'] }],
   });
   return typeof chosen === 'string' ? chosen : null;
+}
+
+/** The Markdown pages beside a Notion table. Empty when there is no folder. */
+export async function readPageFiles(path: string): Promise<{ name: string; text: string }[]> {
+  return invoke<{ name: string; text: string }[]>('import_read_pages', { path });
 }
