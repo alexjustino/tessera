@@ -21,6 +21,7 @@ import type { BoardConfig, Move } from '@/domain/board';
 import type { BlockChanges } from '@/domain/document';
 import type { Schedule } from '@/domain/schedule';
 import type { Query } from '@/domain/query';
+import type { Link } from '@/domain/page';
 
 import * as api from './items';
 import * as propertyApi from './properties';
@@ -36,6 +37,7 @@ import * as backupsApi from './backups';
 import * as timeApi from './time';
 import * as templateApi from './templates';
 import * as importApi from './importing';
+import * as pageApi from './pages';
 import type { TemplateBody, TemplateEdge } from '@/domain/template';
 
 export const keys = {
@@ -337,14 +339,18 @@ export function useApplyBlocks() {
       ownerId,
       changes,
       plainText,
+      links,
     }: {
       ownerKind: string;
       ownerId: string;
       changes: BlockChanges;
       plainText: string;
-    }) => blockApi.applyBlocks(ownerKind, ownerId, changes, plainText),
+      links?: readonly Link[];
+    }) => blockApi.applyBlocks(ownerKind, ownerId, changes, plainText, links ?? []),
     onSuccess: (blocks, variables) => {
       client.setQueryData(blockKeys.blocks(variables.ownerKind, variables.ownerId), blocks);
+      // A save changes what points where, so every backlink list is stale.
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
     },
   });
 }
@@ -816,5 +822,61 @@ export function useUndoImport() {
   return useMutation({
     mutationFn: (id: string) => importApi.undoImport(id),
     onSuccess: imported,
+  });
+}
+
+// ── Pages ───────────────────────────────────────────────────────────────────
+
+export const pageKeys = {
+  all: ['pages'] as const,
+  backlinks: (id: string) => ['backlinks', id] as const,
+};
+
+export function usePages() {
+  return useQuery({ queryKey: pageKeys.all, queryFn: pageApi.listPages });
+}
+
+/** What points at a page. Refetched whenever any document is saved. */
+export function useBacklinks(id: string | null) {
+  return useQuery({
+    queryKey: pageKeys.backlinks(id ?? ''),
+    queryFn: () => pageApi.pageBacklinks(id ?? ''),
+    enabled: id !== null,
+  });
+}
+
+export function useCreatePage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ title, position }: { title: string; position: string }) =>
+      pageApi.createPage(title, position),
+    // A new page can be the target a link was waiting for, so the backlinks of
+    // every page — and the links inside every open document — may have changed.
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: pageKeys.all });
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
+    },
+  });
+}
+
+export function useRenamePage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => pageApi.renamePage(id, title),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: pageKeys.all });
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
+    },
+  });
+}
+
+export function useDeletePage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => pageApi.deletePage(id),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: pageKeys.all });
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
+    },
   });
 }

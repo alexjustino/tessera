@@ -3,6 +3,7 @@
 use tauri::State;
 
 use crate::db::models::{Block, BlockChanges};
+use crate::db::pages::LinkTarget;
 use crate::db::{blocks, Db};
 use crate::error::Result;
 
@@ -14,9 +15,9 @@ pub fn blocks_list(db: State<'_, Db>, owner_kind: String, owner_id: String) -> R
 
 /// Apply a document change set and reindex, in one transaction.
 ///
-/// `plain_text` is the flattened document, supplied by the caller: knowing that
-/// a heading's text lives at `content[0].text` is the editor's business, not the
-/// host's.
+/// `plain_text` is the flattened document and `links` are the pages it points
+/// at, both supplied by the caller: knowing that a heading's text lives at
+/// `content[0].text` is the editor's business, not the host's.
 #[tauri::command]
 pub fn blocks_apply(
     db: State<'_, Db>,
@@ -24,7 +25,15 @@ pub fn blocks_apply(
     owner_id: String,
     changes: BlockChanges,
     plain_text: String,
+    links: Option<Vec<LinkTarget>>,
 ) -> Result<Vec<Block>> {
     let mut conn = db.0.lock().expect("the database lock was poisoned");
-    blocks::apply_changes(&mut conn, &owner_kind, &owner_id, changes, &plain_text)
+    blocks::apply_changes(
+        &mut conn,
+        &owner_kind,
+        &owner_id,
+        changes,
+        &plain_text,
+        &links.unwrap_or_default(),
+    )
 }

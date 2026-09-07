@@ -16,6 +16,7 @@ use rusqlite::{params, Connection, Row};
 
 use super::items::now;
 use super::models::{Block, BlockChanges};
+use super::pages::{self, LinkTarget};
 use crate::error::{Error, Result};
 
 /// The longest document the interface will store, in blocks.
@@ -63,17 +64,20 @@ pub fn list_blocks(conn: &Connection, owner_kind: &str, owner_id: &str) -> Resul
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
-/// Apply a change set, and reindex the document, in one transaction.
+/// Apply a change set, reindex the document and record what it points at, in
+/// one transaction.
 ///
-/// `plain_text` is the whole document flattened, supplied by the caller. It is
-/// written to the search index in the same transaction as the blocks, so the
-/// index cannot describe a document that was never saved.
+/// `plain_text` is the whole document flattened and `links` are the pages it
+/// links to, both read out of the document by the domain layer and supplied by
+/// the caller. They are written in the same transaction as the blocks, so
+/// neither the index nor the backlinks can describe a document nobody saved.
 pub fn apply_changes(
     conn: &mut Connection,
     owner_kind: &str,
     owner_id: &str,
     changes: BlockChanges,
     plain_text: &str,
+    links: &[LinkTarget],
 ) -> Result<Vec<Block>> {
     if changes.creates.len() > MAX_BLOCKS {
         return Err(Error::InvalidInput("that document is too long to store"));
@@ -145,9 +149,18 @@ pub fn apply_changes(
         )?;
     }
 
+    // What this document points at, replaced whole (ADR-029).
+    pages::set_links(&transaction, owner_kind, owner_id, links)?;
+
     if owner_kind == "item" {
         transaction.execute(
             "UPDATE item SET updated_at = ?2 WHERE id = ?1",
+            params![owner_id, timestamp],
+        )?;
+    }
+    if owner_kind == "page" {
+        transaction.execute(
+            "UPDATE page SET updated_at = ?2 WHERE id = ?1",
             params![owner_id, timestamp],
         )?;
     }
@@ -222,6 +235,7 @@ mod tests {
             &item,
             creates(&[("b2", "b", "Second"), ("b1", "a", "First")]),
             "First\nSecond",
+            &[],
         )
         .expect("apply");
 
@@ -242,6 +256,7 @@ mod tests {
             &item,
             creates(&[("b1", "a", "First"), ("b2", "b", "Second")]),
             "First\nSecond",
+            &[],
         )
         .expect("apply");
 
@@ -260,6 +275,7 @@ mod tests {
                 deletes: vec![],
             },
             "First\nSecond, edited",
+            &[],
         )
         .expect("apply");
 
@@ -279,6 +295,7 @@ mod tests {
             &item,
             creates(&[("b1", "a", "the rescission clause")]),
             "the rescission clause",
+            &[],
         )
         .expect("apply");
 
@@ -306,6 +323,7 @@ mod tests {
                 deletes: vec![],
             },
             "nothing to see",
+            &[],
         )
         .expect("apply");
 
@@ -329,6 +347,7 @@ mod tests {
             &item,
             creates(&[("b1", "a", "text")]),
             "text",
+            &[],
         )
         .expect("apply");
 
@@ -362,6 +381,7 @@ mod tests {
             &item,
             creates(&[("b1", "a", "First"), ("b2", "b", "Second")]),
             "First\nSecond",
+            &[],
         )
         .expect("apply");
 
@@ -380,6 +400,7 @@ mod tests {
                 deletes: vec!["b1".into()],
             },
             "ghost",
+            &[],
         );
 
         assert!(matches!(result, Err(Error::NotFound)));
@@ -404,6 +425,7 @@ mod tests {
             &item,
             creates(&[("b1", "not a key!", "text")]),
             "text",
+            &[],
         );
 
         assert!(matches!(result, Err(Error::InvalidInput(_))));
@@ -421,6 +443,7 @@ mod tests {
             &item,
             creates(&[("b1", "a", "text")]),
             "text",
+            &[],
         )
         .expect("apply");
 

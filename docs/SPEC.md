@@ -238,6 +238,30 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of A6, and why
+
+A page is a name and a document, it links to other pages, and it says what
+points at it. What a notes space could also do:
+
+- **Links from a task or an event.** The index already holds them — `page_link`
+  keys on `(owner_kind, owner_id)` and the backlink panel renders a task or an
+  event when it finds one — but the `[[` menu is only in the page editor for
+  now, because a task's document is a drawer inside a list and the menu's
+  placement there is its own piece of work.
+- **Unlinked mentions.** "Pages that say this page's name without linking to
+  it" is a second query and a second panel, and it is only worth the room once
+  there are enough pages for it to find anything.
+- **A hierarchy of pages.** Pages are a flat set, deliberately: names are
+  unique, so a link needs no path, and a tree is a second way to say where
+  something belongs. A person who wants one writes a page of links.
+- **Tags, daily notes and templates for pages.** Each is a real feature with
+  its own shape; none of them is what makes a wiki a wiki.
+- **A graph view.** The data is there. A picture of it is a visualisation
+  slice, not a notes slice.
+- **Renaming from inside a document.** A link is edited where the page is, not
+  where the link is; a rename typed into a sentence would have to guess whether
+  it meant the page or the words.
+
 ### Deferred out of A5, and why
 
 A calendar file becomes events with their rules and their exceptions, and its

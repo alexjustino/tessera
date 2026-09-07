@@ -21,7 +21,7 @@ interface RawHit {
 export async function search(query: string, limit = 20): Promise<SearchHit[]> {
   const raw = await invoke<RawHit[]>('search', { query, limit });
   return raw.map((hit) => ({
-    ownerKind: hit.owner_kind === 'event' ? 'event' : 'item',
+    ownerKind: hit.owner_kind === 'event' ? 'event' : hit.owner_kind === 'page' ? 'page' : 'item',
     ownerId: hit.owner_id,
     title: hit.title,
     body: hit.body,
