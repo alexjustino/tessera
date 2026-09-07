@@ -10,7 +10,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useApplyBlocks, useBlocks } from '@/data/hooks';
+import { useApplyBlocks, useBlocks, usePages } from '@/data/hooks';
 import {
   diff,
   isEmptyChange,
@@ -19,10 +19,14 @@ import {
   type Block,
   type DocJSON,
 } from '@/domain/document';
+import { refresh, targetsOf, type Page as PageRow } from '@/domain/page';
 
 import { BlockId, newId } from './BlockId';
 import { Callout } from './Callout';
+import { LinkMenu } from './LinkMenu';
+import { PageLink } from './PageLink';
 import { SlashMenu } from './SlashMenu';
+import { useLinkMenu } from './useLinkMenu';
 import { useSlashMenu } from './useSlashMenu';
 import './editor.css';
 
@@ -48,6 +52,15 @@ const SAVE_DELAY_MS = 600;
 export function Editor({ ownerKind, ownerId }: { ownerKind: string; ownerId: string }) {
   const blocks = useBlocks(ownerKind, ownerId);
   const apply = useApplyBlocks();
+  // Every page, for two reasons: to know what a link in this document points
+  // at, and to bring the names it shows up to date when it is opened.
+  const pages = usePages();
+  // Held in a ref so that saving does not change identity every time the list
+  // is refetched — the flush-on-close effect depends on `save` being stable.
+  const known = useRef<readonly PageRow[]>([]);
+  useEffect(() => {
+    known.current = pages.data ?? [];
+  }, [pages.data]);
 
   /** What the host is known to hold. The diff is computed against this. */
   const stored = useRef<Block[]>([]);
@@ -89,7 +102,13 @@ export function Editor({ ownerKind, ownerId }: { ownerKind: string; ownerId: str
 
       setSaving(true);
       apply.mutate(
-        { ownerKind, ownerId, changes, plainText: plainText(next) },
+        {
+          ownerKind,
+          ownerId,
+          changes,
+          plainText: plainText(next),
+          links: targetsOf(document, known.current),
+        },
         {
           onSuccess: (saved) => {
             stored.current = saved;
@@ -115,6 +134,7 @@ export function Editor({ ownerKind, ownerId }: { ownerKind: string; ownerId: str
       }),
       BlockId,
       Callout,
+      PageLink,
       Placeholder.configure({
         placeholder: 'Write something, or press / for a block',
       }),
@@ -148,17 +168,22 @@ export function Editor({ ownerKind, ownerId }: { ownerKind: string; ownerId: str
   });
 
   const slash = useSlashMenu(editor);
+  const links = useLinkMenu(editor);
 
   // Load the document once it arrives, and only when it is genuinely different
   // from what is on screen. Setting the content of an editor somebody is typing
   // in moves their cursor to the top.
   useEffect(() => {
-    if (editor === null || blocks.data === undefined) return;
+    if (editor === null || blocks.data === undefined || pages.data === undefined) return;
     if (stored.current.length > 0) return;
 
     stored.current = blocks.data;
-    editor.commands.setContent(toDocument(blocks.data) as never, { emitUpdate: false });
-  }, [editor, blocks.data]);
+    // A link points at a page, not at a name (ADR-029), so the names it shows
+    // are brought up to date as the document opens. This is where a rename
+    // somewhere else becomes visible here.
+    const document = refresh(toDocument(blocks.data), pages.data);
+    editor.commands.setContent(document as never, { emitUpdate: false });
+  }, [editor, blocks.data, pages.data]);
 
   // Flush on the way out. Without this, the last sentence typed before closing
   // the panel is lost with no error and no trace.
@@ -178,6 +203,7 @@ export function Editor({ ownerKind, ownerId }: { ownerKind: string; ownerId: str
     <div className="relative">
       <EditorContent editor={editor} />
       {slash.open && editor !== null && <SlashMenu editor={editor} state={slash} />}
+      {links.open && editor !== null && <LinkMenu editor={editor} state={links} />}
 
       <p aria-live="polite" className="mt-3 h-4 text-caption text-fg-tertiary">
         {saving ? 'Saving…' : ''}
