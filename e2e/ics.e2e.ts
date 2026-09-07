@@ -201,6 +201,11 @@ describe('a calendar file', () => {
     const undo = await driver.waitFor('the Undo control', () =>
       driver.find('button[aria-label^="Undo the import"]'),
     );
+    // The card is below the fold on Settings: scroll to it, or the artefact
+    // photographs the top of the page instead of the thing it is evidence of.
+    await scrollTo(undo);
+    await driver.waitForText('Calendar (ICS)…');
+    await session.screenshot('ics-settings-card');
     await driver.execute('arguments[0].click()', [{ [ELEMENT]: undo.id }]);
     await driver.waitForText('Nothing has been imported yet');
 
