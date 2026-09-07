@@ -238,6 +238,34 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of A5, and why
+
+A calendar file becomes events with their rules and their exceptions, and its
+tasks become tasks. What it keeps to itself:
+
+- **`VTIMEZONE`.** The file carries the rules of its own zones, and reading
+  them means a second timezone database beside the platform's (ADR-028). The
+  zone's _name_ is read instead, IANA or Windows'; an unrecognised one falls
+  back to the workspace's zone and the preview says which.
+- **`RDATE`.** A date added to a series by hand is an extra occurrence, and
+  the model has cancelled and moved, not added. Carrying it means a third kind
+  of exception; it is counted and said instead.
+- **`RANGE=THISANDFUTURE`.** A change from one occurrence onwards is two
+  series — the original ended, a new one begun — which is a rewrite of what
+  the file says. Only that occurrence is moved, and the preview says so.
+- **Guests, organisers, invitations and replies.** This product has one person
+  in it (SPEC §1). A `METHOD:REQUEST` file imports as appointments, not as
+  something to answer.
+- **Reminders.** The product has its own, set here, and an alarm ten minutes
+  before a meeting somebody else scheduled is not a promise this workspace
+  should silently take on.
+- **Attachments, categories, free/busy and journals.** Files it does not
+  store, colours from another product, and components that are neither an
+  event nor a task.
+- **Exporting an ICS.** The door is an import (SPEC 1.2). Writing one is a
+  different feature, and worth doing when somebody wants their calendar back
+  out — A8 prints; this would publish.
+
 ### Deferred out of A4, and why
 
 A database becomes a collection with typed properties and its pages as
@@ -319,11 +347,13 @@ What was left where it was, and why:
 The door opens additively, previews, applies once and undoes once. What a
 door could also do:
 
-- **Dependencies, exceptions and time blocks from a Tessera export.** The plan
-  carries rows, not the links between them; a dependency between two imported
-  tasks needs the ids they are given on the way in, which is the batch's
-  business and a small addition — but not one the foreign importers (A2–A5)
-  will ever use, so it waits for a person who wants it.
+- **Dependencies and time blocks from a Tessera export.** The plan carries
+  rows, not the links between them; a dependency between two imported tasks
+  needs the ids they are given on the way in, which is the batch’s business and
+  a small addition — but not one the foreign importers use, so it waits for a
+  person who wants it. Exceptions were on this list and came off it in A5: an
+  occurrence that was cancelled or moved is not a link between two rows, it is
+  part of one event, and it travels inside it.
 - **Merging a duplicate.** The preview names what a row looks like and offers
   to skip it. Merging — keeping the existing row and adding what the import
   knows — is a decision per field, and the product does not guess (SPEC 1.2).

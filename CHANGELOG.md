@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Import from a calendar (ICS).** The file every calendar exports — Outlook,
+  Google, Apple — becomes events here, with the two things that make a
+  calendar a calendar: **a repeat and its exceptions**. A weekly meeting
+  arrives as its rule, the Tuesday somebody cancelled stays cancelled, and the
+  Thursday moved to 15:00 is at 15:00. Times keep the zone they were written
+  in, so a 09:00 meeting in London is still 09:00 in London on both sides of
+  the days the clocks change (ADR-013); a zone the file names by Windows'
+  name for it is recognised, and one that cannot be is read in this
+  workspace's zone and said out loud (ADR-028). A `VTODO` — what Apple
+  Reminders and a few task apps export — becomes a task, with its due date,
+  its priority and whether it is done.
+
+  What a calendar keeps to itself is listed before anything is imported:
+  reminders, guests, dates added to a series by hand, and a change that was
+  meant for every occurrence after it.
+
+### Fixed
+
+- **A repeat that ends on a date no longer loses its last occurrence.** A rule
+  says when it stops in UTC (`UNTIL`, RFC 5545) and this product expands
+  repeats in wall clock, so the last occurrence of an evening or a morning
+  series could fall the wrong side of the line — by however far the zone is
+  from UTC, invisibly. The two are now compared in the same frame. It was
+  found by the calendar importer and it was never only about imports: a rule
+  typed here had it too.
+
 - **Import from Notion.** A database's Markdown & CSV export becomes a
   collection. Notion writes no types into its CSV, so each column's type is
   **inferred from its values** — a column of Yes and No is a checkbox, of
