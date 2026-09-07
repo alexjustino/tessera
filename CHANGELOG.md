@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Notes, and the links between them.** A new destination: pages, each a name
+  and a document, written in the same editor everything else uses. Typing `[[`
+  offers the pages you have and, when the name is new, offers to make it — so
+  a page comes into being because you meant it.
+
+  A link **points at the page, not at its name**: rename a page and every link
+  to it holds, and reads as the new name the next time the document is opened
+  (ADR-029). A link written for a page that does not exist keeps the name it
+  was written with and finds its page the day one is made. Deleting a page
+  leaves the mentions of it where they are, dimmed and dotted.
+
+  Every page says **who points here**, which is what makes a set of notes
+  something you can navigate a year later — a page you never linked _from_ is
+  still reachable from the page you linked _to_. Search covers pages: their
+  names and everything written in them, in the same box as tasks and events.
+
 - **Import from a calendar (ICS).** The file every calendar exports — Outlook,
   Google, Apple — becomes events here, with the two things that make a
   calendar a calendar: **a repeat and its exceptions**. A weekly meeting

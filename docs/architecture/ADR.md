@@ -616,3 +616,39 @@ sentence are what a person gets. Adding a Windows name later is one line in a ta
 **Cost accepted.** The Windows table is a list this product now maintains. It is ordinary
 maintenance, and a missing entry degrades to the fallback rather than to a wrong time with no
 warning.
+
+## ADR-029 — A link points at an identity and shows a name {#adr-029}
+
+**Decision.** A link between pages is an inline node holding two attributes: `pageId`, which is
+what the link **is**, and `title`, which is what it **says**. The id is authoritative. The title
+is a cache of the target's name, refreshed from the id when the document is opened (`refresh` in
+`src/domain/page.ts`). A link whose id no longer resolves falls back to matching by name, and a
+link written with no id at all — a name typed for a page that does not exist — resolves the day a
+page takes that name.
+
+The host keeps `page_link`, an index of what points at what, rewritten whole by the same
+transaction that saves a document. Backlinks are a query over it, by id **or** by name.
+
+**Why not by name alone**, the way a wiki traditionally works: renaming a page would mean
+rewriting every document that mentions it, which is a migration disguised as an edit — slow, and
+impossible to do atomically for a document somebody has open.
+
+**Why not by id alone**, the way a database would: a person types a name, not an id. A name that
+does not exist yet has to be writable, because that is how notes are actually made — you link to
+the page you are about to write. An id-only link would have to refuse it, or invent a page
+nobody asked for.
+
+**Why the title is stored beside the id** rather than looked up at render: the document is the
+record. It is exported, printed and searched as text, and a link that carried only an id would
+export as nothing and search as nothing. Storing the name means the plain text of a document
+says what a reader would see.
+
+**Consequence.** Renaming is one `UPDATE` and touches no document. The names shown inside
+documents catch up when they are next opened, which is visible and cheap; a document nobody
+opens keeps a name nobody reads. Deleting a page sets the index's `to_page_id` to null rather
+than deleting the row, so the mention survives and the page can come back.
+
+**Cost accepted.** For a moment after a rename, a document that is open elsewhere shows the old
+name — the link still works, and it says the old word. The alternative is rewriting every
+document on every rename, and this product would rather be honest about a stale word than write
+to rows nobody asked it to touch.
