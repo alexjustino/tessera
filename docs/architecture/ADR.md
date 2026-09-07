@@ -544,3 +544,43 @@ a problem: undo finds nothing and moves on.
 with a sentence, not carried (SPEC, deferred out of A1). Positions are the caller's to hand in,
 because the host does not own the ordering key scheme (`domain/ordering.ts`). Bookkeeping tables
 are part of the export, so a restore carries the import history with it.
+
+## ADR-027 — A column that collides is reconciled, never coerced {#adr-027}
+
+**Decision.** Before an import is previewed, `reconcile` in `src/domain/importing.ts` sets the
+plan's properties against the ones the destination collection already has, by name:
+
+1. **Same type** — nothing to do; the host adds the options it lacks.
+2. **Both choose one option** (`select`, `status`, `priority`) — the import **adopts the
+   property that is here**, and its values are remapped onto the existing options by label. A
+   Notion "In progress" becomes this workspace's own In progress rather than a second column
+   beside it. Options with no match are added.
+3. **A real clash** — the import keeps its column under `<Name> (imported)` and a sentence in
+   the preview says why. Nothing is coerced.
+
+**Why.** A4 found this the hard way: a Notion database with a Status column met this product's
+own Status, and the host refused the whole import — correctly, since writing a `select` into a
+`status` is a lie, but uselessly, because the person is then stuck with a file they cannot
+import at all.
+
+The judgement belongs in the domain, not the host, for the reason all of it does: the host
+enforces invariants and the domain decides what a person meant. The host's refusal stays as
+it was — it is a genuine invariant and the last line of defence — and the domain arranges the
+plan so the refusal never has to fire.
+
+**Why adopt rather than coerce.** The two choice types differ in what they store _about_ the
+option (a status knows which end of a workflow it is), not in the value on a row, which is an
+option id either way. Adopting is therefore lossless, and it is what a person means: they have
+a column called Status and the file has a column called Status. Coercing a number into text,
+by contrast, would keep the letters and lose the arithmetic — so that case is renamed instead,
+and the person can merge the two columns by hand if they want to, which is a decision only
+they can make.
+
+**Consequence.** An importer never has to know what the workspace holds; it names its columns
+as the source named them and reconciliation happens once, in one place, for every source
+(A2's CSVs, A3's board, A4's database and whatever A5 brings). The preview shows the outcome
+before anything is written, and undo restores the adopted property exactly (migration 014).
+
+**Cost accepted.** Reconciliation matches by name, so two columns a person considers the same
+but named differently stay two. Renaming on clash can leave two similar columns until somebody
+tidies them; that is visible, reversible and theirs to do.

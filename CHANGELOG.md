@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Import from Notion.** A database's Markdown & CSV export becomes a
+  collection. Notion writes no types into its CSV, so each column's type is
+  **inferred from its values** — a column of Yes and No is a checkbox, of
+  numbers a number, of `2026-09-15` a date, of links a link, of a few words
+  that repeat a set of choices — and text whenever the values disagree, which
+  is the honest answer rather than a wrong guess. Each row's page becomes its
+  document: headings, bullet and numbered lists, checklists, quotes, code and
+  the bold, italic, code and links inside them.
+
+  A column whose name is already taken here is reconciled rather than
+  refused: a Notion "Status" meets this workspace's own Status and its values
+  land in the columns already there by name; a genuine clash keeps its own
+  column under a distinct name and says so (ADR-027).
+
 - **Import from Trello.** A board's JSON export becomes a board here. Its
   lists become the columns — options of the Status property; a list named
   like a column you already have ("Done") lands in it, any other becomes a
