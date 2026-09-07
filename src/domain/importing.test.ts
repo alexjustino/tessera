@@ -8,7 +8,9 @@ import {
   fromTesseraExport,
   normalise,
   preview,
+  reconcile,
   redirect,
+  type ExistingProperty,
   type ImportPlan,
 } from './importing';
 import type { Collection, Item } from './item';
@@ -319,5 +321,113 @@ describe('redirecting', () => {
 
   it('changes nothing for a blank destination', () => {
     expect(redirect(plan, '   ')).toBe(plan);
+  });
+});
+
+describe('reconciling with the properties already here', () => {
+  const SEEDED: ExistingProperty[] = [
+    {
+      name: 'Status',
+      type: 'status',
+      options: [
+        { id: 'todo', label: 'To do', color: null },
+        { id: 'doing', label: 'In progress', color: 'info' },
+        { id: 'done', label: 'Done', color: 'success' },
+      ],
+    },
+    { name: 'Estimate', type: 'text', options: [] },
+  ];
+
+  const withProperties = (
+    properties: NonNullable<ImportPlan['properties']>,
+    values: Record<string, unknown>,
+  ): ImportPlan => ({
+    ...plan,
+    properties,
+    tasks: [{ ...plan.tasks[0]!, values }],
+  });
+
+  it('leaves a property alone when the type already agrees', () => {
+    const same = withProperties(
+      [{ collection: 'Tasks', name: 'Status', type: 'status', options: [] }],
+      {},
+    );
+    expect(reconcile(same, SEEDED).properties).toEqual(same.properties);
+  });
+
+  it('adopts the property that is here when both choose one option, and speaks its ids', () => {
+    const fromFile = withProperties(
+      [
+        {
+          collection: 'Tasks',
+          name: 'Status',
+          type: 'select',
+          options: [
+            { id: 'in-progress', label: 'In progress', color: null },
+            { id: 'blocked-on-legal', label: 'Blocked on legal', color: null },
+          ],
+        },
+      ],
+      { Status: 'in-progress' },
+    );
+    const reconciled = reconcile(fromFile, SEEDED);
+
+    // The type is the one that is here, and the option that matched by label
+    // is gone from the plan: it is the seeded one now.
+    expect(reconciled.properties![0]).toEqual({
+      collection: 'Tasks',
+      name: 'Status',
+      type: 'status',
+      options: [{ id: 'blocked-on-legal', label: 'Blocked on legal', color: null }],
+    });
+    // And the row now names the option this workspace calls In progress.
+    expect(reconciled.tasks[0]!.values.Status).toBe('doing');
+    expect(reconciled.warnings).toEqual(plan.warnings);
+  });
+
+  it('remaps a multi-select’s ids one by one, leaving the unmatched alone', () => {
+    const existing: ExistingProperty[] = [
+      {
+        name: 'Tags',
+        type: 'multi_select',
+        options: [{ id: 'design-work', label: 'design', color: null }],
+      },
+    ];
+    const fromFile = withProperties(
+      [
+        {
+          collection: 'Tasks',
+          name: 'Tags',
+          type: 'multi_select',
+          options: [
+            { id: 'design', label: 'design', color: null },
+            { id: 'urgent', label: 'urgent', color: null },
+          ],
+        },
+      ],
+      { Tags: ['design', 'urgent'] },
+    );
+    // Same type, so nothing is remapped: the host adds what it lacks by id.
+    expect(reconcile(fromFile, existing).tasks[0]!.values.Tags).toEqual(['design', 'urgent']);
+  });
+
+  it('renames a real clash and says so, rather than coercing the value', () => {
+    const fromFile = withProperties([{ collection: 'Tasks', name: 'Estimate', type: 'number' }], {
+      Estimate: 3,
+    });
+    const reconciled = reconcile(fromFile, SEEDED);
+
+    expect(reconciled.properties![0]).toMatchObject({
+      name: 'Estimate (imported)',
+      type: 'number',
+    });
+    expect(reconciled.tasks[0]!.values).toEqual({ 'Estimate (imported)': 3 });
+    expect(reconciled.warnings.at(-1)).toBe(
+      '“Estimate” is already a text property here and the file’s is a number; the file’s was imported as “Estimate (imported)”.',
+    );
+  });
+
+  it('changes nothing for a plan with no properties', () => {
+    expect(reconcile(plan, SEEDED)).toBe(plan);
   });
 });
