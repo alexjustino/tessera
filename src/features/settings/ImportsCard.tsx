@@ -9,11 +9,13 @@ import {
   chooseJsonPath,
   nameFromPath,
   readExportFile,
+  readPageFiles,
   readTextFile,
 } from '@/data/importing';
 import { fromTesseraExport, type ImportPlan } from '@/domain/importing';
 import { fromOutlookTasks, looksLikeOutlookTasks } from '@/domain/importers/outlookTasks';
 import { fromTodoist, looksLikeTodoist } from '@/domain/importers/todoist';
+import { fromNotion, looksLikeNotion } from '@/domain/importers/notion';
 import { fromTrello, looksLikeTrello } from '@/domain/importers/trello';
 import { optionsOf } from '@/domain/property';
 import { systemZone } from '@/domain/schedule';
@@ -91,6 +93,20 @@ export function ImportsCard() {
       'That file is not a Trello board export. In Trello, open the board menu → More → Print and export → Export as JSON.',
     );
 
+  const startNotion = () =>
+    begin(
+      () => chooseCsvPath('Import a Notion database (the CSV of an unzipped export)'),
+      async (path) => {
+        const text = await readTextFile(path);
+        if (!looksLikeNotion(text)) return null;
+        // Notion names the table after the database and appends a hash; the
+        // pages sit in the folder beside it, under the same name.
+        const name = nameFromPath(path).replace(/\s+[0-9a-f]{6,}$/i, '');
+        return fromNotion(text, name, await readPageFiles(path));
+      },
+      'That file is not a Notion database export. In Notion, open the database menu → Export → Markdown & CSV, unzip it, and choose the .csv inside.',
+    );
+
   const startToDo = () =>
     begin(
       () => chooseCsvPath('Import a Microsoft To Do list (Outlook CSV)'),
@@ -163,6 +179,18 @@ export function ImportsCard() {
 
             <span className="text-caption text-fg-tertiary">
               the board's JSON export; lists become columns, labels a property
+            </span>
+          </li>
+          <li className="flex items-center gap-3">
+            <Button
+              icon={<ArrowImport20Regular />}
+              onClick={() => void startNotion()}
+              className="w-56 justify-start"
+            >
+              Notion database…
+            </Button>
+            <span className="text-caption text-fg-tertiary">
+              the .csv from an unzipped Markdown &amp; CSV export; pages become documents
             </span>
           </li>
           <li className="flex items-center gap-3">

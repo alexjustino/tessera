@@ -73,3 +73,61 @@ pub fn import_read_text(path: String) -> Result<String> {
         Err(error) => error.into_bytes().iter().map(|&b| b as char).collect(),
     })
 }
+
+/// One page beside a Notion table: the file's name without `.md`, and its text.
+#[derive(serde::Serialize)]
+pub struct PageFile {
+    pub name: String,
+    pub text: String,
+}
+
+/// The pages a Notion export keeps beside its table.
+///
+/// Unzipped, the export is `<Database> <hash>.csv` next to a folder of the
+/// same name holding one `.md` per row. Given the table, this reads that
+/// folder: no recursion, `.md` only, and a ceiling on how much is read, so a
+/// folder that is not what it claims cannot fill memory.
+#[tauri::command]
+pub fn import_read_pages(path: String) -> Result<Vec<PageFile>> {
+    let table = Path::new(&path);
+    let folder = table.with_extension("");
+    if !folder.is_dir() {
+        return Ok(Vec::new());
+    }
+
+    const MAX_PAGES: usize = 5_000;
+    const MAX_TOTAL_BYTES: u64 = 64 * 1024 * 1024;
+
+    let entries = std::fs::read_dir(&folder)
+        .map_err(|_| crate::error::Error::InvalidInput("that folder could not be read"))?;
+    let mut pages = Vec::new();
+    let mut total = 0u64;
+
+    for entry in entries.flatten() {
+        if pages.len() >= MAX_PAGES || total >= MAX_TOTAL_BYTES {
+            break;
+        }
+        let file = entry.path();
+        if !file.is_file() || file.extension().and_then(|e| e.to_str()) != Some("md") {
+            continue;
+        }
+        let Ok(metadata) = entry.metadata() else {
+            continue;
+        };
+        total += metadata.len();
+        let Some(name) = file.file_stem().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        // A page that cannot be read is skipped, not fatal: the row keeps its
+        // values and loses only its document, which the warning will say.
+        if let Ok(text) = std::fs::read_to_string(&file) {
+            pages.push(PageFile {
+                name: name.to_string(),
+                text,
+            });
+        }
+    }
+
+    pages.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(pages)
+}

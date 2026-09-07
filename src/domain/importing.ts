@@ -15,6 +15,7 @@
 
 import type { CalendarEvent } from './calendar';
 import type { Collection, Item } from './item';
+import type { PropertyType } from './property';
 import { localDay } from './schedule';
 
 // ── The plan ───────────────────────────────────────────────────────────────
@@ -41,15 +42,19 @@ export interface SelectOptionPlan {
 }
 
 /**
- * A property the plan needs on its collection. Created if absent; if present,
- * the options it does not have yet are added — and undo puts them back the
- * way they were.
+ * A property the plan needs on its collection. Created if absent; if present
+ * with the same type, the options it does not have yet are added — and undo
+ * puts them back the way they were.
+ *
+ * `options` belongs to the types that offer choices and is absent for the
+ * rest: a number column has no options, and an empty list would say it had
+ * none rather than that the question does not arise.
  */
 export interface ImportedProperty {
   collection: string;
   name: string;
-  type: 'select' | 'multi_select' | 'status';
-  options: SelectOptionPlan[];
+  type: PropertyType;
+  options?: SelectOptionPlan[];
 }
 
 export interface ImportedTask {
@@ -263,6 +268,96 @@ export function redirect(plan: ImportPlan, collection: string): ImportPlan {
       ? {}
       : { properties: plan.properties.map((property) => ({ ...property, collection: name })) }),
   };
+}
+
+/**
+ * A property the workspace already has, as far as reconciling cares.
+ */
+export interface ExistingProperty {
+  name: string;
+  type: PropertyType;
+  options: readonly SelectOptionPlan[];
+}
+
+/** Types that store one chosen option, and can stand in for one another. */
+const ONE_CHOICE: ReadonlySet<PropertyType> = new Set(['select', 'status', 'priority']);
+
+/**
+ * The plan, against the properties the collection already has.
+ *
+ * An importer names its columns as the other product named them, and a name
+ * can already be taken here by a property of another type — a Notion database
+ * with a "Status" column arriving beside this product's own Status. Three
+ * answers, in order of how good they are for the person:
+ *
+ * 1. **Same type**: nothing to do. The host adds the options it lacks.
+ * 2. **Both choose one option** (select, status, priority): the import adopts
+ *    the property that is here, and its values are remapped onto the options
+ *    already there by label — so "In progress" from Notion lands in the column
+ *    called In progress rather than beside it. Options with no match are added.
+ * 3. **A real clash** (a number column called Estimate where Estimate is text):
+ *    the import keeps its own column under a distinct name and says so. Nothing
+ *    is coerced, because coercing is guessing and the value would be the thing
+ *    lost.
+ */
+export function reconcile(plan: ImportPlan, existing: readonly ExistingProperty[]): ImportPlan {
+  if (plan.properties === undefined || plan.properties.length === 0) return plan;
+  const byName = new Map(existing.map((property) => [normalise(property.name), property]));
+
+  const renamed = new Map<string, string>();
+  const remapped = new Map<string, Map<string, string>>();
+  const warnings = [...plan.warnings];
+
+  const properties = plan.properties.map((property) => {
+    const here = byName.get(normalise(property.name));
+    if (here === undefined || here.type === property.type) return property;
+
+    if (ONE_CHOICE.has(here.type) && ONE_CHOICE.has(property.type)) {
+      // Adopt what is here, and speak its option ids where the labels agree.
+      const idByLabel = new Map(here.options.map((option) => [normalise(option.label), option.id]));
+      const map = new Map<string, string>();
+      const kept: SelectOptionPlan[] = [];
+      for (const option of property.options ?? []) {
+        const match = idByLabel.get(normalise(option.label));
+        if (match === undefined) kept.push(option);
+        else map.set(option.id, match);
+      }
+      if (map.size > 0) remapped.set(property.name, map);
+      return { ...property, type: here.type, options: kept };
+    }
+
+    const name = `${property.name} (imported)`;
+    renamed.set(property.name, name);
+    warnings.push(
+      `“${property.name}” is already a ${here.type.replace('_', '-')} property here and the file’s is a ${property.type.replace('_', '-')}; the file’s was imported as “${name}”.`,
+    );
+    return { ...property, name };
+  });
+
+  if (renamed.size === 0 && remapped.size === 0) {
+    return { ...plan, properties, warnings };
+  }
+
+  const tasks = plan.tasks.map((task) => {
+    const values: Record<string, unknown> = {};
+    for (const [name, value] of Object.entries(task.values)) {
+      const map = remapped.get(name);
+      const moved =
+        map === undefined
+          ? value
+          : typeof value === 'string'
+            ? (map.get(value) ?? value)
+            : Array.isArray(value)
+              ? value.map((entry) =>
+                  typeof entry === 'string' ? (map.get(entry) ?? entry) : entry,
+                )
+              : value;
+      values[renamed.get(name) ?? name] = moved;
+    }
+    return { ...task, values };
+  });
+
+  return { ...plan, properties, tasks, warnings };
 }
 
 /** `3 tasks, 1 event and a new collection, from Tessera export` */

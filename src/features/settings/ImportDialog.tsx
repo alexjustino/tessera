@@ -1,13 +1,22 @@
 import { useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
-import { useApplyImport, useCollections, useEvents, useItems, useCalendars } from '@/data/hooks';
+import {
+  useApplyImport,
+  useCalendars,
+  useCollections,
+  useEvents,
+  useItems,
+  useProperties,
+} from '@/data/hooks';
+import { optionsOf } from '@/domain/property';
 import type { PlacedPlan } from '@/data/importing';
 import {
   decide,
   describe,
   preview,
   normalise,
+  reconcile,
   redirect,
   type ImportPlan,
   type ImportedCollection,
@@ -71,10 +80,29 @@ export function ImportDialog({
       : ((collections.data ?? []).find((c) => c.id === 'tasks')?.name ?? '');
   const chosen = destination ?? defaultDestination;
 
-  const decidedPlan = useMemo(
-    () => (plan === null ? null : chosen === '' ? plan : redirect(plan, chosen)),
-    [plan, chosen],
-  );
+  // The properties of the collection the tasks are going to: a column whose
+  // name is already taken here is reconciled before anything is previewed.
+  const destinationId =
+    (collections.data ?? []).find((collection) => normalise(collection.name) === normalise(chosen))
+      ?.id ?? 'tasks';
+  const destinationProperties = useProperties(destinationId);
+
+  const decidedPlan = useMemo(() => {
+    if (plan === null) return null;
+    const placed = chosen === '' ? plan : redirect(plan, chosen);
+    return reconcile(
+      placed,
+      (destinationProperties.data ?? []).map((property) => ({
+        name: property.name,
+        type: property.type,
+        options: optionsOf(property).map((option) => ({
+          id: option.id,
+          label: option.label,
+          color: option.color,
+        })),
+      })),
+    );
+  }, [plan, chosen, destinationProperties.data]);
 
   const shown = useMemo(
     () =>

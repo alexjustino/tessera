@@ -238,6 +238,28 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of A4, and why
+
+A database becomes a collection with typed properties and its pages as
+documents. What Notion keeps to itself:
+
+- **Relations, rollups and formulas.** A relation points at another database
+  the export does not contain, a rollup is a calculation over it, a formula is
+  a language. All three are said in a sentence; the column's text, where the
+  CSV has any, is not carried because it is a rendering of something absent.
+- **Sub-pages and nested databases.** The export writes them as folders inside
+  folders. One database is one collection here; a page's own sub-pages are a
+  hierarchy this product does not have for tasks.
+- **Files and images.** The export puts them in the folder as files; carrying
+  them would mean copying binaries into a workspace that stores none today.
+- **The zip itself.** A person unzips and points at the `.csv`. Unzipping in
+  the host means a zip reader and a decision about where the bytes go — worth
+  it when somebody asks, not before.
+- **Reading a type from Notion's API.** That is an account, and importers read
+  files (SPEC 1.2). The inference is what the file affords.
+- **A column of dates in one row and text in another** is text, and the
+  warning names it — the reader does not split a column into two.
+
 ### Deferred out of A3, and why
 
 A board becomes a board: lists as columns, cards in order, labels as a

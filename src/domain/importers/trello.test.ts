@@ -39,8 +39,8 @@ describe('a Trello board', () => {
     const status = plan.properties!.find((property) => property.name === 'Status')!;
     expect(status.type).toBe('status');
     // "In progress" and "Done" exist already; Ideas and Review are new.
-    expect(status.options.map((option) => option.id)).toEqual(['trello-ideas', 'trello-review']);
-    expect(status.options.map((option) => option.group)).toEqual(['todo', 'doing']);
+    expect(status.options!.map((option) => option.id)).toEqual(['trello-ideas', 'trello-review']);
+    expect(status.options!.map((option) => option.group)).toEqual(['todo', 'doing']);
     expect(byTitle.get('Sketch the new home page')!.values.Status).toBe('doing');
     expect(byTitle.get('Set up the repository')!.values.Status).toBe('done');
     expect(byTitle.get('Write the copy')!.values.Status).toBe('trello-ideas');
@@ -58,7 +58,7 @@ describe('a Trello board', () => {
   it('turns labels into a multi-select, naming an unnamed one by its colour', () => {
     const labels = plan.properties!.find((property) => property.name === 'Labels')!;
     expect(labels.type).toBe('multi_select');
-    expect(labels.options).toEqual([
+    expect(labels.options!).toEqual([
       { id: 'trello-design', label: 'Design', color: 'accent' },
       { id: 'trello-urgent', label: 'Urgent', color: 'danger' },
       { id: 'trello-green', label: 'green', color: 'success' },
