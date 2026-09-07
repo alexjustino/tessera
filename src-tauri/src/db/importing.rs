@@ -44,6 +44,7 @@ pub struct PlannedProperty {
     pub name: String,
     #[serde(rename = "type")]
     pub kind: String,
+    #[serde(default)]
     pub options: Vec<serde_json::Value>,
     /// Where a created property sits among the collection's. Caller's.
     pub position: String,
@@ -226,10 +227,24 @@ pub fn apply(conn: &mut Connection, plan: &Plan) -> Result<Batch> {
                 "a property names a collection the plan does not describe",
             ));
         };
-        if !matches!(property.kind.as_str(), "select" | "multi_select" | "status") {
-            return Err(Error::InvalidInput(
-                "an import can only add choice properties",
-            ));
+        // The property types this build stores; the domain layer names them.
+        // A type it does not know is refused rather than written, because the
+        // CHECK in the schema would refuse it anyway, later and less clearly.
+        const TYPES: &[&str] = &[
+            "text",
+            "number",
+            "checkbox",
+            "url",
+            "select",
+            "multi_select",
+            "status",
+            "priority",
+            "date",
+            "datetime",
+            "duration",
+        ];
+        if !TYPES.contains(&property.kind.as_str()) {
+            return Err(Error::InvalidInput("that is not a kind of property"));
         }
         let existing: Option<(String, String, String)> = transaction
             .query_row(
@@ -247,7 +262,11 @@ pub fn apply(conn: &mut Connection, plan: &Plan) -> Result<Batch> {
                         collection_id: collection_id.clone(),
                         name: property.name.trim().to_string(),
                         r#type: property.kind.clone(),
-                        config: serde_json::json!({ "options": property.options }),
+                        config: if property.options.is_empty() {
+                            serde_json::json!({})
+                        } else {
+                            serde_json::json!({ "options": property.options })
+                        },
                         position: property.position.clone(),
                     },
                 )?;
