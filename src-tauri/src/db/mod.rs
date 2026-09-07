@@ -13,6 +13,7 @@ pub mod importing;
 pub mod items;
 pub mod migrations;
 pub mod models;
+pub mod pages;
 pub mod properties;
 pub mod reminders;
 pub mod search;
