@@ -13,6 +13,7 @@ import { FocusMode } from '@/features/focus/FocusMode';
 import { GoalsPage } from '@/features/goals/GoalsPage';
 import { NotesPage } from '@/features/notes/NotesPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
+import { ReviewPage } from '@/features/review/ReviewPage';
 import { FoundationPage } from '@/features/foundation/FoundationPage';
 import { CommandPalette } from '@/features/palette/CommandPalette';
 import { SettingsPage } from '@/features/settings/SettingsPage';
@@ -192,6 +193,7 @@ export function App() {
             )}
             {destination === 'notes' && <NotesPage key={pageKey} initialPageId={openPageId} />}
             {destination === 'goals' && <GoalsPage key={pageKey} />}
+            {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}
             {destination === 'reports' && <ReportsPage />}
             {destination === 'settings' && <SettingsPage />}
             {destination === 'diagnostics' && <FoundationPage />}
