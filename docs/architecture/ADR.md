@@ -684,3 +684,38 @@ never as a replacement, because the two answer different questions.
 **Cost accepted.** A goal cannot say "everything tagged release", and for a large set that is
 tedious. The alternative is a number whose rows nobody chose, which is the one thing ADR-024
 exists to forbid.
+
+## ADR-031 — Paper is a rendering, not a screenshot {#adr-031}
+
+**Decision.** Printing is `window.print()` plus a print stylesheet and, where a screen layout
+cannot survive a page, a **second rendering of the same data**. Three parts:
+
+1. **A third set of tokens.** `@media print` in `tokens.css` redefines the palette for paper —
+   opaque surfaces, darker ink, darker accents — beside light and dark. Nothing else writes a
+   colour for print, and the same contrast test that checks the screen checks the page.
+2. **A print stylesheet** (`styles/print.css`) that takes the chrome out: the rail, the buttons,
+   the capture line, the view tabs. It also states what may not be split — a card, a figure with
+   its rows, a timeline row.
+3. **A print view** where the screen's layout is unprintable. The timeline is the case: on screen
+   it is one canvas of absolutely positioned bars, and a page break through it cuts a bar in
+   half. `TimelinePrint` draws the same chart as blocks — one row per task, bars placed in
+   percentages — so a break falls between rows and the chart is as wide as the paper.
+
+**Why not scale the screen to the page.** A transform does not paginate: the scaled height still
+belongs to one element, so a long chart is cropped rather than continued, and at any useful scale
+the text is unreadable. The layout, not the pixels, has to change.
+
+**Why the dialog, and not a PDF written by the product.** The print dialog already offers
+"Save as PDF" on every platform this runs on, along with the printer, the paper size and the
+margins. Writing a PDF without it means a second renderer to keep looking like the product, for
+a button the operating system already provides.
+
+**Consequence.** A screen that prints badly is fixed by giving it a print rendering, not by
+compromising the screen. Two renderings of the timeline exist and both are maintained; the
+domain is shared (`printRows`, `axisTicks` beside `layout`), so what differs is placement, never
+the data. What the printed chart gives up — the dependency arrows — it says on the page.
+
+**Cost accepted.** The end-to-end suite cannot ask this driver to emulate print media, so it
+re-applies the application's own `@media print` rules and reads the result. That proves what the
+rules do; that a browser applies them when it prints is the browser's promise, not this
+product's.
