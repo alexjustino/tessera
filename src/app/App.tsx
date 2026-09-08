@@ -10,6 +10,7 @@ import { fetchAccentRamp } from '@/data/system';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { AboutPage } from '@/features/about/AboutPage';
 import { FocusMode } from '@/features/focus/FocusMode';
+import { GoalsPage } from '@/features/goals/GoalsPage';
 import { NotesPage } from '@/features/notes/NotesPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { FoundationPage } from '@/features/foundation/FoundationPage';
@@ -190,6 +191,7 @@ export function App() {
               <TasksPage key={pageKey} initialViewId="view.calendar" />
             )}
             {destination === 'notes' && <NotesPage key={pageKey} initialPageId={openPageId} />}
+            {destination === 'goals' && <GoalsPage key={pageKey} />}
             {destination === 'reports' && <ReportsPage />}
             {destination === 'settings' && <SettingsPage />}
             {destination === 'diagnostics' && <FoundationPage />}

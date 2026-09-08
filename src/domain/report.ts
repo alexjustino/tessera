@@ -105,7 +105,14 @@ export interface Figure {
   rows: ReportRow[];
 }
 
-function summed(id: string, label: string, rows: ReportRow[]): Figure {
+/**
+ * A figure that adds its rows up, and one that counts them.
+ *
+ * Exported because ADR-024 is a rule about numbers in this product, not about
+ * this module: a goal builds its progress the same way a report builds a
+ * total, so there is one way to make a figure and one thing to check.
+ */
+export function summed(id: string, label: string, rows: ReportRow[]): Figure {
   return {
     id,
     label,
@@ -115,7 +122,7 @@ function summed(id: string, label: string, rows: ReportRow[]): Figure {
   };
 }
 
-function counted(id: string, label: string, rows: ReportRow[]): Figure {
+export function counted(id: string, label: string, rows: ReportRow[]): Figure {
   return { id, label, unit: 'count', value: rows.length, rows };
 }
 

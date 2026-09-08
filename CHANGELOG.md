@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Goals.** A goal is a number to reach — tasks finished, or time tracked —
+  and the tasks that count towards it, which are the ones you put in it.
+  Its progress is the same kind of figure a report produces: press the number
+  and it lists the rows it was added up from, each with the day it landed
+  (ADR-024). A goal keeps no total of its own, so it can never disagree with
+  the work: finish a task anywhere in the product and the goal moves.
+
+  What counts is a decision, not a filter (ADR-030). A goal defined by a saved
+  search would be a number whose rows change when the search does, and "why did
+  my progress go down?" would have an answer nobody could see.
+
 - **Notes, and the links between them.** A new destination: pages, each a name
   and a document, written in the same editor everything else uses. Typing `[[`
   offers the pages you have and, when the name is new, offers to make it — so

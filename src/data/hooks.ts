@@ -22,6 +22,7 @@ import type { BlockChanges } from '@/domain/document';
 import type { Schedule } from '@/domain/schedule';
 import type { Query } from '@/domain/query';
 import type { Link } from '@/domain/page';
+import type { Measure } from '@/domain/goal';
 
 import * as api from './items';
 import * as propertyApi from './properties';
@@ -37,6 +38,7 @@ import * as backupsApi from './backups';
 import * as timeApi from './time';
 import * as templateApi from './templates';
 import * as importApi from './importing';
+import * as goalApi from './goals';
 import * as pageApi from './pages';
 import type { TemplateBody, TemplateEdge } from '@/domain/template';
 
@@ -878,5 +880,73 @@ export function useDeletePage() {
       void client.invalidateQueries({ queryKey: pageKeys.all });
       void client.invalidateQueries({ queryKey: ['backlinks'] });
     },
+  });
+}
+
+// ── Goals ───────────────────────────────────────────────────────────────────
+
+export const goalKeys = {
+  all: ['goals'] as const,
+  links: ['goal-links'] as const,
+};
+
+export function useGoals() {
+  return useQuery({ queryKey: goalKeys.all, queryFn: goalApi.listGoals });
+}
+
+/** Every membership at once — the domain joins them to the tasks in hand. */
+export function useGoalLinks() {
+  return useQuery({ queryKey: goalKeys.links, queryFn: goalApi.listGoalLinks });
+}
+
+export function useCreateGoal() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      name: string;
+      measure: Measure;
+      target: number;
+      dueDay: string | null;
+      position: string;
+    }) => goalApi.createGoal(input),
+    onSuccess: () => client.invalidateQueries({ queryKey: goalKeys.all }),
+  });
+}
+
+export function useUpdateGoal() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: goalApi.GoalPatch }) =>
+      goalApi.updateGoal(id, patch),
+    onSuccess: () => client.invalidateQueries({ queryKey: goalKeys.all }),
+  });
+}
+
+export function useDeleteGoal() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => goalApi.deleteGoal(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: goalKeys.all });
+      await client.invalidateQueries({ queryKey: goalKeys.links });
+    },
+  });
+}
+
+export function useLinkGoalItem() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ goalId, itemId }: { goalId: string; itemId: string }) =>
+      goalApi.linkGoalItem(goalId, itemId),
+    onSuccess: () => client.invalidateQueries({ queryKey: goalKeys.links }),
+  });
+}
+
+export function useUnlinkGoalItem() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ goalId, itemId }: { goalId: string; itemId: string }) =>
+      goalApi.unlinkGoalItem(goalId, itemId),
+    onSuccess: () => client.invalidateQueries({ queryKey: goalKeys.links }),
   });
 }

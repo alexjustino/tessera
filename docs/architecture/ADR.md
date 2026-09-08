@@ -652,3 +652,35 @@ than deleting the row, so the mention survives and the page can come back.
 name — the link still works, and it says the old word. The alternative is rewriting every
 document on every rename, and this product would rather be honest about a stale word than write
 to rows nobody asked it to touch.
+
+## ADR-030 — What counts towards a goal is a decision, not a filter {#adr-030}
+
+**Decision.** A goal's rows are the tasks somebody put in it, stored in `goal_item`, added and
+removed one at a time the way a dependency is. A goal is **not** defined by a saved query.
+Progress is computed from those rows on every render (`progressOf` in `src/domain/goal.ts`) and
+returned as a `Figure`, so it obeys ADR-024: the number carries the rows it came from and can be
+opened.
+
+**Why.** A goal is a claim about intent — "these are the twelve things that make 1.2 shipped".
+A filter is a claim about the present, and it moves. A goal defined by `Priority is high` shows
+progress that drops when somebody re-prioritises a task, and the person watching the number has
+no way to see why. Membership as a decision is auditable: every row is there because it was put
+there, and the list of rows is the explanation.
+
+It is also the only version that can be _wrong in a way a person can fix_. If a goal is missing
+work, they add it; if it counts something it should not, they take it out. A filter's mistake is
+invisible until the number is already wrong.
+
+**Why the progress is not stored.** A stored counter is a second copy of the truth, and it
+drifts the first time a task is completed by a route nobody thought about — the quick-capture
+window, an import, an undo. Recomputing from the rows costs a pass over the tasks a goal holds,
+which is a handful.
+
+**Consequence.** Adding a hundred tasks to a goal is a hundred decisions, which is the honest
+cost of the guarantee. When the product grows saved searches a person can write, a goal over one
+becomes a real option (SPEC A7 deferrals) — as a **second** kind of membership beside this one,
+never as a replacement, because the two answer different questions.
+
+**Cost accepted.** A goal cannot say "everything tagged release", and for a large set that is
+tedious. The alternative is a number whose rows nobody chose, which is the one thing ADR-024
+exists to forbid.

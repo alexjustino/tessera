@@ -43,6 +43,8 @@ pub const TABLES: &[&str] = &[
     "page",
     "block",
     "page_link",
+    "goal",
+    "goal_item",
     "view",
     "reminder",
     "activity",
