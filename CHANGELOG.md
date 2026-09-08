@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Print, and PDF through it.** A Print button on the report and on the task
+  list. What comes out is the same content laid out for a page: the rail, the
+  buttons, the capture line and the view tabs are gone, every figure prints
+  with the rows it was added up from whether or not it was opened on screen,
+  and the page is ink on paper whatever theme the window was in. PDF is the
+  print dialog's own — this product does not need to know which printer a
+  person chose (ADR-031).
+
+  The timeline gets a second rendering for paper. On screen it is one tall
+  scrolling chart of absolutely placed bars; on a page that would put a break
+  through whatever happened to be there, so each task prints as its own row
+  with its own track and the bars are placed in shares of the width. A page
+  break can then only ever fall between rows, and no bar is ever cut.
+
+### Fixed
+
+- **A dark window printed dark.** The paper palette is a third set of tokens
+  beside light and dark, and `@media print` adds no specificity of its own —
+  so a bare `:root` lost to the theme's own selector and a window following a
+  dark desktop printed white text on a dark card. Found by reading the tokens
+  back through the printer's eyes.
+
 - **Goals.** A goal is a number to reach — tasks finished, or time tracked —
   and the tasks that count towards it, which are the ones you put in it.
   Its progress is the same kind of figure a report produces: press the number

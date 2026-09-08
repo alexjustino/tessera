@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { Providers } from '@/app/providers';
 import { Root } from '@/app/Root';
 import '@/styles/global.css';
+import '@/styles/print.css';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('the application root element is missing from index.html');

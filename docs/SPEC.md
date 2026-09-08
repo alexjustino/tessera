@@ -238,6 +238,29 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of A8, and why
+
+The report and the task list print, the timeline prints without cutting a bar,
+and PDF is whatever the print dialog offers. What printing could also do:
+
+- **A PDF written without the dialog.** A silent "Export PDF" needs a renderer
+  of its own — the platform's print-to-file, or a headless engine bundled with
+  the application. The dialog is one keystroke away and already offers it, and
+  a second renderer is a second thing to keep looking like the product.
+- **Headers, footers and page numbers.** `@page` margin boxes are barely
+  supported in the engines this product runs on; the dialog's own header and
+  footer are the honest place for a page number today.
+- **A page for the notes space and for goals.** Both print through the same
+  rules — chrome off, ink on paper — but neither has a rendering of its own,
+  so a long document breaks where the paper ends rather than where a person
+  would choose.
+- **Choosing what to print.** The screen is what prints. A dialog for picking
+  a period, a subset of columns or a range of tasks is a report builder, and
+  it belongs to whoever asks for one.
+- **The timeline's dependencies on paper.** An arrow is a line between two
+  rows, and two rows can be on different sheets. The printed chart says so
+  rather than drawing something misleading.
+
 ### Deferred out of A7, and why
 
 A goal has a target, the tasks that count for it, and progress that opens onto

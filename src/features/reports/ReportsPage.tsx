@@ -1,4 +1,4 @@
-import { ChevronLeft20Regular, ChevronRight20Regular } from '@fluentui/react-icons';
+import { ChevronLeft20Regular, ChevronRight20Regular, Print20Regular } from '@fluentui/react-icons';
 import { useMemo, useState, type ReactNode } from 'react';
 
 import { describeError } from '@/data/errors';
@@ -110,11 +110,24 @@ export function ReportsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
-      <header>
-        <h1 className="text-title font-semibold text-fg">Reports</h1>
-        <p className="mt-1 text-body text-fg-secondary">
-          What a week or a month held. Open any number to see the rows it was added up from.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-title font-semibold text-fg">Reports</h1>
+          <p className="mt-1 text-body text-fg-secondary">
+            What a week or a month held. Open any number to see the rows it was added up from.
+          </p>
+        </div>
+        {/* Printing is the window's own: the dialog it opens is where a person
+            chooses a printer or a PDF, and this product does not need to know
+            which (ADR-031). */}
+        <Button
+          appearance="subtle"
+          icon={<Print20Regular />}
+          className="print-hide shrink-0"
+          onClick={() => window.print()}
+        >
+          Print
+        </Button>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">

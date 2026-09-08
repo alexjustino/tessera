@@ -248,3 +248,73 @@ export function columnsOf(timeline: Timeline): string[] {
     addLocalDays(timeline.firstDay, index),
   );
 }
+
+// ── On paper ───────────────────────────────────────────────────────────────
+
+/**
+ * One row of a printed timeline: a bar placed in shares of the page's width.
+ *
+ * The screen draws the chart as one tall canvas of absolutely positioned bars,
+ * which is right for scrolling and wrong for paper — a page break would fall
+ * wherever the paper ended, through the middle of whatever was there. On paper
+ * each task is its own block with its own track, so a break can only ever fall
+ * *between* rows (ADR-031), and the bar is placed in percentages so the chart
+ * is as wide as the page rather than as wide as the days.
+ */
+export interface PrintRow {
+  id: string;
+  title: string;
+  /** Where the bar starts, 0 to 1 across the window. */
+  left: number;
+  /** How wide it is, 0 to 1. Never zero: a bar nobody can see is not a bar. */
+  width: number;
+  isMilestone: boolean;
+  completed: boolean;
+  critical: boolean;
+}
+
+/** The narrowest a printed bar may be, as a share of the width. */
+const MIN_PRINT_WIDTH = 0.01;
+
+/**
+ * The chart's bars as page rows, in the order they are drawn.
+ *
+ * A milestone is a point in time and has no span; it is given the minimum
+ * width so it appears at all, which is the same compromise the screen makes.
+ */
+export function printRows(timeline: Timeline): PrintRow[] {
+  const days = Math.max(1, timeline.days);
+  return [...timeline.bars]
+    .sort((a, b) => a.row - b.row)
+    .map((bar) => {
+      const left = Math.min(1, Math.max(0, bar.startDay / days));
+      const width = Math.max(MIN_PRINT_WIDTH, Math.min(1 - left, bar.spanDays / days));
+      return {
+        id: bar.id,
+        title: bar.title,
+        left,
+        width,
+        isMilestone: bar.isMilestone,
+        completed: bar.completed,
+        critical: bar.critical,
+      };
+    });
+}
+
+/**
+ * Dates to label the printed axis with, evenly spaced across the window.
+ *
+ * A printed chart has no scrollbar and no hover, so the axis is the only thing
+ * that says when anything is. Always at least the two ends, because a scale
+ * with one label is a scale that tells you nothing.
+ */
+export function axisTicks(timeline: Timeline, count = 5): Array<{ day: string; at: number }> {
+  const days = Math.max(1, timeline.days);
+  const stops = Math.max(2, Math.min(count, days));
+  const ticks: Array<{ day: string; at: number }> = [];
+  for (let index = 0; index < stops; index += 1) {
+    const offset = Math.round((index * (days - 1)) / (stops - 1));
+    ticks.push({ day: addLocalDays(timeline.firstDay, offset), at: offset / days });
+  }
+  return ticks;
+}

@@ -9,6 +9,8 @@ import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
 import { announce } from '@/ui/announce';
 
+import { TimelinePrint } from './TimelinePrint';
+
 /** How wide a day is. Everything horizontal derives from this. */
 const DAY_WIDTH = 32;
 
@@ -156,11 +158,16 @@ export function TimelineView({
         </p>
       )}
 
+      {/* Paper gets its own rendering of the same chart (ADR-031): the one
+          below is a scrolling canvas, and a page break through it would cut a
+          bar in half. */}
+      <TimelinePrint timeline={timeline} />
+
       <div
         // `items-start` matters: without it the gutter and the chart stretch to
         // the container's height and paint a slab of background under a short
         // chart. The screenshot showed it; no test would have.
-        className="flex min-h-0 flex-1 items-start overflow-auto"
+        className="flex min-h-0 flex-1 items-start overflow-auto print:hidden"
         role="region"
         aria-label="Timeline"
       >

@@ -1,0 +1,96 @@
+/*
+ * Tessera — paper
+ * ---------------------------------------------------------------------------
+ * What comes out of the printer is the same content, laid out for a page: the
+ * report is the report, the timeline is the timeline, and everything that is
+ * only there to be clicked is gone (ADR-031).
+ *
+ * Three rules run through all of it.
+ *
+ * **Ink on paper, not a screenshot of a dark window.** The application paints
+ * itself onto a Mica material in whatever theme the desktop is in; a printer
+ * has white paper and black ink. The tokens have a third context for that —
+ * `@media print` in `tokens.css`, beside light and dark — so nothing here
+ * writes a colour, and nobody has to remember to switch themes first.
+ *
+ * **Chrome does not print.** The rail, the title bar, the buttons, the drag
+ * handles: none of it is content, and each one printed is a line of ink that
+ * says nothing.
+ *
+ * **Nothing is cut in half.** Cards, figures with their rows, and every
+ * timeline row are kept whole across a page break. A bar sliced by a page
+ * boundary is the failure this slice exists to avoid.
+ */
+
+@media print {
+  html,
+  body,
+  #root {
+    height: auto;
+    overflow: visible;
+    background: #ffffff;
+  }
+
+  body {
+    color: #000000;
+  }
+
+  /* Scrolling regions are a screen idea: on paper the content is all there. */
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .overflow-auto,
+  main {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* ── Chrome does not print ─────────────────────────────────────────────── */
+  nav[aria-label='Main'],
+  [data-tauri-drag-region],
+  .print-hide {
+    display: none !important;
+  }
+
+  /* A button is a thing to press. Paper has none. */
+  button:not(.print-keep) {
+    display: none !important;
+  }
+
+  /* Except a figure's value, which is the number the report is about. It has
+     to out-specify the rule above — `button:not(.print-keep)` counts a class
+     and an element — or the printed report is a page of labels with no
+     figures beside them, which is what the artefact showed. */
+  button[data-testid='figure-value'] {
+    display: inline !important;
+    padding: 0 !important;
+    background: none !important;
+    color: #000000 !important;
+  }
+
+  /* ── Nothing is cut in half ────────────────────────────────────────────── */
+  [data-print-row],
+  [data-testid='figure'],
+  li,
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* ── The page itself ───────────────────────────────────────────────────── */
+  @page {
+    margin: 16mm;
+  }
+
+  /* The content column is the paper's, not the window's. */
+  .max-w-3xl {
+    max-width: none !important;
+  }
+}

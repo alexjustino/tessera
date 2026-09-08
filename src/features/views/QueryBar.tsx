@@ -75,7 +75,7 @@ export function QueryBar({
 
   return (
     <>
-      <div className="flex items-center justify-between gap-3 py-1">
+      <div className="print-hide flex items-center justify-between gap-3 py-1">
         <p className="truncate text-caption text-fg-tertiary">
           {summary === '' ? 'No filters' : summary}
           {matched !== total && ` · showing ${matched} of ${total}`}
