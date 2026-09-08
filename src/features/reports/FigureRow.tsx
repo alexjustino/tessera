@@ -59,8 +59,16 @@ export function FigureRow({
         </button>
       </div>
 
-      {open && (
-        <ul className="mt-1 mb-2 ml-3 flex flex-col gap-0.5 border-l border-stroke-subtle pl-3">
+      {/* On screen the rows are shown when the figure is opened; on paper they
+          are always shown, because the rows are what makes the number worth
+          printing (ADR-024). */}
+      {figure.rows.length > 0 && (
+        <ul
+          className={[
+            'mt-1 mb-2 ml-3 flex-col gap-0.5 border-l border-stroke-subtle pl-3',
+            open ? 'flex' : 'hidden print:flex',
+          ].join(' ')}
+        >
           {figure.rows.map((row) => (
             <li
               key={row.key}

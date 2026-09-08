@@ -2,6 +2,7 @@ import {
   Add20Regular,
   CopyAdd20Regular,
   Options20Regular,
+  Print20Regular,
   TaskListSquareLtr24Regular,
 } from '@fluentui/react-icons';
 import { useCallback, useMemo, useState } from 'react';
@@ -289,6 +290,16 @@ export function TasksPage({
           )}
         </div>
         <div className="flex items-center gap-1">
+          {/* Prints whatever view is on screen — the list, the table, or the
+              timeline, which has a rendering of its own for paper. */}
+          <Button
+            appearance="subtle"
+            icon={<Print20Regular />}
+            className="print-hide"
+            onClick={() => window.print()}
+          >
+            Print
+          </Button>
           <Button
             appearance="subtle"
             icon={<CopyAdd20Regular />}
@@ -316,18 +327,22 @@ export function TasksPage({
         </p>
       )}
 
-      <CaptureLine value={draft} onChange={setDraft} onSubmit={submit} autoFocus>
-        {({ ready }) => (
-          <Button
-            type="submit"
-            appearance="accent"
-            icon={<Add20Regular />}
-            disabled={!ready || create.isPending}
-          >
-            Add
-          </Button>
-        )}
-      </CaptureLine>
+      {/* A line for typing into, the view tabs and the filter summary are all
+          things to press. Paper gets the list they produced. */}
+      <div className="print-hide contents">
+        <CaptureLine value={draft} onChange={setDraft} onSubmit={submit} autoFocus>
+          {({ ready }) => (
+            <Button
+              type="submit"
+              appearance="accent"
+              icon={<Add20Regular />}
+              disabled={!ready || create.isPending}
+            >
+              Add
+            </Button>
+          )}
+        </CaptureLine>
+      </div>
 
       {failure && (
         <InfoBar
@@ -339,21 +354,23 @@ export function TasksPage({
       )}
 
       {(views.data ?? []).length > 0 && (
-        <TabStrip
-          tabs={(views.data ?? []).map((candidate) => ({
-            id: candidate.id,
-            label: candidate.name,
-          }))}
-          active={view?.id ?? ''}
-          onSelect={(id) => {
-            setActiveViewId(id);
-            // Switching views abandons an unsaved query rather than carrying it
-            // across. Silently applying one view's filters to another is the
-            // kind of surprise that makes a person distrust the whole screen.
-            setDraftQuery(null);
-            setDraftBoard(null);
-          }}
-        />
+        <div className="print-hide">
+          <TabStrip
+            tabs={(views.data ?? []).map((candidate) => ({
+              id: candidate.id,
+              label: candidate.name,
+            }))}
+            active={view?.id ?? ''}
+            onSelect={(id) => {
+              setActiveViewId(id);
+              // Switching views abandons an unsaved query rather than carrying it
+              // across. Silently applying one view's filters to another is the
+              // kind of surprise that makes a person distrust the whole screen.
+              setDraftQuery(null);
+              setDraftBoard(null);
+            }}
+          />
+        </div>
       )}
 
       {view !== null && (
