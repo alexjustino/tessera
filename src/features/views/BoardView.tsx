@@ -146,7 +146,10 @@ export function BoardView({
       onDragEnd={onDragEnd}
       onDragCancel={() => setDragging(null)}
     >
-      <div className="flex h-full gap-3 overflow-x-auto pb-2">
+      {/* Named, like the timeline's region: a scrolling area with no
+          accessible name is one a screen reader cannot announce and a test
+          cannot address without reading the whole window. */}
+      <div role="region" aria-label="Board" className="flex h-full gap-3 overflow-x-auto pb-2">
         {columns.map((column) => (
           <BoardColumn
             key={columnKeyToStorage(column.key)}
