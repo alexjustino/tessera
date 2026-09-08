@@ -18,7 +18,6 @@ import {
   periodOf,
   shiftPeriod,
   traceable,
-  type Period,
   type PeriodKind,
 } from '@/domain/report';
 import { occurrencesBetween, systemZone } from '@/domain/schedule';
@@ -30,7 +29,7 @@ import { InfoBar } from '@/ui/InfoBar';
 import { TabStrip } from '@/ui/TabStrip';
 import { useNow } from '@/ui/useNow';
 
-import { describeDay } from './describeDay';
+import { describeDay, describePeriod } from './format';
 import { FigureRow } from './FigureRow';
 
 /**
@@ -285,13 +284,3 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
  * button says so to a screen reader through `aria-expanded`. A figure that
  * does not add up shows no number at all — the rule the page is built on.
  */
-function describePeriod(period: Period): string {
-  const [year, month, date] = period.firstDay.split('-').map(Number);
-  const start = new Date(year!, month! - 1, date!);
-  if (period.kind === 'month') {
-    return start.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-  }
-  const [ly, lm, ld] = period.lastDay.split('-').map(Number);
-  const end = new Date(ly!, lm! - 1, ld!);
-  return `${start.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
-}

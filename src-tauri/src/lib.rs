@@ -172,6 +172,7 @@ pub fn run() {
             commands::blocks::blocks_apply,
             commands::calendar::calendars_list,
             commands::calendar::work_hours_list,
+            commands::calendar::work_hours_set,
             commands::calendar::events_list,
             commands::calendar::event_exceptions_list,
             commands::calendar::event_create,

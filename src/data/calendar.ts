@@ -82,6 +82,22 @@ export async function listWorkHours(): Promise<WorkHours[]> {
   }));
 }
 
+/** Replace the working week — every day of it, in one call. */
+export async function setWorkHours(hours: readonly WorkHours[]): Promise<WorkHours[]> {
+  const raw = await invoke<RawWorkHours[]>('work_hours_set', {
+    hours: hours.map((day) => ({
+      weekday: day.weekday,
+      starts_minute: day.startsMinute,
+      ends_minute: day.endsMinute,
+    })),
+  });
+  return raw.map((row) => ({
+    weekday: row.weekday,
+    startsMinute: row.starts_minute,
+    endsMinute: row.ends_minute,
+  }));
+}
+
 export async function listEvents(
   from: string,
   to: string,

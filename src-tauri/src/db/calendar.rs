@@ -65,6 +65,36 @@ pub fn list_work_hours(conn: &Connection) -> Result<Vec<WorkHours>> {
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
+/// Replace the working week.
+///
+/// All of it at once, because a working week is one statement: sending five
+/// days and keeping a sixth from before would leave a week nobody chose. A day
+/// that is not sent is a day off, which is how a four-day week is said.
+pub fn set_work_hours(conn: &mut Connection, hours: &[WorkHours]) -> Result<Vec<WorkHours>> {
+    for entry in hours {
+        if !(0..=6).contains(&entry.weekday) {
+            return Err(Error::InvalidInput("that is not a day of the week"));
+        }
+        if entry.starts_minute < 0 || entry.ends_minute > 24 * 60 {
+            return Err(Error::InvalidInput("a working day is inside a day"));
+        }
+        if entry.ends_minute <= entry.starts_minute {
+            return Err(Error::InvalidInput("a working day ends after it starts"));
+        }
+    }
+
+    let transaction = conn.transaction()?;
+    transaction.execute("DELETE FROM work_hours", [])?;
+    for entry in hours {
+        transaction.execute(
+            "INSERT INTO work_hours (weekday, starts_minute, ends_minute) VALUES (?1, ?2, ?3)",
+            params![entry.weekday, entry.starts_minute, entry.ends_minute],
+        )?;
+    }
+    transaction.commit()?;
+    list_work_hours(conn)
+}
+
 /// Events that could appear in a window.
 ///
 /// "Could", not "do". A recurring event is returned whenever its series might
@@ -610,5 +640,48 @@ mod tests {
             rename_event(&conn, "nope", "x"),
             Err(Error::NotFound)
         ));
+    }
+
+    #[test]
+    fn a_working_week_is_replaced_whole_and_checked_first() {
+        let mut conn = workspace();
+        let week = vec![
+            WorkHours {
+                weekday: 1,
+                starts_minute: 8 * 60,
+                ends_minute: 16 * 60,
+            },
+            WorkHours {
+                weekday: 2,
+                starts_minute: 8 * 60,
+                ends_minute: 16 * 60,
+            },
+        ];
+        let saved = set_work_hours(&mut conn, &week).unwrap();
+        assert_eq!(saved.len(), 2);
+        // The seeded five are gone: a week is one statement, not five.
+        assert_eq!(list_work_hours(&conn).unwrap(), week);
+
+        for wrong in [
+            WorkHours {
+                weekday: 9,
+                starts_minute: 0,
+                ends_minute: 60,
+            },
+            WorkHours {
+                weekday: 1,
+                starts_minute: 600,
+                ends_minute: 600,
+            },
+            WorkHours {
+                weekday: 1,
+                starts_minute: 600,
+                ends_minute: 25 * 60,
+            },
+        ] {
+            assert!(set_work_hours(&mut conn, &[wrong]).is_err());
+        }
+        // Nothing was written by a refused week.
+        assert_eq!(list_work_hours(&conn).unwrap(), week);
     }
 }

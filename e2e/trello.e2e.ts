@@ -168,9 +168,17 @@ describe('a Trello board', () => {
 
     // With no cards left the page shows its empty state rather than the
     // columns, so what is checked is the absence: no Trello column, no card.
+    //
+    // Read from the board, not from the window. The whole page's text includes
+    // the navigation rail, and the day a destination was called "Review" this
+    // assertion started failing for a column that had gone.
     await goTo('Board');
     await driver.waitFor('the Trello columns are gone', async () => {
-      const text = await driver.execute<string>('return document.body.innerText');
+      const text = await driver.execute<string | null>(
+        `const board = document.querySelector('[role="region"][aria-label="Board"]');
+         return board === null ? null : board.innerText;`,
+      );
+      if (text === null) return true; // No board at all: no columns either.
       return !text.includes('Review') && !text.includes('Ideas') ? true : null;
     });
     expect((await driver.findAll('button[aria-label^="Open "]')).length).toBe(0);

@@ -2,6 +2,7 @@ import {
   Board20Regular,
   Notebook20Regular,
   Target20Regular,
+  TaskListLtr20Regular,
   Info20Regular,
   Calendar20Regular,
   DataBarHorizontal20Regular,
@@ -30,6 +31,7 @@ export type Destination =
   | 'calendar'
   | 'notes'
   | 'goals'
+  | 'review'
   | 'reports'
   | 'settings'
   | 'diagnostics'
@@ -49,6 +51,7 @@ const ENTRIES: Entry[] = [
   { id: 'calendar', label: 'Calendar', icon: <Calendar20Regular />, ready: true },
   { id: 'notes', label: 'Notes', icon: <Notebook20Regular />, ready: true },
   { id: 'goals', label: 'Goals', icon: <Target20Regular />, ready: true },
+  { id: 'review', label: 'Review', icon: <TaskListLtr20Regular />, ready: true },
   { id: 'reports', label: 'Reports', icon: <DataBarHorizontal20Regular />, ready: true },
   { id: 'settings', label: 'Settings', icon: <Settings20Regular />, ready: true },
   { id: 'diagnostics', label: 'Diagnostics', icon: <Wrench20Regular />, ready: true },
