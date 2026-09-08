@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The weekly review.** A new destination that shows what is _missing_, which
+  every other screen is structurally unable to do: goals with nothing to pick
+  up next, tasks whose blockers have since been finished and which nobody has
+  claimed, and estimated work due this week with no time reserved against the
+  working time the week has left.
+
+  There is nothing to press to say the review is done (ADR-032). It says so
+  itself when the first two lists are empty — a fact about the workspace rather
+  than a claim about the person — so the only way to finish a review is to fix
+  what it found.
+
+- **The working week can be said.** Settings gains the hours of each day, and a
+  day that is off simply has none. The calendar has shaded those hours and the
+  year view has measured against them since 1.1, and until now everybody had
+  the same Monday-to-Friday whether they worked it or not; the review reads
+  them too.
+
 - **Print, and PDF through it.** A Print button on the report and on the task
   list. What comes out is the same content laid out for a page: the rail, the
   buttons, the capture line and the view tabs are gone, every figure prints

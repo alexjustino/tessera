@@ -238,6 +238,32 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of A9, and why
+
+The review shows three gaps and finishes when the first two are empty. What a
+review could also do:
+
+- **A record of reviews done.** A date, a streak, a "last reviewed" badge. All
+  of it is state about the person rather than about the work (ADR-032), and
+  the first thing a streak does is make somebody mark a review done that
+  wasn't.
+- **Acting from inside it.** Today a gap is named and you go and fix it — add
+  a task to the goal, give the freed task a day. Putting those edits in the
+  review means a second copy of two editors, and the lists are short by
+  construction.
+- **Anything but a week.** A month, a quarter, a custom range. The review's
+  arithmetic is a week's, and the arrows already walk to any week; a longer
+  period asks a different question about capacity.
+- **Inbox zero.** GTD's collect step needs a place things land that is not the
+  task list, and this product's quick capture puts them straight in it. A
+  separate inbox is a decision about capture, not about review.
+- **Someday/maybe, contexts and energy.** Each is a property a person can
+  already make, and none of them is what makes a review a review.
+- **The first day of the week.** The review, the calendar and the report all
+  assume Monday. It is one setting and one parameter already threaded through
+  the domain (`startsOn`), and it belongs with whoever needs a Sunday week —
+  the working hours were the half this slice actually reads.
+
 ### Deferred out of A8, and why
 
 The report and the task list print, the timeline prints without cutting a bar,

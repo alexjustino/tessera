@@ -719,3 +719,33 @@ the data. What the printed chart gives up — the dependency arrows — it says 
 re-applies the application's own `@media print` rules and reads the result. That proves what the
 rules do; that a browser applies them when it prints is the browser's promise, not this
 product's.
+
+## ADR-032 — The review keeps no state {#adr-032}
+
+**Decision.** The weekly review stores nothing: no "reviewed" flag, no last-reviewed date, no
+streak, no dismissals. `buildReview` in `src/domain/review.ts` is a query over the tasks, the
+dependencies, the goals and the calendar, and `isFinished` is true when its first two lists are
+empty. The screen says the review is finished only then.
+
+**Why.** A review that can be marked done is a review that gets marked done. The moment there is
+a button, the button becomes the goal, and a person can be up to date on a workspace with three
+goals nobody can move — which is exactly the state the review exists to find. Making "finished"
+a property of the workspace rather than of the person removes the possibility.
+
+It also removes a whole category of staleness. A stored flag has to be invalidated by every
+write that could reopen a gap — completing a task, deleting a goal, undoing an import — and
+missing one leaves the product asserting something false. A query cannot be stale.
+
+**Why these three gaps.** Each is an **absence**, and an absence is what no other screen can
+show: a list shows the tasks that exist, a goal shows the rows it has, a calendar shows the time
+that is reserved. Nothing anywhere announces that a task became workable because somebody else
+finished something, or that a goal has quietly stopped having a next action.
+
+**Consequence.** The review cannot say "you have not reviewed in three weeks", and will not
+grow a notification. Its cost is a pass over the workspace each time it is opened, which is the
+same order as the report's and is memoised on its inputs. Acting on what it finds happens on the
+screens that own those edits, which keeps one editor per thing.
+
+**Cost accepted.** Somebody who wants the ritual recorded — a habit tracker's satisfaction — does
+not get it here. They can make a repeating task called "Weekly review", which is the product's
+own answer to a recurring commitment, and it will be counted like any other work.
