@@ -7,7 +7,136 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-09-08
+
+The adopter. 1.1 answered "will this finish, and when"; 1.2 answers "can I move
+in". Everything you already keep somewhere else comes in — Todoist, Microsoft
+To Do, Trello, Notion and any calendar — through one door that previews what it
+would do, applies it in a single transaction and undoes it as one thing. And
+the rest of your thinking gets somewhere to live: a notes space where pages
+link to each other by name, goals whose progress is only ever the sum of the
+rows behind it, a weekly review that shows what is missing, and a Print button
+that puts any of it on paper. Still entirely on your machine, still no account
+anywhere.
+
+### Migrations
+
+This release adds migrations **013** (`import_batch` and `import_row`, so an
+import can be undone as one thing), **014** (`before_json` on an import's rows,
+so a property the import extended is restored exactly), **015** (`page` and
+`page_link`, the notes space and the index of what points at what) and **016**
+(`goal` and `goal_item`, an intention and the tasks that count for it). All
+forward-only. A 1.1.0 workspace — schema version 14 — opens in 1.2.0 and is
+migrated to 16 on first start; the round-trip test walks every version writing
+rows at each, and the end-to-end suite opens a real 1.1.0 file in the 1.2.0
+binary, finds everything it held, and uses this release's features on rows the
+last one wrote.
+
 ### Added
+
+- **The import door.** Import from another Tessera workspace's export without
+  replacing your own. The file is read, set against what you already have, and
+  shown before anything is written: what would be created, and what looks like
+  something already here — the same title in the same collection on the same
+  day. You choose whether to skip those; nothing is merged by guesswork. The
+  import is one step, and it appears in a list under Settings from where the
+  whole of it can be undone as one thing: after undo, the workspace is what it
+  was, row for row. What the file held that could not be carried is said in
+  sentences, never dropped silently.
+
+- **Import from Todoist and Microsoft To Do.** Two more files through the
+  door. A Todoist project's CSV (_Export as a template_) brings its tasks
+  with their descriptions and notes, priorities (p1 to urgent, p2 to high, p3
+  to medium) and due dates read in the zone the file names. A To Do list
+  brings what Outlook exports for it (File → Open & Export → Export to a file →
+  CSV of the Tasks folder): subject, notes, start and due dates, completion
+  with its date, High and Low priority, and the status onto the seeded one.
+  What neither can carry is said in sentences before anything is written —
+  sections, nesting, recurrence, reminders, categories, a date that could not
+  be read. The preview asks where the tasks should go; by default they land in
+  the list you look at.
+
+- **Import from Trello.** A board's JSON export becomes a board here. Its
+  lists become the columns — options of the Status property; a list named
+  like a column you already have ("Done") lands in it, any other becomes a
+  new column, placed as to do, doing or done by what its name says. Cards
+  arrive in list order then card order, with the description as notes and
+  each checklist as a heading and a real checklist of ticked and unticked
+  items. Labels become a Labels property, one choice per label. A card marked
+  complete is completed on its due date. Archived lists and cards,
+  attachments, comments, members and custom fields are said, not carried —
+  and undoing the import puts the Status options back exactly as they were.
+
+- **Import from Notion.** A database's Markdown & CSV export becomes a
+  collection. Notion writes no types into its CSV, so each column's type is
+  **inferred from its values** — a column of Yes and No is a checkbox, of
+  numbers a number, of `2026-09-15` a date, of links a link, of a few words
+  that repeat a set of choices — and text whenever the values disagree, which
+  is the honest answer rather than a wrong guess. Each row's page becomes its
+  document: headings, bullet and numbered lists, checklists, quotes, code and
+  the bold, italic, code and links inside them.
+
+  A column whose name is already taken here is reconciled rather than
+  refused: a Notion "Status" meets this workspace's own Status and its values
+  land in the columns already there by name; a genuine clash keeps its own
+  column under a distinct name and says so (ADR-027).
+
+- **Import from a calendar (ICS).** The file every calendar exports — Outlook,
+  Google, Apple — becomes events here, with the two things that make a
+  calendar a calendar: **a repeat and its exceptions**. A weekly meeting
+  arrives as its rule, the Tuesday somebody cancelled stays cancelled, and the
+  Thursday moved to 15:00 is at 15:00. Times keep the zone they were written
+  in, so a 09:00 meeting in London is still 09:00 in London on both sides of
+  the days the clocks change (ADR-013); a zone the file names by Windows'
+  name for it is recognised, and one that cannot be is read in this
+  workspace's zone and said out loud (ADR-028). A `VTODO` — what Apple
+  Reminders and a few task apps export — becomes a task, with its due date,
+  its priority and whether it is done.
+
+  What a calendar keeps to itself is listed before anything is imported:
+  reminders, guests, dates added to a series by hand, and a change that was
+  meant for every occurrence after it.
+
+- **Notes, and the links between them.** A new destination: pages, each a name
+  and a document, written in the same editor everything else uses. Typing `[[`
+  offers the pages you have and, when the name is new, offers to make it — so
+  a page comes into being because you meant it.
+
+  A link **points at the page, not at its name**: rename a page and every link
+  to it holds, and reads as the new name the next time the document is opened
+  (ADR-029). A link written for a page that does not exist keeps the name it
+  was written with and finds its page the day one is made. Deleting a page
+  leaves the mentions of it where they are, dimmed and dotted.
+
+  Every page says **who points here**, which is what makes a set of notes
+  something you can navigate a year later — a page you never linked _from_ is
+  still reachable from the page you linked _to_. Search covers pages: their
+  names and everything written in them, in the same box as tasks and events.
+
+- **Goals.** A goal is a number to reach — tasks finished, or time tracked —
+  and the tasks that count towards it, which are the ones you put in it.
+  Its progress is the same kind of figure a report produces: press the number
+  and it lists the rows it was added up from, each with the day it landed
+  (ADR-024). A goal keeps no total of its own, so it can never disagree with
+  the work: finish a task anywhere in the product and the goal moves.
+
+  What counts is a decision, not a filter (ADR-030). A goal defined by a saved
+  search would be a number whose rows change when the search does, and "why did
+  my progress go down?" would have an answer nobody could see.
+
+- **Print, and PDF through it.** A Print button on the report and on the task
+  list. What comes out is the same content laid out for a page: the rail, the
+  buttons, the capture line and the view tabs are gone, every figure prints
+  with the rows it was added up from whether or not it was opened on screen,
+  and the page is ink on paper whatever theme the window was in. PDF is the
+  print dialog's own — this product does not need to know which printer a
+  person chose (ADR-031).
+
+  The timeline gets a second rendering for paper. On screen it is one tall
+  scrolling chart of absolutely placed bars; on a page that would put a break
+  through whatever happened to be there, so each task prints as its own row
+  with its own track and the bars are placed in shares of the width. A page
+  break can then only ever fall between rows, and no bar is ever cut.
 
 - **The weekly review.** A new destination that shows what is _missing_, which
   every other screen is structurally unable to do: goals with nothing to pick
@@ -26,71 +155,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the same Monday-to-Friday whether they worked it or not; the review reads
   them too.
 
-- **Print, and PDF through it.** A Print button on the report and on the task
-  list. What comes out is the same content laid out for a page: the rail, the
-  buttons, the capture line and the view tabs are gone, every figure prints
-  with the rows it was added up from whether or not it was opened on screen,
-  and the page is ink on paper whatever theme the window was in. PDF is the
-  print dialog's own — this product does not need to know which printer a
-  person chose (ADR-031).
-
-  The timeline gets a second rendering for paper. On screen it is one tall
-  scrolling chart of absolutely placed bars; on a page that would put a break
-  through whatever happened to be there, so each task prints as its own row
-  with its own track and the bars are placed in shares of the width. A page
-  break can then only ever fall between rows, and no bar is ever cut.
-
-### Fixed
-
-- **A dark window printed dark.** The paper palette is a third set of tokens
-  beside light and dark, and `@media print` adds no specificity of its own —
-  so a bare `:root` lost to the theme's own selector and a window following a
-  dark desktop printed white text on a dark card. Found by reading the tokens
-  back through the printer's eyes.
-
-- **Goals.** A goal is a number to reach — tasks finished, or time tracked —
-  and the tasks that count towards it, which are the ones you put in it.
-  Its progress is the same kind of figure a report produces: press the number
-  and it lists the rows it was added up from, each with the day it landed
-  (ADR-024). A goal keeps no total of its own, so it can never disagree with
-  the work: finish a task anywhere in the product and the goal moves.
-
-  What counts is a decision, not a filter (ADR-030). A goal defined by a saved
-  search would be a number whose rows change when the search does, and "why did
-  my progress go down?" would have an answer nobody could see.
-
-- **Notes, and the links between them.** A new destination: pages, each a name
-  and a document, written in the same editor everything else uses. Typing `[[`
-  offers the pages you have and, when the name is new, offers to make it — so
-  a page comes into being because you meant it.
-
-  A link **points at the page, not at its name**: rename a page and every link
-  to it holds, and reads as the new name the next time the document is opened
-  (ADR-029). A link written for a page that does not exist keeps the name it
-  was written with and finds its page the day one is made. Deleting a page
-  leaves the mentions of it where they are, dimmed and dotted.
-
-  Every page says **who points here**, which is what makes a set of notes
-  something you can navigate a year later — a page you never linked _from_ is
-  still reachable from the page you linked _to_. Search covers pages: their
-  names and everything written in them, in the same box as tasks and events.
-
-- **Import from a calendar (ICS).** The file every calendar exports — Outlook,
-  Google, Apple — becomes events here, with the two things that make a
-  calendar a calendar: **a repeat and its exceptions**. A weekly meeting
-  arrives as its rule, the Tuesday somebody cancelled stays cancelled, and the
-  Thursday moved to 15:00 is at 15:00. Times keep the zone they were written
-  in, so a 09:00 meeting in London is still 09:00 in London on both sides of
-  the days the clocks change (ADR-013); a zone the file names by Windows'
-  name for it is recognised, and one that cannot be is read in this
-  workspace's zone and said out loud (ADR-028). A `VTODO` — what Apple
-  Reminders and a few task apps export — becomes a task, with its due date,
-  its priority and whether it is done.
-
-  What a calendar keeps to itself is listed before anything is imported:
-  reminders, guests, dates added to a series by hand, and a change that was
-  meant for every occurrence after it.
-
 ### Fixed
 
 - **A repeat that ends on a date no longer loses its last occurrence.** A rule
@@ -101,52 +165,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   found by the calendar importer and it was never only about imports: a rule
   typed here had it too.
 
-- **Import from Notion.** A database's Markdown & CSV export becomes a
-  collection. Notion writes no types into its CSV, so each column's type is
-  **inferred from its values** — a column of Yes and No is a checkbox, of
-  numbers a number, of `2026-09-15` a date, of links a link, of a few words
-  that repeat a set of choices — and text whenever the values disagree, which
-  is the honest answer rather than a wrong guess. Each row's page becomes its
-  document: headings, bullet and numbered lists, checklists, quotes, code and
-  the bold, italic, code and links inside them.
-
-  A column whose name is already taken here is reconciled rather than
-  refused: a Notion "Status" meets this workspace's own Status and its values
-  land in the columns already there by name; a genuine clash keeps its own
-  column under a distinct name and says so (ADR-027).
-
-- **Import from Trello.** A board's JSON export becomes a board here. Its
-  lists become the columns — options of the Status property; a list named
-  like a column you already have ("Done") lands in it, any other becomes a
-  new column, placed as to do, doing or done by what its name says. Cards
-  arrive in list order then card order, with the description as notes and
-  each checklist as a heading and a real checklist of ticked and unticked
-  items. Labels become a Labels property, one choice per label. A card marked
-  complete is completed on its due date. Archived lists and cards,
-  attachments, comments, members and custom fields are said, not carried —
-  and undoing the import puts the Status options back exactly as they were.
-
-- **Import from Todoist and Microsoft To Do.** Two more files through the
-  door. A Todoist project's CSV (_Export as a template_) brings its tasks
-  with their descriptions and notes, priorities (p1 to urgent, p2 to high, p3
-  to medium) and due dates read in the zone the file names. A To Do list
-  brings what Outlook exports for it (File → Open & Export → Export to a file →
-  CSV of the Tasks folder): subject, notes, start and due dates, completion
-  with its date, High and Low priority, and the status onto the seeded one.
-  What neither can carry is said in sentences before anything is written —
-  sections, nesting, recurrence, reminders, categories, a date that could not
-  be read. The preview asks where the tasks should go; by default they land in
-  the list you look at.
-
-- **The import door.** Import from another Tessera workspace's export without
-  replacing your own. The file is read, set against what you already have, and
-  shown before anything is written: what would be created, and what looks like
-  something already here — the same title in the same collection on the same
-  day. You choose whether to skip those; nothing is merged by guesswork. The
-  import is one step, and it appears in a list under Settings from where the
-  whole of it can be undone as one thing: after undo, the workspace is what it
-  was, row for row. What the file held that could not be carried is said in
-  sentences, never dropped silently.
+- **A dark window printed dark.** The paper palette is a third set of tokens
+  beside light and dark, and `@media print` adds no specificity of its own —
+  so a bare `:root` lost to the theme's own selector and a window following a
+  dark desktop printed white text on a dark card. Found by reading the tokens
+  back through the printer's eyes.
 
 ## [1.1.0] — 2026-09-04
 
