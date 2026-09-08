@@ -23,6 +23,7 @@ import type { Schedule } from '@/domain/schedule';
 import type { Query } from '@/domain/query';
 import type { Link } from '@/domain/page';
 import type { Measure } from '@/domain/goal';
+import type { WorkHours } from '@/domain/calendar';
 
 import * as api from './items';
 import * as propertyApi from './properties';
@@ -381,6 +382,15 @@ export function useCalendars() {
 
 export function useWorkHours() {
   return useQuery({ queryKey: calendarKeys.workHours, queryFn: calendarApi.listWorkHours });
+}
+
+export function useSetWorkHours() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (hours: readonly WorkHours[]) => calendarApi.setWorkHours(hours),
+    // Capacity, the year view and the review all read the working week.
+    onSuccess: () => client.invalidateQueries(),
+  });
 }
 
 export function useEvents(from: string, to: string, calendars: calendarApi.Calendar[]) {
