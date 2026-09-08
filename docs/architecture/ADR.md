@@ -508,3 +508,244 @@ fine; one with an edge to a missing key does not read at all.
 **Cost accepted.** No editing in place: change the tasks and save again. No property values,
 no notes, no nesting (SPEC, deferred out of P7). Each is a real feature, and each would have
 made this one a different shape.
+
+## ADR-026 — An import is a plan, previewed, applied once, and undone as one thing {#adr-026}
+
+**Decision.** Every importer produces an `ImportPlan` (pure TypeScript, `src/domain/importing.ts`):
+rows that do not exist yet, named by collection and by property, with no ids. The plan is set
+against the workspace by `preview`, which names what each row looks like and lets the person
+decide; the host applies the decided plan in one transaction and records every row it created in
+`import_batch` and `import_row` (migration 013). `undo` walks those rows backwards and removes
+exactly them — or refuses before touching anything.
+
+**Why a plan.** Five importers are coming (Tessera, Todoist, Microsoft To Do, Trello, Notion,
+ICS). If each wrote rows its own way there would be five doors, five previews and five undos,
+and they would disagree. One intermediate shape makes each importer a parser and a mapping, and
+puts the judgement — duplicates, positions, what a person sees — in one place with one test.
+
+**Why preview, not merge.** A duplicate is a guess. The product can say _this looks like that_
+by a stated rule (same normalised title, same collection, same due day; same title at the same
+instant for an event) and let the person skip it. It cannot know whether two rows _are_ the same
+thing, and a product that merges on a guess destroys information quietly. So: the preview names
+its guess, the person decides, and 1.2 does not merge (SPEC).
+
+**Why one transaction and a written record.** Five tasks, an event and a new collection are one
+thing to the person who pressed the button. Half an import — the tasks made, the collection not,
+or the reverse — looks done and is wrong. Recording what was created at the time is what makes
+undo _exact_: it removes those rows and no others, whatever else happened since. The test is the
+promise: export before, import, undo, export after — equal, row for row.
+
+**Why undo refuses.** A collection the import created may have gained the person's own tasks
+since. Removing the collection would take them; keeping the collection would leave the undo
+incomplete. The honest answer is to refuse and say why. A row the person already deleted is not
+a problem: undo finds nothing and moves on.
+
+**Cost accepted.** Rows carry no links yet — a dependency between two imported tasks is dropped
+with a sentence, not carried (SPEC, deferred out of A1). Positions are the caller's to hand in,
+because the host does not own the ordering key scheme (`domain/ordering.ts`). Bookkeeping tables
+are part of the export, so a restore carries the import history with it.
+
+## ADR-027 — A column that collides is reconciled, never coerced {#adr-027}
+
+**Decision.** Before an import is previewed, `reconcile` in `src/domain/importing.ts` sets the
+plan's properties against the ones the destination collection already has, by name:
+
+1. **Same type** — nothing to do; the host adds the options it lacks.
+2. **Both choose one option** (`select`, `status`, `priority`) — the import **adopts the
+   property that is here**, and its values are remapped onto the existing options by label. A
+   Notion "In progress" becomes this workspace's own In progress rather than a second column
+   beside it. Options with no match are added.
+3. **A real clash** — the import keeps its column under `<Name> (imported)` and a sentence in
+   the preview says why. Nothing is coerced.
+
+**Why.** A4 found this the hard way: a Notion database with a Status column met this product's
+own Status, and the host refused the whole import — correctly, since writing a `select` into a
+`status` is a lie, but uselessly, because the person is then stuck with a file they cannot
+import at all.
+
+The judgement belongs in the domain, not the host, for the reason all of it does: the host
+enforces invariants and the domain decides what a person meant. The host's refusal stays as
+it was — it is a genuine invariant and the last line of defence — and the domain arranges the
+plan so the refusal never has to fire.
+
+**Why adopt rather than coerce.** The two choice types differ in what they store _about_ the
+option (a status knows which end of a workflow it is), not in the value on a row, which is an
+option id either way. Adopting is therefore lossless, and it is what a person means: they have
+a column called Status and the file has a column called Status. Coercing a number into text,
+by contrast, would keep the letters and lose the arithmetic — so that case is renamed instead,
+and the person can merge the two columns by hand if they want to, which is a decision only
+they can make.
+
+**Consequence.** An importer never has to know what the workspace holds; it names its columns
+as the source named them and reconciliation happens once, in one place, for every source
+(A2's CSVs, A3's board, A4's database and whatever A5 brings). The preview shows the outcome
+before anything is written, and undo restores the adopted property exactly (migration 014).
+
+**Cost accepted.** Reconciliation matches by name, so two columns a person considers the same
+but named differently stay two. Renaming on clash can leave two similar columns until somebody
+tidies them; that is visible, reversible and theirs to do.
+
+## ADR-028 — A zone is a name, not a rule set {#adr-028}
+
+**Decision.** The ICS reader resolves `TZID` by **name** and never reads the file's own
+`VTIMEZONE` blocks. Three shapes are accepted: IANA as written (`Europe/London`), the names
+Windows uses, which is what Outlook exports (`GMT Standard Time`), and IANA behind a vendor
+prefix (`/mozilla.org/20050126_1/Europe/London`). A name that resolves to nothing the platform
+knows falls back to the workspace's zone, and the preview says which name it could not read.
+
+**Why.** A `VTIMEZONE` block is a small timezone database: offsets, abbreviations, and the
+rules by which they change, in the file. Reading it means implementing the resolution of those
+rules — for dates in the past, dates in the future, and the hour that happens twice — beside
+the one the platform already ships and keeps up to date. Two databases disagree eventually, and
+the one in the file is a snapshot of what some other product believed on the day it exported.
+
+The names, by contrast, are stable and few. Outlook's list changes about as often as the world
+adds a zone, and everything else already writes IANA.
+
+**Why fall back rather than refuse.** A file with one unrecognised zone is otherwise a good
+file. Refusing it imports nothing; reading its times in the workspace's zone imports everything
+and is wrong by an offset the person can see and correct, on the events that named that zone.
+The preview names the zone before anything is written, which is the difference between a wrong
+answer and a silent one (SPEC §4).
+
+**Consequence.** The reader is a parser, not a timezone implementation, and every stamp goes
+through `asInstant` in one place. A zone that only exists inside a `VTIMEZONE` — a private one,
+or a historical rule the platform no longer carries — is not honoured; the fallback and its
+sentence are what a person gets. Adding a Windows name later is one line in a table.
+
+**Cost accepted.** The Windows table is a list this product now maintains. It is ordinary
+maintenance, and a missing entry degrades to the fallback rather than to a wrong time with no
+warning.
+
+## ADR-029 — A link points at an identity and shows a name {#adr-029}
+
+**Decision.** A link between pages is an inline node holding two attributes: `pageId`, which is
+what the link **is**, and `title`, which is what it **says**. The id is authoritative. The title
+is a cache of the target's name, refreshed from the id when the document is opened (`refresh` in
+`src/domain/page.ts`). A link whose id no longer resolves falls back to matching by name, and a
+link written with no id at all — a name typed for a page that does not exist — resolves the day a
+page takes that name.
+
+The host keeps `page_link`, an index of what points at what, rewritten whole by the same
+transaction that saves a document. Backlinks are a query over it, by id **or** by name.
+
+**Why not by name alone**, the way a wiki traditionally works: renaming a page would mean
+rewriting every document that mentions it, which is a migration disguised as an edit — slow, and
+impossible to do atomically for a document somebody has open.
+
+**Why not by id alone**, the way a database would: a person types a name, not an id. A name that
+does not exist yet has to be writable, because that is how notes are actually made — you link to
+the page you are about to write. An id-only link would have to refuse it, or invent a page
+nobody asked for.
+
+**Why the title is stored beside the id** rather than looked up at render: the document is the
+record. It is exported, printed and searched as text, and a link that carried only an id would
+export as nothing and search as nothing. Storing the name means the plain text of a document
+says what a reader would see.
+
+**Consequence.** Renaming is one `UPDATE` and touches no document. The names shown inside
+documents catch up when they are next opened, which is visible and cheap; a document nobody
+opens keeps a name nobody reads. Deleting a page sets the index's `to_page_id` to null rather
+than deleting the row, so the mention survives and the page can come back.
+
+**Cost accepted.** For a moment after a rename, a document that is open elsewhere shows the old
+name — the link still works, and it says the old word. The alternative is rewriting every
+document on every rename, and this product would rather be honest about a stale word than write
+to rows nobody asked it to touch.
+
+## ADR-030 — What counts towards a goal is a decision, not a filter {#adr-030}
+
+**Decision.** A goal's rows are the tasks somebody put in it, stored in `goal_item`, added and
+removed one at a time the way a dependency is. A goal is **not** defined by a saved query.
+Progress is computed from those rows on every render (`progressOf` in `src/domain/goal.ts`) and
+returned as a `Figure`, so it obeys ADR-024: the number carries the rows it came from and can be
+opened.
+
+**Why.** A goal is a claim about intent — "these are the twelve things that make 1.2 shipped".
+A filter is a claim about the present, and it moves. A goal defined by `Priority is high` shows
+progress that drops when somebody re-prioritises a task, and the person watching the number has
+no way to see why. Membership as a decision is auditable: every row is there because it was put
+there, and the list of rows is the explanation.
+
+It is also the only version that can be _wrong in a way a person can fix_. If a goal is missing
+work, they add it; if it counts something it should not, they take it out. A filter's mistake is
+invisible until the number is already wrong.
+
+**Why the progress is not stored.** A stored counter is a second copy of the truth, and it
+drifts the first time a task is completed by a route nobody thought about — the quick-capture
+window, an import, an undo. Recomputing from the rows costs a pass over the tasks a goal holds,
+which is a handful.
+
+**Consequence.** Adding a hundred tasks to a goal is a hundred decisions, which is the honest
+cost of the guarantee. When the product grows saved searches a person can write, a goal over one
+becomes a real option (SPEC A7 deferrals) — as a **second** kind of membership beside this one,
+never as a replacement, because the two answer different questions.
+
+**Cost accepted.** A goal cannot say "everything tagged release", and for a large set that is
+tedious. The alternative is a number whose rows nobody chose, which is the one thing ADR-024
+exists to forbid.
+
+## ADR-031 — Paper is a rendering, not a screenshot {#adr-031}
+
+**Decision.** Printing is `window.print()` plus a print stylesheet and, where a screen layout
+cannot survive a page, a **second rendering of the same data**. Three parts:
+
+1. **A third set of tokens.** `@media print` in `tokens.css` redefines the palette for paper —
+   opaque surfaces, darker ink, darker accents — beside light and dark. Nothing else writes a
+   colour for print, and the same contrast test that checks the screen checks the page.
+2. **A print stylesheet** (`styles/print.css`) that takes the chrome out: the rail, the buttons,
+   the capture line, the view tabs. It also states what may not be split — a card, a figure with
+   its rows, a timeline row.
+3. **A print view** where the screen's layout is unprintable. The timeline is the case: on screen
+   it is one canvas of absolutely positioned bars, and a page break through it cuts a bar in
+   half. `TimelinePrint` draws the same chart as blocks — one row per task, bars placed in
+   percentages — so a break falls between rows and the chart is as wide as the paper.
+
+**Why not scale the screen to the page.** A transform does not paginate: the scaled height still
+belongs to one element, so a long chart is cropped rather than continued, and at any useful scale
+the text is unreadable. The layout, not the pixels, has to change.
+
+**Why the dialog, and not a PDF written by the product.** The print dialog already offers
+"Save as PDF" on every platform this runs on, along with the printer, the paper size and the
+margins. Writing a PDF without it means a second renderer to keep looking like the product, for
+a button the operating system already provides.
+
+**Consequence.** A screen that prints badly is fixed by giving it a print rendering, not by
+compromising the screen. Two renderings of the timeline exist and both are maintained; the
+domain is shared (`printRows`, `axisTicks` beside `layout`), so what differs is placement, never
+the data. What the printed chart gives up — the dependency arrows — it says on the page.
+
+**Cost accepted.** The end-to-end suite cannot ask this driver to emulate print media, so it
+re-applies the application's own `@media print` rules and reads the result. That proves what the
+rules do; that a browser applies them when it prints is the browser's promise, not this
+product's.
+
+## ADR-032 — The review keeps no state {#adr-032}
+
+**Decision.** The weekly review stores nothing: no "reviewed" flag, no last-reviewed date, no
+streak, no dismissals. `buildReview` in `src/domain/review.ts` is a query over the tasks, the
+dependencies, the goals and the calendar, and `isFinished` is true when its first two lists are
+empty. The screen says the review is finished only then.
+
+**Why.** A review that can be marked done is a review that gets marked done. The moment there is
+a button, the button becomes the goal, and a person can be up to date on a workspace with three
+goals nobody can move — which is exactly the state the review exists to find. Making "finished"
+a property of the workspace rather than of the person removes the possibility.
+
+It also removes a whole category of staleness. A stored flag has to be invalidated by every
+write that could reopen a gap — completing a task, deleting a goal, undoing an import — and
+missing one leaves the product asserting something false. A query cannot be stale.
+
+**Why these three gaps.** Each is an **absence**, and an absence is what no other screen can
+show: a list shows the tasks that exist, a goal shows the rows it has, a calendar shows the time
+that is reserved. Nothing anywhere announces that a task became workable because somebody else
+finished something, or that a goal has quietly stopped having a next action.
+
+**Consequence.** The review cannot say "you have not reviewed in three weeks", and will not
+grow a notification. Its cost is a pass over the workspace each time it is opened, which is the
+same order as the report's and is memoised on its inputs. Acting on what it finds happens on the
+screens that own those edits, which keeps one editor per thing.
+
+**Cost accepted.** Somebody who wants the ritual recorded — a habit tracker's satisfaction — does
+not get it here. They can make a repeating task called "Weekly review", which is the product's
+own answer to a recurring commitment, and it will be counted like any other work.

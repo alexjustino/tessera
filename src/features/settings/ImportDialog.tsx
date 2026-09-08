@@ -1,0 +1,317 @@
+import { useMemo, useState } from 'react';
+
+import { describeError } from '@/data/errors';
+import {
+  useApplyImport,
+  useCalendars,
+  useCollections,
+  useEvents,
+  useItems,
+  useProperties,
+} from '@/data/hooks';
+import { optionsOf } from '@/domain/property';
+import type { PlacedPlan } from '@/data/importing';
+import {
+  decide,
+  describe,
+  preview,
+  normalise,
+  reconcile,
+  redirect,
+  type ImportPlan,
+  type ImportedCollection,
+} from '@/domain/importing';
+import { sortItems, type Collection, type Item } from '@/domain/item';
+import { firstKey, sequence, sortByKey } from '@/domain/ordering';
+import { systemZone } from '@/domain/schedule';
+import { Button } from '@/ui/Button';
+import { Checkbox } from '@/ui/Checkbox';
+import { InfoBar } from '@/ui/InfoBar';
+import { Modal } from '@/ui/Modal';
+import { Select } from '@/ui/Select';
+import { announce } from '@/ui/announce';
+
+/**
+ * What an import would do, before it does it.
+ *
+ * The plan is set against the workspace and the dialog says, in one sentence
+ * and then in a list, what would be created and what looks like something
+ * already here. Duplicates are a guess and are named as such; the one choice
+ * offered is whether to skip them. Then one button, and the import is one
+ * transaction — and one entry in the list of imports, from where it can be
+ * undone as one thing.
+ */
+export function ImportDialog({
+  plan,
+  onClose,
+  onImported,
+}: {
+  /** Null keeps the dialog closed. */
+  plan: ImportPlan | null;
+  onClose: () => void;
+  onImported: (message: string) => void;
+}) {
+  const zone = useMemo(() => systemZone(), []);
+  const collections = useCollections();
+  const items = useItems(null, true);
+  const calendars = useCalendars();
+  // Every event, for duplicates: a wide window rather than a scale's.
+  const events = useEvents(
+    '1970-01-01T00:00:00.000Z',
+    '2100-01-01T00:00:00.000Z',
+    calendars.data ?? [],
+  );
+  const apply = useApplyImport();
+  const [skipDuplicates, setSkipDuplicates] = useState(true);
+  /** Where the tasks go: a collection's name, '' for the file's own, null for the default. */
+  const [destination, setDestination] = useState<string | null>(null);
+
+  // The file names its collections; the list a person looks at shows one.
+  // Default to what the file says when that already exists here, else to the
+  // collection the list shows, so nothing lands out of sight unasked.
+  const fileCollections = useMemo(() => plan?.collections.map((c) => c.name) ?? [], [plan]);
+  const known = useMemo(
+    () => new Set((collections.data ?? []).map((c) => normalise(c.name))),
+    [collections.data],
+  );
+  const defaultDestination =
+    fileCollections.length > 0 && fileCollections.every((name) => known.has(normalise(name)))
+      ? ''
+      : ((collections.data ?? []).find((c) => c.id === 'tasks')?.name ?? '');
+  const chosen = destination ?? defaultDestination;
+
+  // The properties of the collection the tasks are going to: a column whose
+  // name is already taken here is reconciled before anything is previewed.
+  const destinationId =
+    (collections.data ?? []).find((collection) => normalise(collection.name) === normalise(chosen))
+      ?.id ?? 'tasks';
+  const destinationProperties = useProperties(destinationId);
+
+  const decidedPlan = useMemo(() => {
+    if (plan === null) return null;
+    const placed = chosen === '' ? plan : redirect(plan, chosen);
+    return reconcile(
+      placed,
+      (destinationProperties.data ?? []).map((property) => ({
+        name: property.name,
+        type: property.type,
+        options: optionsOf(property).map((option) => ({
+          id: option.id,
+          label: option.label,
+          color: option.color,
+        })),
+      })),
+    );
+  }, [plan, chosen, destinationProperties.data]);
+
+  const shown = useMemo(
+    () =>
+      decidedPlan === null
+        ? null
+        : preview(
+            decidedPlan,
+            {
+              collections: collections.data ?? [],
+              items: items.data ?? [],
+              events: events.data ?? [],
+            },
+            zone,
+          ),
+    [decidedPlan, collections.data, items.data, events.data, zone],
+  );
+
+  const run = () => {
+    if (decidedPlan === null || shown === null) return;
+    const decided = decide(decidedPlan, shown, skipDuplicates);
+    apply.mutate(place(decided, collections.data ?? [], items.data ?? []), {
+      onSuccess: (batch) => {
+        const message = `Imported ${batch.summary.tasks} ${batch.summary.tasks === 1 ? 'task' : 'tasks'}, ${batch.summary.events} ${batch.summary.events === 1 ? 'event' : 'events'} and ${batch.summary.collections} new ${batch.summary.collections === 1 ? 'collection' : 'collections'} from ${batch.source}.`;
+        announce(message);
+        onImported(message);
+        onClose();
+      },
+    });
+  };
+
+  const duplicateRows =
+    shown === null ? [] : shown.tasks.filter((task) => task.duplicateOf !== null);
+  const duplicateEvents =
+    shown === null ? [] : shown.events.filter((event) => event.duplicateOf !== null);
+
+  return (
+    <Modal open={plan !== null} label="Import" onClose={onClose} width="lg">
+      {shown !== null && (
+        <div className="flex flex-col gap-4" data-testid="import-preview">
+          <header>
+            <h2 className="text-subtitle font-semibold text-fg">Import</h2>
+            <p className="mt-1 text-body text-fg-secondary" data-testid="import-summary">
+              {describe(shown)} Nothing here is replaced; rows are added, and the whole import can
+              be undone afterwards.
+            </p>
+          </header>
+
+          {apply.error !== null && (
+            <InfoBar severity="danger" title="The import did not complete">
+              {describeError(apply.error)}
+            </InfoBar>
+          )}
+
+          {shown.warnings.length > 0 && (
+            <InfoBar severity="caution" title="Left out of the file, or not carried">
+              <ul className="list-disc pl-4">
+                {shown.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </InfoBar>
+          )}
+
+          {shown.counts.duplicates > 0 && (
+            <section aria-label="Possible duplicates" className="flex flex-col gap-2">
+              <Checkbox
+                checked={skipDuplicates}
+                label={`Skip the ${shown.counts.duplicates} that look like something already here`}
+                onChange={setSkipDuplicates}
+              />
+              <ul className="ml-6 flex flex-col gap-0.5 text-caption text-fg-tertiary">
+                {duplicateRows.slice(0, 8).map((task) => (
+                  <li key={task.key} data-testid="import-duplicate">
+                    {task.title} <span className="text-fg-disabled">· {task.collection}</span>
+                  </li>
+                ))}
+                {duplicateEvents.slice(0, 4).map((event) => (
+                  <li key={event.key} data-testid="import-duplicate">
+                    {event.title} <span className="text-fg-disabled">· event</span>
+                  </li>
+                ))}
+                {shown.counts.duplicates > 12 && <li>…and {shown.counts.duplicates - 12} more.</li>}
+              </ul>
+            </section>
+          )}
+
+          {plan !== null && plan.tasks.length > 0 && (
+            <label className="flex items-center gap-3 text-body text-fg">
+              <span className="w-40 shrink-0 text-caption font-semibold text-fg-tertiary uppercase">
+                Put the tasks into
+              </span>
+              <Select
+                aria-label="Put the tasks into"
+                value={chosen === '' ? '__keep__' : chosen}
+                onChange={(event) =>
+                  setDestination(event.target.value === '__keep__' ? '' : event.target.value)
+                }
+              >
+                {fileCollections.some((name) => !known.has(normalise(name))) && (
+                  <option value="__keep__">
+                    {fileCollections.length === 1
+                      ? `A new collection, “${fileCollections[0]}”`
+                      : `The file’s own collections (${fileCollections.length})`}
+                  </option>
+                )}
+                {(collections.data ?? []).map((collection) => (
+                  <option key={collection.id} value={collection.name}>
+                    {collection.name}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          )}
+
+          <ul className="flex flex-col gap-0.5 text-caption text-fg-secondary">
+            {shown.collections.map((collection) => (
+              <li key={collection.name}>
+                {collection.action === 'create' ? 'New collection' : 'Into'}{' '}
+                <span className="font-semibold text-fg">{collection.name}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex justify-end gap-2">
+            <Button appearance="subtle" onClick={onClose} disabled={apply.isPending}>
+              Cancel
+            </Button>
+            <Button
+              appearance="accent"
+              onClick={run}
+              disabled={
+                apply.isPending ||
+                (shown.counts.tasks === 0 && shown.counts.events === 0) ||
+                !items.isSuccess
+              }
+            >
+              Import
+            </Button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * Positions for what the import creates: a new collection goes after the last
+ * one; tasks into an existing collection go after its last, tasks into a new
+ * one start from the first key. The host does not own the ordering scheme, so
+ * the caller hands positions in (ADR-026).
+ */
+function place(
+  plan: ImportPlan,
+  collections: readonly Collection[],
+  items: readonly Item[],
+): PlacedPlan {
+  const byName = new Map(collections.map((c) => [normalise(c.name), c]));
+  const lastCollection = sortByKey(collections, (c) => c.position).at(-1);
+  const collectionPositions = sequence(
+    lastCollection?.position ?? null,
+    null,
+    plan.collections.length,
+  );
+
+  const groups = new Map<string, number[]>();
+  plan.tasks.forEach((task, index) => {
+    const key = normalise(task.collection);
+    groups.set(key, [...(groups.get(key) ?? []), index]);
+  });
+  const positions = new Array<string>(plan.tasks.length);
+  for (const [key, indices] of groups) {
+    const existing = byName.get(key);
+    const last =
+      existing === undefined
+        ? null
+        : (sortItems(items.filter((item) => item.collectionId === existing.id)).at(-1)?.position ??
+          null);
+    const run =
+      last === null
+        ? sequence(firstKey(), null, indices.length)
+        : sequence(last, null, indices.length);
+    indices.forEach((taskIndex, offset) => {
+      positions[taskIndex] = run[offset]!;
+    });
+  }
+
+  // A created property goes after the collection's last; the host places
+  // nothing itself. Blocks within a task take consecutive keys from the first.
+  const propertyPositions = sequence(null, null, plan.properties?.length ?? 0);
+
+  return {
+    source: plan.source,
+    collections: plan.collections.map((collection: ImportedCollection, index) => ({
+      ...collection,
+      position: collectionPositions[index]!,
+    })),
+    tasks: plan.tasks.map((task, index) => {
+      const { blocks = [], ...rest } = task;
+      const blockPositions = sequence(null, null, blocks.length);
+      return {
+        ...rest,
+        position: positions[index]!,
+        blocks: blocks.map((block, at) => ({ ...block, position: blockPositions[at]! })),
+      };
+    }),
+    events: plan.events,
+    properties: (plan.properties ?? []).map((property, index) => ({
+      ...property,
+      position: propertyPositions[index]!,
+    })),
+  };
+}

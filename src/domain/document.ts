@@ -296,7 +296,13 @@ export function plainText(blocks: readonly Block[]): string {
 
 function nodeText(node: DocNode): string {
   if (typeof node.text === 'string') return node.text;
-  if (!Array.isArray(node.content)) return '';
+  // A node that stands for a word without containing one — a link to a page —
+  // says so in a `title` attribute. Without this, the name of a page a
+  // document points at would be missing from search and from every preview.
+  if (!Array.isArray(node.content)) {
+    const title = node.attrs?.title;
+    return typeof title === 'string' ? title : '';
+  }
   // A hard break inside a paragraph is still a word boundary.
   return node.content
     .map(nodeText)

@@ -217,3 +217,28 @@
 .tessera-prose .hljs-deletion {
   color: var(--state-danger);
 }
+
+/* A link to another page.
+   Drawn as a word, not as a button: it sits inside a sentence and must not
+   break the line it is written on. A link whose page does not exist yet is
+   dotted and dimmer — a wiki where a broken link looks like a good one is a
+   wiki that lies about what it holds. */
+.tessera-prose a[data-page-link] {
+  color: var(--accent-base);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-base) 40%, transparent);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tessera-prose a[data-page-link]:hover {
+  border-bottom-color: var(--accent-base);
+}
+.tessera-prose a[data-page-link][data-missing] {
+  color: var(--fg-tertiary);
+  border-bottom-style: dotted;
+}
+.tessera-prose a[data-page-link].ProseMirror-selectednode {
+  outline: 2px solid var(--accent-base);
+  outline-offset: 1px;
+  border-radius: 2px;
+}

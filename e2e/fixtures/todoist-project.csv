@@ -1,0 +1,9 @@
+TYPE,CONTENT,DESCRIPTION,PRIORITY,INDENT,AUTHOR,RESPONSIBLE,DATE,DATE_LANG,TIMEZONE,DURATION,DURATION_UNIT,meta
+section,Before the trip,,,,,,,,,,,
+task,Renew the passport,Bring two photos,4,1,Someone (1),,Sep 15 2026 10:00,en,America/Sao_Paulo,90,minute,"view_style=list"
+note,The office closes at noon on Fridays.,,,,Someone (1),,,,,,,
+task,Book the flights,,3,1,Someone (1),,Sep 20 2026,en,America/Sao_Paulo,,,
+task,Compare prices,,2,2,Someone (1),,,en,America/Sao_Paulo,,,
+task,Water the plants,,1,1,Someone (1),,every other day,en,America/Sao_Paulo,,,
+section,On the way back,,,,,,,,,,,
+task,Write the trip up,,1,1,Someone (1),,2026-10-02T18:30:00,en,America/Sao_Paulo,,,

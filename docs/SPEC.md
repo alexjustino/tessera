@@ -87,6 +87,62 @@ What 1.1 deliberately does not add: a second data core, resource assignment
 (there is one person), or a scheduler that moves work on its own. A dependency
 says what must come first; it does not get to decide your day.
 
+### 1.2.0 — the adopter
+
+1.1 answered "will this finish, and when". 1.2 answers "can I move in" — for the
+person arriving with years of tasks in another product, and for the person who
+already lives here and wants the rest of their thinking (notes, goals, a weekly
+review) to live here too. The two halves share one property: they are about
+**rows that did not start as Tessera rows**, whether they arrive from a file or
+from a page that is not a task.
+
+The order is, again, not the roadmap's order. Every importer lands rows through
+the same door, and the door today only replaces (F10: import is Tessera's own
+export, all or nothing). So the door comes first — additive, previewed,
+undoable — and each importer after it is a parser and a mapping, nothing more.
+Importers are then ordered by the shape of the source: a list, a board, a
+database, a calendar. Notes and goals add kinds of row; print reads them all;
+the review reads everything and comes last before the release.
+
+| #      | Slice                       | Proof of done                                                                                                                        |
+| ------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **A1** | The import door             | an import is previewed, applied in one transaction, and undone; after undo the workspace equals the one before, row for row          |
+| A2     | Todoist and Microsoft To Do | a real export from each imports with dates in the right zone, priorities mapped and completions kept; what cannot map is listed      |
+| A3     | Trello                      | a board becomes a board: the same columns, the same cards in the same order, labels as options, checklists as blocks                 |
+| A4     | Notion                      | a database export becomes a collection whose properties keep their types where they can be inferred, and whose pages keep their text |
+| A5     | ICS                         | a recurring event with an exception imports and expands identically to the source on the two daylight-saving days                    |
+| A6     | Notes and wiki space        | a page links to another by name; renaming the target keeps the link; backlinks say who points here; search finds page text           |
+| A7     | Goals                       | a goal's progress is the sum of its rows and opens onto them — the report's rule (ADR-024), applied to intent                        |
+| A8     | Print and PDF export        | a printed report is the report on screen, paginated, without chrome; the timeline prints across pages without cutting a bar          |
+| A9     | GTD weekly review           | the review shows every project without a next action and every task waiting on nothing, and finishes with neither                    |
+| A10    | Release 1.2.0               | a 1.1 workspace opens in 1.2 without loss, and every importer's fixture imports on the release binary                                |
+
+Three rules for every importer, written once here so no slice relitigates them:
+
+- **Files, never accounts.** An importer reads a file the person exported; it
+  never signs in, never calls an API (SPEC §4: no network). Where a product
+  offers no file export, the importer reads what the product _does_ let out
+  (Microsoft To Do: the Outlook tasks CSV) and the SPEC says so.
+- **Hostile input.** Parsers never throw, are capped in size, and treat every
+  string as text (SPEC §4). A malformed file imports what it can and lists what
+  it could not, by line — it does not import nothing and it does not import
+  garbage silently.
+- **Every importer has a fixture.** A real export file, committed, small,
+  scrubbed of anything personal, opened by the end-to-end suite on the real
+  binary. The proof of done is not "the parser passes"; it is "this file
+  imports".
+
+What 1.2 picks up from 1.1's deferrals, because a slice here finally uses it:
+editing the working hours and the first day of the week (Settings; the review
+reads them), a custom period range (the report, when it prints), counting
+unreserved estimates beside a month (the review's "planned but not scheduled").
+
+What 1.2 deliberately does not add: sync or a second data core (2.0, only if it
+earns it); importing from a live account; merging two histories on import
+beyond what the preview shows as a duplicate — the person decides, the product
+does not guess; property values in templates; a plugin surface for importers
+written outside this repository.
+
 ## 3. Architecture
 
 ```
@@ -181,6 +237,238 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F10    | Data, Settings, **About**                                            | a restored backup restores everything                                                                                    |
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
+
+### Deferred out of A9, and why
+
+The review shows three gaps and finishes when the first two are empty. What a
+review could also do:
+
+- **A record of reviews done.** A date, a streak, a "last reviewed" badge. All
+  of it is state about the person rather than about the work (ADR-032), and
+  the first thing a streak does is make somebody mark a review done that
+  wasn't.
+- **Acting from inside it.** Today a gap is named and you go and fix it — add
+  a task to the goal, give the freed task a day. Putting those edits in the
+  review means a second copy of two editors, and the lists are short by
+  construction.
+- **Anything but a week.** A month, a quarter, a custom range. The review's
+  arithmetic is a week's, and the arrows already walk to any week; a longer
+  period asks a different question about capacity.
+- **Inbox zero.** GTD's collect step needs a place things land that is not the
+  task list, and this product's quick capture puts them straight in it. A
+  separate inbox is a decision about capture, not about review.
+- **Someday/maybe, contexts and energy.** Each is a property a person can
+  already make, and none of them is what makes a review a review.
+- **The first day of the week.** The review, the calendar and the report all
+  assume Monday. It is one setting and one parameter already threaded through
+  the domain (`startsOn`), and it belongs with whoever needs a Sunday week —
+  the working hours were the half this slice actually reads.
+
+### Deferred out of A8, and why
+
+The report and the task list print, the timeline prints without cutting a bar,
+and PDF is whatever the print dialog offers. What printing could also do:
+
+- **A PDF written without the dialog.** A silent "Export PDF" needs a renderer
+  of its own — the platform's print-to-file, or a headless engine bundled with
+  the application. The dialog is one keystroke away and already offers it, and
+  a second renderer is a second thing to keep looking like the product.
+- **Headers, footers and page numbers.** `@page` margin boxes are barely
+  supported in the engines this product runs on; the dialog's own header and
+  footer are the honest place for a page number today.
+- **A page for the notes space and for goals.** Both print through the same
+  rules — chrome off, ink on paper — but neither has a rendering of its own,
+  so a long document breaks where the paper ends rather than where a person
+  would choose.
+- **Choosing what to print.** The screen is what prints. A dialog for picking
+  a period, a subset of columns or a range of tasks is a report builder, and
+  it belongs to whoever asks for one.
+- **The timeline's dependencies on paper.** An arrow is a line between two
+  rows, and two rows can be on different sheets. The printed chart says so
+  rather than drawing something misleading.
+
+### Deferred out of A7, and why
+
+A goal has a target, the tasks that count for it, and progress that opens onto
+its rows. What a goal could also do:
+
+- **Count what a filter finds.** A goal over a saved search is the obvious
+  next thing and is deliberately not first: membership by filter is membership
+  that changes when the filter does (ADR-030). It also needs saved searches a
+  person can make, which the product does not have yet — views are seeded, not
+  written. When they are, a goal can point at one.
+- **Sub-goals.** A goal made of goals is a tree, and this product's answer to
+  "what is this made of" is the rows themselves.
+- **A pace line.** "You need three a week to finish by the 31st" is real and
+  useful, and it is a forecast: it needs a rule about what counts as on track
+  through a holiday, and the review (A9) is where that conversation belongs.
+- **A goal on the Today screen.** Goals are looked at weekly, not hourly.
+  Putting one on the daily screen is a decision about attention, and it is
+  cheaper to make after the review exists.
+- **Counting anything but tasks and time.** Pages read, kilometres run — a
+  goal over a number a person types is a different kind of row (a measurement),
+  and this product has no such row yet.
+
+### Deferred out of A6, and why
+
+A page is a name and a document, it links to other pages, and it says what
+points at it. What a notes space could also do:
+
+- **Links from a task or an event.** The index already holds them — `page_link`
+  keys on `(owner_kind, owner_id)` and the backlink panel renders a task or an
+  event when it finds one — but the `[[` menu is only in the page editor for
+  now, because a task's document is a drawer inside a list and the menu's
+  placement there is its own piece of work.
+- **Unlinked mentions.** "Pages that say this page's name without linking to
+  it" is a second query and a second panel, and it is only worth the room once
+  there are enough pages for it to find anything.
+- **A hierarchy of pages.** Pages are a flat set, deliberately: names are
+  unique, so a link needs no path, and a tree is a second way to say where
+  something belongs. A person who wants one writes a page of links.
+- **Tags, daily notes and templates for pages.** Each is a real feature with
+  its own shape; none of them is what makes a wiki a wiki.
+- **A graph view.** The data is there. A picture of it is a visualisation
+  slice, not a notes slice.
+- **Renaming from inside a document.** A link is edited where the page is, not
+  where the link is; a rename typed into a sentence would have to guess whether
+  it meant the page or the words.
+
+### Deferred out of A5, and why
+
+A calendar file becomes events with their rules and their exceptions, and its
+tasks become tasks. What it keeps to itself:
+
+- **`VTIMEZONE`.** The file carries the rules of its own zones, and reading
+  them means a second timezone database beside the platform's (ADR-028). The
+  zone's _name_ is read instead, IANA or Windows'; an unrecognised one falls
+  back to the workspace's zone and the preview says which.
+- **`RDATE`.** A date added to a series by hand is an extra occurrence, and
+  the model has cancelled and moved, not added. Carrying it means a third kind
+  of exception; it is counted and said instead.
+- **`RANGE=THISANDFUTURE`.** A change from one occurrence onwards is two
+  series — the original ended, a new one begun — which is a rewrite of what
+  the file says. Only that occurrence is moved, and the preview says so.
+- **Guests, organisers, invitations and replies.** This product has one person
+  in it (SPEC §1). A `METHOD:REQUEST` file imports as appointments, not as
+  something to answer.
+- **Reminders.** The product has its own, set here, and an alarm ten minutes
+  before a meeting somebody else scheduled is not a promise this workspace
+  should silently take on.
+- **Attachments, categories, free/busy and journals.** Files it does not
+  store, colours from another product, and components that are neither an
+  event nor a task.
+- **Making this product's own ICS export carry its zones.** Tessera already
+  writes iCalendar (Settings → Export iCalendar), and the reader is held to
+  it: the end-to-end suite exports and reads the file back. Two things that
+  file does not carry, found by doing that — it writes UTC with no `TZID`, so
+  a re-read event loses the zone it was written in and would drift an hour
+  after a change of clocks; and it writes `EXDATE` for a cancelled occurrence
+  but has no second `VEVENT` for one that moved. Both are the exporter's, in
+  a format that has shipped, and neither is A5's to change: an importer that
+  quietly rewrote what the product publishes would be a different slice.
+
+### Deferred out of A4, and why
+
+A database becomes a collection with typed properties and its pages as
+documents. What Notion keeps to itself:
+
+- **Relations, rollups and formulas.** A relation points at another database
+  the export does not contain, a rollup is a calculation over it, a formula is
+  a language. All three are said in a sentence; the column's text, where the
+  CSV has any, is not carried because it is a rendering of something absent.
+- **Sub-pages and nested databases.** The export writes them as folders inside
+  folders. One database is one collection here; a page's own sub-pages are a
+  hierarchy this product does not have for tasks.
+- **Files and images.** The export puts them in the folder as files; carrying
+  them would mean copying binaries into a workspace that stores none today.
+- **The zip itself.** A person unzips and points at the `.csv`. Unzipping in
+  the host means a zip reader and a decision about where the bytes go — worth
+  it when somebody asks, not before.
+- **Reading a type from Notion's API.** That is an account, and importers read
+  files (SPEC 1.2). The inference is what the file affords.
+- **A column of dates in one row and text in another** is text, and the
+  warning names it — the reader does not split a column into two.
+
+### Deferred out of A3, and why
+
+A board becomes a board: lists as columns, cards in order, labels as a
+property, checklists as blocks. What stayed on Trello's side:
+
+- **Comments and attachments.** A comment is a conversation with people who
+  are not here; an attachment is a file the export does not contain, only a
+  link to Trello's servers. Both are counted and said.
+- **Members.** There is one person in this product. A card's members are
+  counted in a sentence and nothing is invented.
+- **Custom fields.** Trello's Power-Up fields have their own types and their
+  export shape varies by field. A property per custom field is the Notion
+  slice's problem (A4), where typed columns are the whole point.
+- **Card colours and covers, stickers, votes.** Decoration. The label colour
+  is carried as the design system's token, and that is the colour that means
+  something.
+- **Column order.** New Status options are appended after the ones the
+  property already has, so Trello's Ideas and Review columns sit to the right
+  of To do, In progress, Blocked and Done rather than in the board's own order.
+  The proof of done asks for the same columns and the same cards in order,
+  which holds; putting the new columns in Trello's positions would mean
+  reordering a property's existing options on import, which is the person's
+  arrangement to change, not a file's.
+- **Deleting a Status option the import added.** Undo restores the property's
+  options exactly. Removing one column by hand later is the property editor's
+  business and works as it always did.
+
+### Deferred out of A2, and why
+
+Two list-shaped sources import with their dates, priorities and completions.
+What was left where it was, and why:
+
+- **Sections, nesting and recurrence from Todoist.** A section is a heading, a
+  sub-task is a tree, a recurrence is a rule in Todoist's own grammar. The
+  first would want a property created on import, the second a parent the
+  product does not use for tasks, the third a translation to RFC 5545 that is
+  a slice of its own. Each is said in a sentence and the tasks are kept.
+- **Reminders and categories from Outlook.** The product has its own reminders
+  and the person should set them here; categories are Outlook's colours and
+  words, not a property the collection has.
+- **Completed tasks from Todoist.** A template export does not contain them.
+  A Todoist _backup_ (a zip of CSVs) does not either. Nothing to carry.
+- **A collection the list can show.** A2 surfaced a 1.0 gap: the interface
+  browses one collection, so a project imported under its own name would be
+  invisible in the list. The preview therefore asks where the tasks go and
+  defaults to the collection the list shows. A collection switcher is real
+  work — the rail, the views, the capture line all assume one — and belongs
+  to a slice that decides what a second collection _is_ to this product.
+- **Locale-formatted dates beyond month/day/year.** Outlook writes the
+  machine's locale. The reader takes month first, day first when the day is
+  over twelve, and dotted dates as day first; an ambiguous `3/4/2026` on a
+  day-first machine reads as March 4th and is listed nowhere, because the file
+  cannot tell. A locale choice on import is a small addition if it bites.
+
+### Deferred out of A1, and why
+
+The door opens additively, previews, applies once and undoes once. What a
+door could also do:
+
+- **Dependencies and time blocks from a Tessera export.** The plan carries
+  rows, not the links between them; a dependency between two imported tasks
+  needs the ids they are given on the way in, which is the batch’s business and
+  a small addition — but not one the foreign importers use, so it waits for a
+  person who wants it. Exceptions were on this list and came off it in A5: an
+  occurrence that was cancelled or moved is not a link between two rows, it is
+  part of one event, and it travels inside it.
+- **Merging a duplicate.** The preview names what a row looks like and offers
+  to skip it. Merging — keeping the existing row and adding what the import
+  knows — is a decision per field, and the product does not guess (SPEC 1.2).
+- **Choosing rows one by one.** Skip all duplicates or none. A checkbox per row
+  is a second list of everything, in a dialog; the person who needs that can
+  import and then delete.
+- **Undo of anything but the last import that touched a collection.** Undo
+  removes what a batch created and refuses when a collection it created has
+  gained rows since. It does not resolve two imports into one collection in
+  either order beyond that rule; that is history-rewriting, and it says so.
+- **Importing into a chosen collection.** Rows land in the collection the file
+  names, created if absent. A picker to redirect them is presentation over
+  the same plan, and the first foreign importer decides what it should look
+  like.
 
 ### Deferred out of P8, and why
 

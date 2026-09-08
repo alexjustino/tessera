@@ -47,12 +47,14 @@ export function CommandPalette({
   onCommand,
   onOpenItem,
   onOpenEvent,
+  onOpenPage,
 }: {
   open: boolean;
   onClose: () => void;
   onCommand: (id: CommandId) => void;
   onOpenItem: (id: string) => void;
   onOpenEvent: (id: string) => void;
+  onOpenPage: (id: string) => void;
 }) {
   const [text, setText] = useState('');
   const [selected, setSelected] = useState(0);
@@ -111,9 +113,10 @@ export function CommandPalette({
       close();
       if (entry.kind === 'command') onCommand(entry.ranked.command.id as CommandId);
       else if (entry.hit.ownerKind === 'event') onOpenEvent(entry.hit.ownerId);
+      else if (entry.hit.ownerKind === 'page') onOpenPage(entry.hit.ownerId);
       else onOpenItem(entry.hit.ownerId);
     },
-    [close, onCommand, onOpenEvent, onOpenItem],
+    [close, onCommand, onOpenEvent, onOpenItem, onOpenPage],
   );
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -149,7 +152,7 @@ export function CommandPalette({
             setSelected(0);
           }}
           onKeyDown={onKeyDown}
-          placeholder="Search tasks and events, or type > for commands"
+          placeholder="Search tasks, events and pages, or type > for commands"
           autoComplete="off"
           spellCheck={false}
           className="h-12 w-full bg-transparent text-body-lg text-fg placeholder:text-fg-tertiary focus:outline-none"

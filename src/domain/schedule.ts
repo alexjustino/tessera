@@ -190,13 +190,42 @@ export function isValidRule(rule: string): boolean {
  * afterwards. Expanding in UTC and converting later is what moves a 09:00 task
  * to 08:00 in winter.
  */
-function build(rule: string, anchor: Date): RRule | null {
+function build(rule: string, anchor: Date, zone: string): RRule | null {
   try {
     const parsed = rrulestr(`RRULE:${rule}`);
-    return new RRule({ ...parsed.origOptions, dtstart: anchor });
+    const options = { ...parsed.origOptions, dtstart: anchor };
+    if (options.until instanceof Date) options.until = sameFrame(options.until, rule, zone);
+    return new RRule(options);
   } catch {
     return null;
   }
+}
+
+/**
+ * `UNTIL`, moved into the frame the expansion runs in.
+ *
+ * The anchor above is wall clock, and every date `rrule` produces is in that
+ * same frame. `UNTIL` is not: RFC 5545 requires it to be a UTC instant when
+ * the start has a zone, and `rrule` parses it as one — so comparing the two
+ * drops or keeps the last occurrence by however far the zone is from UTC. A
+ * weekly 09:00 London meeting ending `UNTIL=20270330T080000Z` loses its last
+ * Tuesday, on a machine in São Paulo, for no reason a person could ever see.
+ *
+ * A `UNTIL` with a `Z` is an instant and is read as wall clock in the same
+ * zone as the anchor. One without is already wall clock — floating, which is
+ * only legal against a floating start — and only needs its fields carried
+ * across, since `rrule` parsed them as UTC.
+ */
+function sameFrame(until: Date, rule: string, zone: string): Date {
+  if (/UNTIL=\d{8}(T\d{6})?Z/i.test(rule)) return asWallClock(until, zone);
+  return new Date(
+    until.getUTCFullYear(),
+    until.getUTCMonth(),
+    until.getUTCDate(),
+    until.getUTCHours(),
+    until.getUTCMinutes(),
+    until.getUTCSeconds(),
+  );
 }
 
 /**
@@ -225,7 +254,7 @@ export function nextOccurrence(
     const restarted = new Date(completedWall);
     restarted.setHours(anchor.getHours(), anchor.getMinutes(), 0, 0);
 
-    const rule = build(schedule.rule, restarted);
+    const rule = build(schedule.rule, restarted, zone);
     if (rule === null) return null;
 
     const next = rule.after(restarted, false);
@@ -233,7 +262,7 @@ export function nextOccurrence(
   }
 
   const anchor = asWallClock(schedule.dueAt, zone);
-  const rule = build(schedule.rule, anchor);
+  const rule = build(schedule.rule, anchor, zone);
   if (rule === null) return null;
 
   const next = rule.after(asWallClock(from, zone), false);
@@ -257,7 +286,7 @@ export function occurrencesBetween(
   if (schedule.rule === null || schedule.dueAt === null) return [];
   if (new Date(toInstant).getTime() <= new Date(fromInstant).getTime()) return [];
 
-  const rule = build(schedule.rule, asWallClock(schedule.dueAt, zone));
+  const rule = build(schedule.rule, asWallClock(schedule.dueAt, zone), zone);
   if (rule === null) return [];
 
   return rule

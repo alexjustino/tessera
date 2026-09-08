@@ -66,7 +66,9 @@ describe('a 1.0 workspace in 1.1', () => {
     );
     expect(await done.property('checked')).toBe(true);
     await openDetail('Renew the passport');
-    const priority = await driver.waitForElement('select[aria-label="Priority"]');
+    const priority = await driver.waitFor('the Priority field in the panel', () =>
+      driver.findByXPath('//*[@role="dialog"]//select[@aria-label="Priority"]'),
+    );
     expect(await priority.property('value')).toBe('high');
     await closeDialogs();
   });

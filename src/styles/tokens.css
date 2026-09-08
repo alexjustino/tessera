@@ -250,3 +250,61 @@
   --density-gap: 0.375rem;
   --density-pad: 0.5rem;
 }
+
+/* ── Paper ──────────────────────────────────────────────────────────────────
+   A third context, beside light and dark: what the tokens mean when the
+   surface is a sheet of paper (ADR-031).
+
+   Every surface is opaque white, because there is no Mica behind a page and a
+   translucent value would composite against nothing. The text is darker than
+   the screen's — ink on white has none of a backlit display's help — and the
+   accents are the darker ends of the same ramps, so a printed severity is
+   still the colour it was, only readable when a printer renders it thin. */
+@media print {
+  /* Every theme selector, not just `:root`. `@media print` adds no specificity
+     of its own, and specificity is counted per matching selector rather than
+     per list — so a bare `:root` loses to `:root[data-theme='dark']` and, on a
+     window following the desktop, to `:root:not([data-theme='light'])`. Either
+     way a dark window would print white text on a dark card. The test that
+     reads these values back through the printer's eyes is what found it. */
+  :root,
+  :root:not([data-theme='light']),
+  :root[data-theme='dark'],
+  :root[data-theme='light'] {
+    color-scheme: light;
+
+    --surface-backdrop: #ffffff;
+    --surface-layer: #ffffff;
+    --surface-layer-alt: #ffffff;
+    --surface-card: #ffffff;
+    --surface-card-hover: #ffffff;
+    --surface-card-active: #ffffff;
+    --surface-flyout: #ffffff;
+    --surface-overlay: rgb(0 0 0 / 0.3);
+
+    --fg-primary: #000000;
+    --fg-secondary: #262626;
+    --fg-tertiary: #444444;
+    --fg-disabled: #767676;
+    --fg-on-accent: #ffffff;
+
+    --stroke-default: #9a9a9a;
+    --stroke-subtle: #c8c8c8;
+    --stroke-strong: #595959;
+    --focus-ring: #000000;
+
+    --accent-base: #00489a;
+    --accent-hover: #00489a;
+    --accent-active: #00489a;
+    --accent-subtle: rgb(0 72 154 / 0.12);
+
+    --state-info: #00489a;
+    --state-success: #0b5c0b;
+    --state-caution: #7a4800;
+    --state-danger: #9b2116;
+    --state-info-subtle: rgb(0 72 154 / 0.12);
+    --state-success-subtle: rgb(11 92 11 / 0.12);
+    --state-caution-subtle: rgb(122 72 0 / 0.12);
+    --state-danger-subtle: rgb(155 33 22 / 0.12);
+  }
+}

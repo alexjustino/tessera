@@ -1,5 +1,8 @@
 import {
   Board20Regular,
+  Notebook20Regular,
+  Target20Regular,
+  TaskListLtr20Regular,
   Info20Regular,
   Calendar20Regular,
   DataBarHorizontal20Regular,
@@ -22,7 +25,17 @@ import { Kbd } from '@/ui/Kbd';
  */
 
 export type Destination =
-  'tasks' | 'today' | 'board' | 'calendar' | 'reports' | 'settings' | 'diagnostics' | 'about';
+  | 'tasks'
+  | 'today'
+  | 'board'
+  | 'calendar'
+  | 'notes'
+  | 'goals'
+  | 'review'
+  | 'reports'
+  | 'settings'
+  | 'diagnostics'
+  | 'about';
 
 interface Entry {
   id: string;
@@ -36,6 +49,9 @@ const ENTRIES: Entry[] = [
   { id: 'tasks', label: 'Tasks', icon: <TaskListSquareLtr20Regular />, ready: true },
   { id: 'board', label: 'Board', icon: <Board20Regular />, ready: true },
   { id: 'calendar', label: 'Calendar', icon: <Calendar20Regular />, ready: true },
+  { id: 'notes', label: 'Notes', icon: <Notebook20Regular />, ready: true },
+  { id: 'goals', label: 'Goals', icon: <Target20Regular />, ready: true },
+  { id: 'review', label: 'Review', icon: <TaskListLtr20Regular />, ready: true },
   { id: 'reports', label: 'Reports', icon: <DataBarHorizontal20Regular />, ready: true },
   { id: 'settings', label: 'Settings', icon: <Settings20Regular />, ready: true },
   { id: 'diagnostics', label: 'Diagnostics', icon: <Wrench20Regular />, ready: true },

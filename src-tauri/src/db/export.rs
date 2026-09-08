@@ -40,7 +40,11 @@ pub const TABLES: &[&str] = &[
     "tag",
     "item_tag",
     "item_dependency",
+    "page",
     "block",
+    "page_link",
+    "goal",
+    "goal_item",
     "view",
     "reminder",
     "activity",
@@ -51,6 +55,8 @@ pub const TABLES: &[&str] = &[
     "work_hours",
     "time_entry",
     "template",
+    "import_batch",
+    "import_row",
 ];
 
 /// The largest export file this build will read, so a wrong file cannot
@@ -185,6 +191,28 @@ pub fn read_export(path: &Path) -> Result<Export> {
     Ok(document)
 }
 
+/// An export read for the additive import door: it must be one of ours and
+/// not absurdly large, but it may come from an older schema — the domain layer
+/// reads named columns and says what it left out (ADR-026).
+pub fn read_export_lenient(path: &Path) -> Result<Export> {
+    let size = fs::metadata(path)
+        .map_err(|_| Error::InvalidInput("that file could not be read"))?
+        .len();
+    if size > MAX_IMPORT_BYTES {
+        return Err(Error::InvalidInput(
+            "that file is too large to be an export",
+        ));
+    }
+    let text =
+        fs::read_to_string(path).map_err(|_| Error::InvalidInput("that file could not be read"))?;
+    let document: Export = serde_json::from_str(&text)
+        .map_err(|_| Error::InvalidInput("that file is not a Tessera export"))?;
+    if document.format != FORMAT || document.version != FORMAT_VERSION {
+        return Err(Error::InvalidInput("that file is not a Tessera export"));
+    }
+    Ok(document)
+}
+
 /// Replace the workspace with the contents of an export. One transaction;
 /// integrity is checked before it commits, and the search index is rebuilt.
 pub fn import(conn: &mut Connection, document: &Export) -> Result<Counts> {
@@ -256,7 +284,7 @@ pub fn import(conn: &mut Connection, document: &Export) -> Result<Counts> {
     counts(conn)
 }
 
-/// Rebuild `search_fts` from items, events and their documents.
+/// Rebuild `search_fts` from items, events, pages and their documents.
 pub fn rebuild_search_index(conn: &Connection) -> Result<()> {
     conn.execute("DELETE FROM search_fts", [])?;
     conn.execute(
@@ -267,6 +295,11 @@ pub fn rebuild_search_index(conn: &Connection) -> Result<()> {
     conn.execute(
         "INSERT INTO search_fts (owner_kind, owner_id, title, body)
          SELECT 'event', id, title, '' FROM event",
+        [],
+    )?;
+    conn.execute(
+        "INSERT INTO search_fts (owner_kind, owner_id, title, body)
+         SELECT 'page', id, title, '' FROM page",
         [],
     )?;
     let mut statement = conn.prepare(

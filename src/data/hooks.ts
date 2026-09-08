@@ -21,6 +21,9 @@ import type { BoardConfig, Move } from '@/domain/board';
 import type { BlockChanges } from '@/domain/document';
 import type { Schedule } from '@/domain/schedule';
 import type { Query } from '@/domain/query';
+import type { Link } from '@/domain/page';
+import type { Measure } from '@/domain/goal';
+import type { WorkHours } from '@/domain/calendar';
 
 import * as api from './items';
 import * as propertyApi from './properties';
@@ -35,6 +38,9 @@ import * as settingsApi from './settings';
 import * as backupsApi from './backups';
 import * as timeApi from './time';
 import * as templateApi from './templates';
+import * as importApi from './importing';
+import * as goalApi from './goals';
+import * as pageApi from './pages';
 import type { TemplateBody, TemplateEdge } from '@/domain/template';
 
 export const keys = {
@@ -336,14 +342,18 @@ export function useApplyBlocks() {
       ownerId,
       changes,
       plainText,
+      links,
     }: {
       ownerKind: string;
       ownerId: string;
       changes: BlockChanges;
       plainText: string;
-    }) => blockApi.applyBlocks(ownerKind, ownerId, changes, plainText),
+      links?: readonly Link[];
+    }) => blockApi.applyBlocks(ownerKind, ownerId, changes, plainText, links ?? []),
     onSuccess: (blocks, variables) => {
       client.setQueryData(blockKeys.blocks(variables.ownerKind, variables.ownerId), blocks);
+      // A save changes what points where, so every backlink list is stale.
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
     },
   });
 }
@@ -372,6 +382,15 @@ export function useCalendars() {
 
 export function useWorkHours() {
   return useQuery({ queryKey: calendarKeys.workHours, queryFn: calendarApi.listWorkHours });
+}
+
+export function useSetWorkHours() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (hours: readonly WorkHours[]) => calendarApi.setWorkHours(hours),
+    // Capacity, the year view and the review all read the working week.
+    onSuccess: () => client.invalidateQueries(),
+  });
 }
 
 export function useEvents(from: string, to: string, calendars: calendarApi.Calendar[]) {
@@ -779,5 +798,165 @@ export function useApplyTemplate() {
       void client.invalidateQueries({ queryKey: ['items'] });
       void client.invalidateQueries({ queryKey: dependencyKey });
     },
+  });
+}
+
+// ── The import door (1.2) ──────────────────────────────────────────────────
+
+export const importKey = ['imports'] as const;
+
+export function useImports() {
+  return useQuery({ queryKey: importKey, queryFn: importApi.listImports });
+}
+
+/** An import adds rows of several kinds; everything that lists them refetches. */
+function useImported() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: importKey });
+    void client.invalidateQueries({ queryKey: ['items'] });
+    void client.invalidateQueries({ queryKey: keys.collections });
+    void client.invalidateQueries({ queryKey: ['events'] });
+    void client.invalidateQueries({ queryKey: ['calendar'] });
+  };
+}
+
+export function useApplyImport() {
+  const imported = useImported();
+  return useMutation({
+    mutationFn: (plan: importApi.PlacedPlan) => importApi.applyImport(plan),
+    onSuccess: imported,
+  });
+}
+
+export function useUndoImport() {
+  const imported = useImported();
+  return useMutation({
+    mutationFn: (id: string) => importApi.undoImport(id),
+    onSuccess: imported,
+  });
+}
+
+// ── Pages ───────────────────────────────────────────────────────────────────
+
+export const pageKeys = {
+  all: ['pages'] as const,
+  backlinks: (id: string) => ['backlinks', id] as const,
+};
+
+export function usePages() {
+  return useQuery({ queryKey: pageKeys.all, queryFn: pageApi.listPages });
+}
+
+/** What points at a page. Refetched whenever any document is saved. */
+export function useBacklinks(id: string | null) {
+  return useQuery({
+    queryKey: pageKeys.backlinks(id ?? ''),
+    queryFn: () => pageApi.pageBacklinks(id ?? ''),
+    enabled: id !== null,
+  });
+}
+
+export function useCreatePage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ title, position }: { title: string; position: string }) =>
+      pageApi.createPage(title, position),
+    // A new page can be the target a link was waiting for, so the backlinks of
+    // every page — and the links inside every open document — may have changed.
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: pageKeys.all });
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
+    },
+  });
+}
+
+export function useRenamePage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => pageApi.renamePage(id, title),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: pageKeys.all });
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
+    },
+  });
+}
+
+export function useDeletePage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => pageApi.deletePage(id),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: pageKeys.all });
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
+    },
+  });
+}
+
+// ── Goals ───────────────────────────────────────────────────────────────────
+
+export const goalKeys = {
+  all: ['goals'] as const,
+  links: ['goal-links'] as const,
+};
+
+export function useGoals() {
+  return useQuery({ queryKey: goalKeys.all, queryFn: goalApi.listGoals });
+}
+
+/** Every membership at once — the domain joins them to the tasks in hand. */
+export function useGoalLinks() {
+  return useQuery({ queryKey: goalKeys.links, queryFn: goalApi.listGoalLinks });
+}
+
+export function useCreateGoal() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      name: string;
+      measure: Measure;
+      target: number;
+      dueDay: string | null;
+      position: string;
+    }) => goalApi.createGoal(input),
+    onSuccess: () => client.invalidateQueries({ queryKey: goalKeys.all }),
+  });
+}
+
+export function useUpdateGoal() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: goalApi.GoalPatch }) =>
+      goalApi.updateGoal(id, patch),
+    onSuccess: () => client.invalidateQueries({ queryKey: goalKeys.all }),
+  });
+}
+
+export function useDeleteGoal() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => goalApi.deleteGoal(id),
+    onSuccess: async () => {
+      await client.invalidateQueries({ queryKey: goalKeys.all });
+      await client.invalidateQueries({ queryKey: goalKeys.links });
+    },
+  });
+}
+
+export function useLinkGoalItem() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ goalId, itemId }: { goalId: string; itemId: string }) =>
+      goalApi.linkGoalItem(goalId, itemId),
+    onSuccess: () => client.invalidateQueries({ queryKey: goalKeys.links }),
+  });
+}
+
+export function useUnlinkGoalItem() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ goalId, itemId }: { goalId: string; itemId: string }) =>
+      goalApi.unlinkGoalItem(goalId, itemId),
+    onSuccess: () => client.invalidateQueries({ queryKey: goalKeys.links }),
   });
 }

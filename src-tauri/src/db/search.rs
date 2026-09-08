@@ -1,4 +1,4 @@
-//! Full-text search over everything that has a title: items and events.
+//! Full-text search over everything that has a title: items, events and pages.
 //!
 //! One index, one box (ADR-008). `search_fts` is a standalone FTS5 table kept
 //! in step by every write path that touches a title or a document; this module
@@ -52,9 +52,11 @@ pub fn search(conn: &Connection, query: &str, limit: i64) -> Result<Vec<SearchHi
          FROM search_fts s
          LEFT JOIN item  i ON s.owner_kind = 'item'  AND i.id = s.owner_id
          LEFT JOIN event e ON s.owner_kind = 'event' AND e.id = s.owner_id
+         LEFT JOIN page  p ON s.owner_kind = 'page'  AND p.id = s.owner_id
          WHERE search_fts MATCH ?1
            AND ((s.owner_kind = 'item' AND i.id IS NOT NULL AND i.archived_at IS NULL)
-             OR (s.owner_kind = 'event' AND e.id IS NOT NULL))
+             OR (s.owner_kind = 'event' AND e.id IS NOT NULL)
+             OR (s.owner_kind = 'page' AND p.id IS NOT NULL))
          ORDER BY bm25(search_fts, 0.0, 0.0, 10.0, 1.0)
          LIMIT ?2"
     );
@@ -274,5 +276,42 @@ mod tests {
             MAX_HITS as usize
         );
         assert_eq!(search(&conn, "\"report\"", 0).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_page_is_found_by_its_name_and_by_what_is_written_in_it() {
+        use crate::db::models::{BlockChanges, BlockCreate};
+        let mut conn = workspace();
+        let page = crate::db::pages::create(&mut conn, "Weekly Review", "m").unwrap();
+        crate::db::blocks::apply_changes(
+            &mut conn,
+            "page",
+            &page.id,
+            BlockChanges {
+                creates: vec![BlockCreate {
+                    id: "b1".into(),
+                    r#type: "paragraph".into(),
+                    position: "m".into(),
+                    content: serde_json::json!({ "type": "paragraph" }),
+                }],
+                updates: vec![],
+                deletes: vec![],
+            },
+            "the retrospective is on Thursday",
+            &[],
+        )
+        .unwrap();
+
+        let by_name = search(&conn, "\"weekly\"*", 10).unwrap();
+        assert_eq!(by_name.len(), 1);
+        assert_eq!(by_name[0].owner_kind, "page");
+
+        let by_body = search(&conn, "\"retrospective\"*", 10).unwrap();
+        assert_eq!(by_body.len(), 1);
+        assert_eq!(by_body[0].owner_id, page.id);
+
+        // A page that is gone is not a hit, whatever the index still holds.
+        crate::db::pages::delete(&mut conn, &page.id).unwrap();
+        assert_eq!(search(&conn, "\"weekly\"*", 10).unwrap().len(), 0);
     }
 }

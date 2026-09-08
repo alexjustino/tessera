@@ -246,7 +246,7 @@ pub struct EventException {
     pub ends_at_utc: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct WorkHours {
     pub weekday: i64,
     pub starts_minute: i64,

@@ -18,6 +18,13 @@ pub fn work_hours_list(db: State<'_, Db>) -> Result<Vec<WorkHours>> {
     calendar::list_work_hours(&conn)
 }
 
+/// Replace the working week — the whole week, in one call.
+#[tauri::command]
+pub fn work_hours_set(db: State<'_, Db>, hours: Vec<WorkHours>) -> Result<Vec<WorkHours>> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    calendar::set_work_hours(&mut conn, &hours)
+}
+
 #[tauri::command]
 pub fn events_list(db: State<'_, Db>, from: String, to: String) -> Result<Vec<CalendarEvent>> {
     let conn = db.0.lock().expect("the database lock was poisoned");

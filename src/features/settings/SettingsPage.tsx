@@ -20,6 +20,8 @@ import { Select } from '@/ui/Select';
 
 import { BackupsCard } from './BackupsCard';
 import { ExportImportCard } from './ExportImportCard';
+import { ImportsCard } from './ImportsCard';
+import { WorkHoursCard } from './WorkHoursCard';
 
 /**
  * Settings: what a person can change, kept in the workspace file.
@@ -150,8 +152,12 @@ export function SettingsPage() {
         </label>
       </Card>
 
+      <WorkHoursCard />
+
       <BackupsCard settings={current} onChange={update} busy={settings.isPending} />
       <ExportImportCard />
+
+      <ImportsCard />
     </div>
   );
 }

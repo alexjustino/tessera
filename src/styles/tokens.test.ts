@@ -83,6 +83,7 @@ const css = readFileSync(path.join(__dirname, 'tokens.css'), 'utf-8');
 const light = block(css, ':root {');
 const dark = block(css, ":root[data-theme='dark']");
 const darkViaMedia = block(css, ":root:not([data-theme='light'])");
+const paper = block(css, '@media print');
 
 interface Theme {
   name: string;
@@ -104,6 +105,51 @@ function surface(theme: Theme, token: string): Rgb {
 function tint(theme: Theme, token: string): Rgb {
   return over(parse(theme.tokens[token] ?? '#000000'), surface(theme, '--surface-card'));
 }
+
+/**
+ * Paper is a third context, and the only one with no Mica behind it: every
+ * surface is opaque, so a colour is checked against the page itself.
+ */
+describe('paper', () => {
+  const white = parse('#ffffff');
+  const value = (token: string) => paper[token] ?? '';
+  const on = (fg: string, bg: Rgb, min: number, what: string) => {
+    const ratio = contrast(over(parse(value(fg)), bg), bg);
+    expect(ratio, `${what}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(min);
+  };
+
+  it('defines the same colours the screen does', () => {
+    const screenKeys = Object.keys(light).filter(
+      (key) => !key.startsWith('--density') && key !== '--color-scheme',
+    );
+    expect(
+      Object.keys(paper)
+        .filter((key) => key !== '--color-scheme')
+        .sort(),
+    ).toEqual(screenKeys.sort());
+  });
+
+  it('has no translucent surface, because there is nothing behind a page', () => {
+    for (const token of ['--surface-card', '--surface-layer', '--surface-backdrop']) {
+      expect(parse(value(token)).a, token).toBe(1);
+    }
+  });
+
+  it('reads as ink: text, secondary text and the accents on white', () => {
+    on('--fg-primary', white, 4.5, 'body text on paper');
+    on('--fg-secondary', white, 4.5, 'secondary text on paper');
+    on('--fg-tertiary', white, 4.5, 'tertiary text on paper');
+    on('--accent-base', white, 4.5, 'the accent on paper');
+    for (const state of ['info', 'success', 'caution', 'danger']) {
+      on(`--state-${state}`, white, 4.5, `${state} on paper`);
+    }
+  });
+
+  it('draws lines a printer can render', () => {
+    on('--stroke-strong', white, 3, 'a strong outline on paper');
+    on('--stroke-subtle', white, 1.2, 'a subtle rule on paper');
+  });
+});
 
 describe('tokens', () => {
   it('declares dark twice, identically — the toggle must win in both directions', () => {

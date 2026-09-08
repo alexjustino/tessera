@@ -1,0 +1,5 @@
+"Subject","Start Date","Due Date","Reminder On/Off","Reminder Date","Reminder Time","Date Completed","Complete","Total Work","Actual Work","Billing Information","Categories","Companies","Contacts","Mileage","Notes","Priority","Private","Role","Schedule+ Priority","Sensitivity","Status","% Complete"
+"Call the dentist","9/8/2026","9/10/2026","True","9/10/2026","9:00:00 AM","","False","30 minutes","0 hours","","","","","","Ask about the crown.","High","False","","","Normal","Not Started","0"
+"Pay the electricity bill","","9/12/2026","False","","","","False","0 hours","0 hours","","Home","","","","","Normal","False","","","Normal","In Progress","50"
+"Send the tax forms","","8/30/2026","False","","","9/1/2026","True","2 hours","2 hours","","","","","","","Low","False","","","Normal","Completed","100"
+"Wait for the plumber","","","False","","","","False","0 hours","0 hours","","","","","","","Normal","False","","","Normal","Waiting on someone else","0"

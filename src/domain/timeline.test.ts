@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Edge } from './graph';
-import { columnsOf, layout, shiftByDays, type TimelineTask } from './timeline';
+import {
+  axisTicks,
+  columnsOf,
+  layout,
+  printRows,
+  shiftByDays,
+  type TimelineTask,
+} from './timeline';
 
 const ZONE = 'America/Sao_Paulo'; // UTC−3, no daylight saving since 2019
 const edge = (blockerId: string, blockedId: string): Edge => ({ blockerId, blockedId });
@@ -187,5 +194,57 @@ describe('moving a bar', () => {
   it('refuses to invent dates for a task that has none', () => {
     expect(shiftByDays(task('a'), 3)).toBeNull();
     expect(shiftByDays(task('a', { dueAt: at('2026-09-09') }), 0)).toBeNull();
+  });
+});
+
+describe('the same chart, on paper', () => {
+  const tasks = [
+    task('a', { startAt: at('2026-09-07'), dueAt: at('2026-09-09') }),
+    task('b', { startAt: at('2026-09-10'), dueAt: at('2026-09-11') }),
+    task('c', { dueAt: at('2026-09-11'), isMilestone: true }),
+  ];
+
+  it('gives every bar a place in shares of the width, in the order they are drawn', () => {
+    const chart = layout(tasks, [], ZONE);
+    const rows = printRows(chart);
+
+    expect(rows.map((row) => row.id)).toEqual(chart.bars.map((bar) => bar.id));
+    for (const row of rows) {
+      expect(row.left).toBeGreaterThanOrEqual(0);
+      expect(row.width).toBeGreaterThan(0);
+      // Nothing runs off the page, which is what a percentage layout is for.
+      expect(row.left + row.width).toBeLessThanOrEqual(1.0001);
+    }
+  });
+
+  it('still draws a milestone, which has no width of its own', () => {
+    const chart = layout(tasks, [], ZONE);
+    const milestone = printRows(chart).find((row) => row.isMilestone);
+    expect(milestone?.width).toBeGreaterThan(0);
+  });
+
+  it('labels the axis at both ends, and does not invent a day the window has not got', () => {
+    const chart = layout(tasks, [], ZONE);
+    const ticks = axisTicks(chart);
+
+    expect(ticks.length).toBeGreaterThanOrEqual(2);
+    expect(ticks[0]!.day).toBe(chart.firstDay);
+    expect(ticks[0]!.at).toBe(0);
+    expect(ticks.at(-1)!.at).toBeLessThan(1);
+    // Dates only ever move forward across the scale.
+    for (let index = 1; index < ticks.length; index += 1) {
+      expect(ticks[index]!.day >= ticks[index - 1]!.day).toBe(true);
+    }
+  });
+
+  it('asks for more labels than there are days and gets one per day, not repeats', () => {
+    const oneDay = layout([task('a', { dueAt: at('2026-09-07') })], [], ZONE);
+    const ticks = axisTicks(oneDay, 8);
+    expect(new Set(ticks.map((tick) => tick.day)).size).toBe(ticks.length);
+  });
+
+  it('has nothing to draw for a chart with no bars', () => {
+    const empty = layout([], [], ZONE);
+    expect(printRows(empty)).toEqual([]);
   });
 });

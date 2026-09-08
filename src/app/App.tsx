@@ -10,7 +10,10 @@ import { fetchAccentRamp } from '@/data/system';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { AboutPage } from '@/features/about/AboutPage';
 import { FocusMode } from '@/features/focus/FocusMode';
+import { GoalsPage } from '@/features/goals/GoalsPage';
+import { NotesPage } from '@/features/notes/NotesPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
+import { ReviewPage } from '@/features/review/ReviewPage';
 import { FoundationPage } from '@/features/foundation/FoundationPage';
 import { CommandPalette } from '@/features/palette/CommandPalette';
 import { SettingsPage } from '@/features/settings/SettingsPage';
@@ -40,6 +43,8 @@ export function App() {
   const [destination, setDestination] = useState<Destination>('tasks');
   const [focus, setFocus] = useState<Focus>({ itemId: null, nonce: 0 });
   const [paletteOpen, setPaletteOpen] = useState(false);
+  /** The page the palette asked for, until Notes has opened it. */
+  const [openPageId, setOpenPageId] = useState<string | null>(null);
   /** Focus mode: `undefined` off; null lets the queue choose; an id points at a task. */
   const [focused, setFocused] = useState<string | null | undefined>(undefined);
   const client = useQueryClient();
@@ -108,6 +113,12 @@ export function App() {
   const openItem = useCallback((itemId: string) => {
     setDestination('tasks');
     setFocus((current) => ({ itemId, nonce: current.nonce + 1 }));
+  }, []);
+
+  const openPage = useCallback((pageId: string) => {
+    setOpenPageId(pageId);
+    setDestination('notes');
+    setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
   }, []);
 
   const runCommand = useCallback(
@@ -180,6 +191,9 @@ export function App() {
             {destination === 'calendar' && (
               <TasksPage key={pageKey} initialViewId="view.calendar" />
             )}
+            {destination === 'notes' && <NotesPage key={pageKey} initialPageId={openPageId} />}
+            {destination === 'goals' && <GoalsPage key={pageKey} />}
+            {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}
             {destination === 'reports' && <ReportsPage />}
             {destination === 'settings' && <SettingsPage />}
             {destination === 'diagnostics' && <FoundationPage />}
@@ -195,6 +209,7 @@ export function App() {
         onOpenItem={openItem}
         // An event has no drawer of its own yet; the calendar is where it lives.
         onOpenEvent={() => go('calendar')}
+        onOpenPage={openPage}
       />
     </div>
   );
