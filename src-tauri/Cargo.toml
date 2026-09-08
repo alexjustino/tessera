@@ -37,7 +37,7 @@ tauri-plugin-global-shortcut = "2"
 
 [target.'cfg(windows)'.dependencies]
 tauri-winrt-notification = "0.7"
-windows = { version = "0.58", features = ["UI_ViewManagement", "Foundation"] }
+windows = { version = "0.61", features = ["UI_ViewManagement", "Foundation"] }
 
 [profile.release]
 codegen-units = 1
