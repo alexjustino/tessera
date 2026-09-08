@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { formatDuration } from '@/domain/criticalPath';
 import type { Figure } from '@/domain/report';
 
-import { describeDay } from './describeDay';
+import { describeDay } from './format';
 
 /**
  * A number that can be opened.
