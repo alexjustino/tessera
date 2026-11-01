@@ -12,6 +12,8 @@ import { describeError } from '@/data/errors';
 import {
   useCalendars,
   useDaysOffSet,
+  useGoalLinks,
+  useGoals,
   useEventExceptions,
   useEvents,
   useItems,
@@ -20,9 +22,11 @@ import {
 } from '@/data/hooks';
 import { addLocalDays, todayIn } from '@/domain/calendar';
 import {
+  envelopesOf,
   isPastWeek,
   mosaicOf,
   TILE_STATES,
+  type Envelopes,
   type Mosaic,
   type Tile,
   type TileState,
@@ -91,20 +95,39 @@ function weekdayOf(day: string): string {
  * state, same task or event — shows its glyph without repeating the name, so a
  * block of work reads as a block; its spoken name is always whole.
  */
-function cellOf(tile: Tile, continued: boolean): TileCell {
+/** `Thesis` to `T`, `Release 1.3` to `R1`: a goal's mark on its tiles. */
+function initialsOf(name: string): string {
+  return name
+    .split(' ')
+    .filter((word) => word !== '')
+    .slice(0, 2)
+    .map((word) => word[0]?.toLocaleUpperCase() ?? '')
+    .join('');
+}
+
+function cellOf(tile: Tile, continued: boolean, goals: readonly string[]): TileCell {
   const look = LOOK[tile.state];
   const span = tile.minutes < 60 ? ` (${tile.minutes} minutes)` : '';
   return {
     id: `${tile.day}@${tile.startMinute}`,
     label: `${weekdayOf(tile.day)} ${clock(tile.startMinute)}${span}: ${STATE_LABEL[tile.state]}${
       tile.label === null ? '' : ` — ${tile.label}`
-    }${tile.current ? '. Now.' : ''}`,
+    }${goals.length > 0 ? `, for ${goals.join(' and ')}` : ''}${tile.current ? '. Now.' : ''}`,
     className: `${look.className}${tile.current ? ' ring-2 ring-fg ring-offset-1 ring-offset-layer' : ''}`,
     current: tile.current,
     content: (
       <span className="flex items-center gap-1" data-state={tile.state}>
         {look.glyph}
         {tile.label !== null && !continued && <span className="truncate">{tile.label}</span>}
+        {goals.length > 0 && !continued && (
+          <span
+            aria-hidden="true"
+            className="ml-auto shrink-0 rounded-sm border border-current px-1 text-[10px] leading-4"
+            title={goals.join(', ')}
+          >
+            {initialsOf(goals[0] ?? '')}
+          </span>
+        )}
       </span>
     ),
   };
@@ -132,6 +155,8 @@ export function MosaicPage() {
   const items = useItems(null, true);
   const daysOff = useDaysOffSet();
   const ledger = useLedger(now);
+  const goals = useGoals();
+  const goalLinks = useGoalLinks();
 
   const mosaic: Mosaic | null = useMemo(() => {
     if (ledger === null || hours.data === undefined) return null;
@@ -160,6 +185,17 @@ export function MosaicPage() {
     entries.data,
     items.data,
   ]);
+
+  // The envelope goals a task spends from — named on its tiles (M5).
+  const goalsOf = useMemo(() => {
+    const byItem = new Map<string, string[]>();
+    for (const link of goalLinks.data ?? []) {
+      const goal = (goals.data ?? []).find((candidate) => candidate.id === link.goalId);
+      if (goal === undefined || (goal.weeklyMinutes ?? 0) <= 0) continue;
+      byItem.set(link.itemId, [...(byItem.get(link.itemId) ?? []), goal.name]);
+    }
+    return (itemId: string) => byItem.get(itemId) ?? [];
+  }, [goals.data, goalLinks.data]);
 
   const failure = hours.error ?? events.error ?? entries.error ?? items.error;
 
@@ -204,13 +240,32 @@ export function MosaicPage() {
       {mosaic === null ? (
         <p className="text-body text-fg-tertiary">Laying the tiles…</p>
       ) : (
-        <MosaicBody mosaic={mosaic} week={week} past={isPastWeek(week, now, zone)} />
+        <MosaicBody
+          mosaic={mosaic}
+          week={week}
+          past={isPastWeek(week, now, zone)}
+          envelopes={envelopesOf(mosaic, goals.data ?? [], goalLinks.data ?? [])}
+          goalsOf={goalsOf}
+        />
       )}
     </div>
   );
 }
 
-function MosaicBody({ mosaic, week, past }: { mosaic: Mosaic; week: string[]; past: boolean }) {
+function MosaicBody({
+  mosaic,
+  week,
+  past,
+  envelopes,
+  goalsOf,
+}: {
+  mosaic: Mosaic;
+  week: string[];
+  past: boolean;
+  envelopes: Envelopes;
+  /** The envelope goals a task spends from. */
+  goalsOf: (itemId: string) => string[];
+}) {
   const workingDays = useMemo(() => mosaic.days.filter((day) => !day.off), [mosaic]);
   const lastWorkingDay = workingDays.at(-1)?.day ?? week.at(-1) ?? '';
   const broken = [mosaic.capacity, mosaic.reserved, mosaic.needs, mosaic.available].filter(
@@ -233,12 +288,12 @@ function MosaicBody({ mosaic, week, past }: { mosaic: Mosaic; week: string[]; pa
             above.state === tile.state &&
             above.label === tile.label &&
             above.itemId === tile.itemId;
-          return cellOf(tile, continued);
+          return cellOf(tile, continued, tile.itemId === null ? [] : goalsOf(tile.itemId));
         }),
       });
     }
     return out;
-  }, [mosaic, workingDays]);
+  }, [mosaic, workingDays, goalsOf]);
 
   if (mosaic.tileCount === 0) {
     return (
@@ -353,6 +408,8 @@ function MosaicBody({ mosaic, week, past }: { mosaic: Mosaic; week: string[]; pa
         </div>
       </Card>
 
+      <EnvelopesCard envelopes={envelopes} />
+
       <Card title="The numbers, and what they add up">
         <div className="flex flex-col gap-1">
           <FigureRow figure={mosaic.capacity} broken={broken} format={hoursOf} />
@@ -362,5 +419,82 @@ function MosaicBody({ mosaic, week, past }: { mosaic: Mosaic; week: string[]; pa
         </div>
       </Card>
     </>
+  );
+}
+
+/**
+ * Envelopes (M5): goals that hold a weekly budget of tiles, what this week's
+ * tiles spend of each, and the margin promised to no goal. Every tile has a
+ * destination; going over is said, never refused (SPEC 1.3).
+ */
+function EnvelopesCard({ envelopes }: { envelopes: Envelopes }) {
+  if (envelopes.envelopes.length === 0) {
+    return (
+      <Card title="Envelopes">
+        <p className="text-body text-fg-secondary" data-testid="envelopes-empty">
+          No goal holds a weekly budget yet. Give one in Goals — &ldquo;Hours each week&rdquo; — and
+          its tiles are counted here.
+        </p>
+      </Card>
+    );
+  }
+  return (
+    <Card title="Envelopes">
+      <div className="flex flex-col gap-3">
+        {envelopes.overPromised > 0 && (
+          <InfoBar severity="caution" title="The envelopes promise more than the week has open">
+            Together they hold {hoursOf(envelopes.budgeted)}, {hoursOf(envelopes.overPromised)} more
+            than the hours the calendar has left free.
+          </InfoBar>
+        )}
+        <ul className="flex flex-col gap-3">
+          {envelopes.envelopes.map((envelope) => {
+            const share = Math.min(1, envelope.used.value / envelope.budget);
+            return (
+              <li
+                key={envelope.goalId}
+                data-envelope={envelope.goalId}
+                className="flex flex-col gap-1"
+              >
+                <div className="flex items-baseline gap-3">
+                  <span className="min-w-0 flex-1 truncate text-body font-semibold text-fg">
+                    {envelope.name}
+                  </span>
+                  <span
+                    className="shrink-0 text-caption tabular-nums text-fg-secondary"
+                    data-testid="envelope-spent"
+                  >
+                    {hoursOf(envelope.used.value)} of {hoursOf(envelope.budget)}
+                    {envelope.over > 0 ? ` — ${hoursOf(envelope.over)} over` : ''}
+                  </span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-label={`${envelope.name} envelope`}
+                  aria-valuemin={0}
+                  aria-valuemax={envelope.budget}
+                  aria-valuenow={Math.min(envelope.used.value, envelope.budget)}
+                  aria-valuetext={`${hoursOf(envelope.used.value)} of ${hoursOf(envelope.budget)}${
+                    envelope.over > 0 ? `, ${hoursOf(envelope.over)} over` : ''
+                  }`}
+                  className="h-1.5 overflow-hidden rounded-full border border-stroke bg-card-hover"
+                >
+                  <div
+                    className={`h-full ${envelope.over > 0 ? 'bg-danger' : 'bg-accent'}`}
+                    style={{ width: `${Math.round(share * 100)}%` }}
+                  />
+                </div>
+                <p className="text-caption text-fg-tertiary">
+                  {hoursOf(envelope.committed)} committed, {hoursOf(envelope.lived)} tracked.
+                </p>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="text-body text-fg-secondary" data-testid="envelopes-margin">
+          Margin: {hoursOf(envelopes.margin)} of open time is promised to no goal.
+        </p>
+      </div>
+    </Card>
   );
 }

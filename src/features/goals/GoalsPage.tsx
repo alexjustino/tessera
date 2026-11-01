@@ -255,6 +255,43 @@ export function GoalsPage() {
                     </label>
                   </div>
 
+                  <label className="flex flex-col gap-1">
+                    <span className="text-caption text-fg-tertiary">
+                      Hours each week (optional) — the goal&apos;s envelope in the Mosaic
+                    </span>
+                    <Input
+                      aria-label="Hours each week"
+                      type="number"
+                      min={0}
+                      max={168}
+                      step={0.5}
+                      placeholder="No envelope"
+                      defaultValue={
+                        goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
+                          ? ''
+                          : String(goal.weeklyMinutes / 60)
+                      }
+                      className="w-40"
+                      onBlur={(event) => {
+                        const text = event.target.value.trim();
+                        const hours = Number(text);
+                        const minutes = text === '' || hours === 0 ? null : Math.round(hours * 60);
+                        if (
+                          minutes !== null &&
+                          (!Number.isFinite(hours) || hours < 0 || hours > 168)
+                        ) {
+                          event.target.value =
+                            goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
+                              ? ''
+                              : String(goal.weeklyMinutes / 60);
+                          return;
+                        }
+                        if (minutes === (goal.weeklyMinutes ?? null)) return;
+                        update.mutate({ id: goal.id, patch: { weeklyMinutes: minutes } });
+                      }}
+                    />
+                  </label>
+
                   <section aria-label="Tasks in this goal">
                     <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">
                       Tasks in this goal
