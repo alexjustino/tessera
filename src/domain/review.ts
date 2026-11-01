@@ -64,6 +64,8 @@ export interface ReviewInput {
   reserved: ReadonlySet<string>;
   period: Period;
   hours: readonly WorkHours[];
+  /** Days with no working hours this time (M3). */
+  daysOff?: ReadonlySet<string>;
 }
 
 /**
@@ -201,7 +203,7 @@ function capacityLeft(input: ReviewInput, now: string, zone: string): number {
   const today = localDay(now, zone);
   return daysIn(input.period)
     .filter((day) => day >= today)
-    .reduce((total, day) => total + capacityOf(day, input.hours), 0);
+    .reduce((total, day) => total + capacityOf(day, input.hours, input.daysOff), 0);
 }
 
 function inPeriod(day: string, period: Period): boolean {

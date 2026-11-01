@@ -134,6 +134,8 @@ export interface ReportInput {
   /** Occurrences already expanded over at least the period. */
   occurrences: readonly Occurrence[];
   hours: readonly WorkHours[];
+  /** Days with no working hours this time (M3). */
+  daysOff?: ReadonlySet<string>;
 }
 
 export interface EstimateLine {
@@ -267,7 +269,10 @@ export function buildReport(period: Period, input: ReportInput, zone: string, no
   }
   reservedRows.sort((a, b) => a.day!.localeCompare(b.day!) || a.title.localeCompare(b.title));
   const reserved = summed('reserved', 'Reserved', reservedRows);
-  const capacity = daysIn(period).reduce((sum, day) => sum + capacityOf(day, input.hours), 0);
+  const capacity = daysIn(period).reduce(
+    (sum, day) => sum + capacityOf(day, input.hours, input.daysOff),
+    0,
+  );
 
   return {
     period,
