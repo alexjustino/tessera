@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Envelopes.** A goal can hold a weekly budget — "Hours each week" in Goals.
+  The Mosaic counts what each envelope has spent this week from the tiles on
+  its own tasks ("6h of 4h — 2h over"), marks those tiles with the goal, and
+  says how much open time is promised to no goal. Going over is said, never
+  refused (ADR-038).
+
 - **The Mosaic.** A new place in the rail draws your working week as one tile
   per hour — the name's own image, a tessera being one tile of a mosaic. Each
   tile says where that hour went or is going: reserved by the calendar,
@@ -45,6 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A goal's date set in Goals is saved. The host read the change as snake_case
+  while the interface sent camelCase, so the date was dropped without a word;
+  it is read as sent now, and a test pins it.
 - The calendar shows in a workspace that has no tasks yet. It used to show
   "Nothing here yet" instead, so a calendar that had only imported events — or
   a year with days off — could not be seen until a task existed.

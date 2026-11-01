@@ -29,6 +29,8 @@ pub struct Goal {
     pub position: String,
     pub created_at: String,
     pub updated_at: String,
+    /// A weekly budget of working minutes — the goal's envelope (1.3, M5).
+    pub weekly_minutes: Option<i64>,
 }
 
 /// One task counting towards one goal.
@@ -39,7 +41,13 @@ pub struct GoalLink {
 }
 
 /// What a caller may change about a goal. Absent fields are left alone.
+///
+/// The interface sends camelCase (`dueDay`, `weeklyMinutes`). Until 1.3 this
+/// struct read only snake_case, so serde dropped `dueDay` as an unknown field
+/// and a goal's date set in the interface was never saved — found while adding
+/// the envelope, which travels the same way.
 #[derive(Debug, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct GoalPatch {
     pub name: Option<String>,
     pub measure: Option<String>,
@@ -47,12 +55,16 @@ pub struct GoalPatch {
     /// `Some(None)` clears the day; `None` leaves it as it was.
     #[serde(default, deserialize_with = "double_option")]
     pub due_day: Option<Option<String>>,
+    /// `Some(None)` removes the envelope; `None` leaves it as it was.
+    #[serde(default, deserialize_with = "double_option")]
+    pub weekly_minutes: Option<Option<i64>>,
 }
 
 /// Distinguish "not sent" from "sent as null", for a field that is nullable.
-fn double_option<'de, D>(deserializer: D) -> std::result::Result<Option<Option<String>>, D::Error>
+fn double_option<'de, D, T>(deserializer: D) -> std::result::Result<Option<Option<T>>, D::Error>
 where
     D: serde::Deserializer<'de>,
+    T: serde::Deserialize<'de>,
 {
     serde::Deserialize::deserialize(deserializer).map(Some)
 }
@@ -67,11 +79,23 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Goal> {
         position: row.get(5)?,
         created_at: row.get(6)?,
         updated_at: row.get(7)?,
+        weekly_minutes: row.get(8)?,
     })
 }
 
 const COLUMNS: &str =
-    "id, name, measure, target, due_day, position, created_at, updated_at FROM goal";
+    "id, name, measure, target, due_day, position, created_at, updated_at, weekly_minutes FROM goal";
+
+/// A week has 10 080 minutes; an envelope larger than the week is a typo.
+fn check_weekly(minutes: Option<i64>) -> Result<Option<i64>> {
+    match minutes {
+        None => Ok(None),
+        Some(value) if value > 0 && value <= 7 * 24 * 60 => Ok(Some(value)),
+        Some(_) => Err(Error::InvalidInput(
+            "a weekly budget is more than nothing and no more than a week",
+        )),
+    }
+}
 
 fn check_name(name: &str) -> Result<String> {
     let trimmed = name.trim();
@@ -188,11 +212,16 @@ pub fn update(conn: &Connection, id: &str, patch: GoalPatch) -> Result<Goal> {
         Some(value) => check_day(value.as_deref())?,
         None => current.due_day,
     };
+    let weekly = match patch.weekly_minutes {
+        Some(value) => check_weekly(value)?,
+        None => current.weekly_minutes,
+    };
 
     conn.execute(
-        "UPDATE goal SET name = ?2, measure = ?3, target = ?4, due_day = ?5, updated_at = ?6
+        "UPDATE goal SET name = ?2, measure = ?3, target = ?4, due_day = ?5, weekly_minutes = ?6,
+         updated_at = ?7
          WHERE id = ?1",
-        params![id, name, measure, target, day, now()],
+        params![id, name, measure, target, day, weekly, now()],
     )?;
     get(conn, id)
 }
@@ -367,5 +396,80 @@ mod tests {
         delete(&conn, &made.id).unwrap();
         assert_eq!(links(&conn).unwrap(), vec![]);
         assert!(get(&conn, &made.id).is_err());
+    }
+
+    #[test]
+    fn the_patch_the_interface_sends_is_read_in_camel_case() {
+        // The defect this pins: `dueDay` from the interface was dropped as an
+        // unknown field, so a goal's date never saved.
+        let patch: GoalPatch =
+            serde_json::from_str(r#"{"dueDay":"2026-12-31","weeklyMinutes":480}"#).unwrap();
+        assert_eq!(patch.due_day, Some(Some("2026-12-31".to_string())));
+        assert_eq!(patch.weekly_minutes, Some(Some(480)));
+
+        let cleared: GoalPatch =
+            serde_json::from_str(r#"{"dueDay":null,"weeklyMinutes":null}"#).unwrap();
+        assert_eq!(cleared.due_day, Some(None));
+        assert_eq!(cleared.weekly_minutes, Some(None));
+
+        let absent: GoalPatch = serde_json::from_str("{}").unwrap();
+        assert_eq!(absent.due_day, None);
+        assert_eq!(absent.weekly_minutes, None);
+    }
+
+    #[test]
+    fn a_goal_has_no_envelope_until_given_one_and_can_lose_it() {
+        let conn = workspace();
+        let made = goal(&conn, "Thesis");
+        assert_eq!(made.weekly_minutes, None);
+
+        let patch: GoalPatch = serde_json::from_str(r#"{"weeklyMinutes":480}"#).unwrap();
+        let given = update(&conn, &made.id, patch).unwrap();
+        assert_eq!(given.weekly_minutes, Some(480));
+        // Leaving it out of a later patch leaves it alone.
+        let renamed = update(
+            &conn,
+            &made.id,
+            GoalPatch {
+                name: Some("Thesis, chapter 2".into()),
+                ..GoalPatch::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(renamed.weekly_minutes, Some(480));
+
+        let patch: GoalPatch = serde_json::from_str(r#"{"weeklyMinutes":null}"#).unwrap();
+        assert_eq!(update(&conn, &made.id, patch).unwrap().weekly_minutes, None);
+    }
+
+    #[test]
+    fn an_envelope_of_nothing_or_more_than_a_week_is_refused() {
+        let conn = workspace();
+        let made = goal(&conn, "Thesis");
+        for bad in [0, -60, 7 * 24 * 60 + 1] {
+            let patch = GoalPatch {
+                weekly_minutes: Some(Some(bad)),
+                ..GoalPatch::default()
+            };
+            assert!(
+                matches!(
+                    update(&conn, &made.id, patch).unwrap_err(),
+                    Error::InvalidInput(_)
+                ),
+                "{bad} was accepted"
+            );
+        }
+        assert_eq!(get(&conn, &made.id).unwrap().weekly_minutes, None);
+    }
+
+    #[test]
+    fn a_date_set_through_the_patch_is_saved() {
+        let conn = workspace();
+        let made = goal(&conn, "Launch");
+        let patch: GoalPatch = serde_json::from_str(r#"{"dueDay":"2027-03-01"}"#).unwrap();
+        assert_eq!(
+            update(&conn, &made.id, patch).unwrap().due_day.as_deref(),
+            Some("2027-03-01")
+        );
     }
 }

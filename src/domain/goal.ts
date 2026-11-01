@@ -43,6 +43,8 @@ export interface Goal {
   /** A local day, or null. */
   dueDay: string | null;
   position: string;
+  /** A weekly budget of working minutes — the goal's envelope (1.3, M5). */
+  weeklyMinutes?: number | null;
 }
 
 /** One task counting towards one goal. */

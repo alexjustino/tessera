@@ -44,6 +44,7 @@ that a later one narrows says so and points at it.
 | [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted |
 | [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted |
 | [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted |
+| [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted |
 
 ---
 
@@ -924,3 +925,29 @@ are made to agree by construction, and where a drawing has to round, it says so.
 **Cost accepted.** A tile hides a short event inside a longer free hour (it shows the majority).
 The grid is a week of working hours: evenings and weekends are not drawn, even when something is
 reserved in them.
+
+## ADR-038 — An envelope is a promise of tiles, and its spend is read from the tiles {#adr-038}
+
+**Context.** 1.3 promised that every tile has a destination (SPEC, 1.3.0). The calendar gives
+some hours theirs; goals (ADR-030) are what the rest are for. A goal could say what counts
+towards it, but not how much of a week it should get.
+
+**Decision.** A goal may hold a weekly budget in minutes (`goal.weekly_minutes`, migration 018) —
+its envelope. In the mosaic, an envelope's spend is the committed and lived tiles on the goal's
+own tasks this week, read from the tiles themselves (`envelopesOf`), so the number beside an
+envelope is always tiles a person can count on the grid (ADR-037). The open week — capacity less
+what the calendar reserved — splits into the envelopes and a margin promised to no goal. Going
+over an envelope, or promising envelopes beyond the open week, is recorded in words; nothing is
+refused and nothing moves (ADR-034). A task in two goals spends in both, and its tiles name both.
+
+**Why read the spend from the tiles.** An envelope summed from estimates would be a second
+arithmetic beside the mosaic's, and two readings of one fact must agree (DESIGN_SYSTEM, "Two
+readings of one fact agree"). Reading the tiles makes the agreement structural.
+
+**Why a budget and not a limit.** A limit would refuse work at the moment it arrives, which is a
+scheduler deciding the day — refused in 1.1 and again in 1.3. A budget states an intention; the
+tiles state what happened; the difference is the information.
+
+**Cost accepted.** One budget per goal for every week — no per-week envelopes yet. An envelope
+counts whole tiles, so a tile shared with a reservation counts its whole hour for the goal. A goal
+with an envelope and no tasks in the week shows zero spent, not a guess.

@@ -33,6 +33,7 @@
  */
 
 import { workingSpan, minutesInto, type Occurrence, type WorkHours } from './calendar';
+import type { Goal, GoalLink } from './goal';
 import type { Item } from './item';
 import type { Projection } from './receipt';
 import { summed, type Figure, type ReportRow } from './report';
@@ -327,4 +328,91 @@ export function mosaicOf(input: MosaicInput): Mosaic {
 export function isPastWeek(week: readonly string[], now: string, zone: string): boolean {
   const last = week.at(-1);
   return last !== undefined && last < localDay(now, zone);
+}
+
+// ── Envelopes (M5) ─────────────────────────────────────────────────────────
+
+/** One goal's weekly budget, and what this week's tiles spend of it. */
+export interface Envelope {
+  goalId: string;
+  name: string;
+  /** Minutes a week the goal holds. */
+  budget: number;
+  /** Committed and lived minutes on the goal's tasks this week, by task. */
+  used: Figure;
+  committed: number;
+  lived: number;
+  /** Minutes past the budget — recorded, never refused. */
+  over: number;
+}
+
+export interface Envelopes {
+  envelopes: Envelope[];
+  /** Minutes all envelopes hold together. */
+  budgeted: number;
+  /** Open minutes (capacity less reserved) promised to no envelope. */
+  margin: number;
+  /** Minutes the envelopes promise beyond the open week. */
+  overPromised: number;
+}
+
+/**
+ * Every tile has a destination (SPEC 1.3): the calendar's, an envelope's, or
+ * the margin. An envelope's spend is read from the tiles themselves — the
+ * committed and lived ones on its tasks — so the number beside an envelope is
+ * always the tiles a person can count on the grid (ADR-037). A task in two
+ * goals spends in both, and the screen says so.
+ */
+export function envelopesOf(
+  mosaic: Mosaic,
+  goals: readonly Goal[],
+  goalLinks: readonly GoalLink[],
+): Envelopes {
+  const tiles = mosaic.days.flatMap((day) => day.tiles);
+  const envelopes: Envelope[] = [];
+  for (const goal of goals) {
+    const budget = goal.weeklyMinutes ?? 0;
+    if (budget <= 0) continue;
+    const mine = new Set(goalLinks.filter((l) => l.goalId === goal.id).map((l) => l.itemId));
+    const byTask = new Map<string, ReportRow>();
+    let committed = 0;
+    let lived = 0;
+    for (const tile of tiles) {
+      if (tile.itemId === null || !mine.has(tile.itemId)) continue;
+      if (tile.state !== 'committed' && tile.state !== 'lived') continue;
+      if (tile.state === 'committed') committed += tile.minutes;
+      else lived += tile.minutes;
+      const key = `task:${tile.itemId}`;
+      const row = byTask.get(key);
+      if (row === undefined) {
+        byTask.set(key, {
+          key,
+          itemId: tile.itemId,
+          title: tile.label ?? '',
+          day: null,
+          minutes: tile.minutes,
+        });
+      } else {
+        row.minutes += tile.minutes;
+      }
+    }
+    const used = summed(`envelope:${goal.id}`, goal.name, [...byTask.values()]);
+    envelopes.push({
+      goalId: goal.id,
+      name: goal.name,
+      budget,
+      used,
+      committed,
+      lived,
+      over: Math.max(0, used.value - budget),
+    });
+  }
+  const budgeted = envelopes.reduce((sum, e) => sum + e.budget, 0);
+  const open = mosaic.capacity.value - mosaic.reserved.value;
+  return {
+    envelopes,
+    budgeted,
+    margin: Math.max(0, open - budgeted),
+    overPromised: Math.max(0, budgeted - open),
+  };
 }

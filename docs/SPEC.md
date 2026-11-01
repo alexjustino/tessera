@@ -294,6 +294,15 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of M5, and why
+
+- **A different envelope each week.** One weekly budget per goal; a week that
+  needs more for one goal is said by going over, which the mosaic records.
+- **Envelopes for collections or tags.** Goals already carry the decision of
+  what counts (ADR-030); a second kind of envelope would be a second decision.
+- **Splitting a shared tile.** A tile half reserved and half committed counts
+  its whole hour where it lands (ADR-037's majority rule).
+
 ### Deferred out of M4, and why
 
 - **Moving work by dragging tiles.** The mosaic shows the cost; it never

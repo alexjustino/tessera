@@ -65,7 +65,11 @@ Invoke-Gate 'cargo test'   { cargo test } $tauri
 Invoke-Gate 'tsc'          { npm run --silent typecheck }
 Invoke-Gate 'eslint'       { npm run --silent lint }
 Invoke-Gate 'prettier'     { npm run --silent format:check }
-Invoke-Gate 'vitest'       { npm run --silent test }
+# Two workers, not one per core. On Windows, many test files opening the same
+# node_modules files at once fail to load now and then ("UNKNOWN: unknown error,
+# open .../date-fns/...") — a different file each run, never an assertion — and
+# with two workers the suite has never failed to load. Recorded in 1.3, M5.
+Invoke-Gate 'vitest'       { npm run --silent test -- --maxWorkers=2 }
 
 Write-Host ''
 Write-Host '── summary ───────────────────────────────────────────────────────' -ForegroundColor DarkGray
