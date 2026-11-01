@@ -1,26 +1,45 @@
 # Architecture Decision Records
 
 Binding decisions. A record here is not a suggestion: changing one requires a new record that
-supersedes it, not an edit in passing. Each entry states the context, the decision, and — the
-part that matters most later — the cost we accepted.
+supersedes it, not an edit in passing. Each entry states the decision and why, and — the part
+that matters most later — the cost or consequence we accepted, where one was accepted. A record
+that a later one narrows says so and points at it.
 
-| #               | Decision                                          | Status   |
-| --------------- | ------------------------------------------------- | -------- |
-| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host        | Accepted |
-| [002](#adr-002) | SQLite, one file, WAL                             | Accepted |
-| [003](#adr-003) | The domain layer is pure TypeScript               | Accepted |
-| [004](#adr-004) | The view query engine runs in memory              | Accepted |
-| [005](#adr-005) | Properties are stored entity-attribute-value      | Accepted |
-| [006](#adr-006) | Ordering uses fractional indexing                 | Accepted |
-| [007](#adr-007) | Recurrence is RRULE plus a mode                   | Accepted |
-| [008](#adr-008) | An event is not an item                           | Accepted |
-| [009](#adr-009) | The block editor is built on TipTap / ProseMirror | Accepted |
-| [010](#adr-010) | Fluent is the visual language, with one icon set  | Accepted |
-| [011](#adr-011) | Apache-2.0                                        | Accepted |
-| [012](#adr-012) | No network, no telemetry                          | Accepted |
-| [013](#adr-013) | Time is stored in UTC with an IANA zone           | Accepted |
-| [014](#adr-014) | The calendar engine is ours                       | Accepted |
-| [015](#adr-015) | Installers are not code-signed in 1.0.0           | Accepted |
+| #               | Decision                                                              | Status   |
+| --------------- | --------------------------------------------------------------------- | -------- |
+| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                            | Accepted |
+| [002](#adr-002) | SQLite, one file, WAL                                                 | Accepted |
+| [003](#adr-003) | The domain layer is pure TypeScript                                   | Accepted |
+| [004](#adr-004) | The view query engine runs in memory                                  | Accepted |
+| [005](#adr-005) | Properties are stored entity-attribute-value                          | Accepted |
+| [006](#adr-006) | Ordering uses fractional indexing                                     | Accepted |
+| [007](#adr-007) | Recurrence is RRULE plus a mode                                       | Accepted |
+| [008](#adr-008) | An event is not an item                                               | Accepted |
+| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                     | Accepted |
+| [010](#adr-010) | Fluent is the visual language, with one icon set                      | Accepted |
+| [011](#adr-011) | Apache-2.0                                                            | Accepted |
+| [012](#adr-012) | No network, no telemetry                                              | Accepted |
+| [013](#adr-013) | Time is stored in UTC with an IANA zone                               | Accepted |
+| [014](#adr-014) | The calendar engine is ours                                           | Accepted |
+| [015](#adr-015) | Installers are not code-signed until signing exists                   | Accepted |
+| [016](#adr-016) | End-to-end tests drive the real binary                                | Accepted |
+| [017](#adr-017) | Backups are file copies; restore replaces                             | Accepted |
+| [018](#adr-018) | Accessibility is gated, not reviewed                                  | Accepted |
+| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                | Accepted |
+| [020](#adr-020) | A plan says what it is worth                                          | Accepted |
+| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                   | Accepted |
+| [022](#adr-022) | An invariant the schema can state, the schema states                  | Accepted |
+| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved     | Accepted |
+| [024](#adr-024) | A figure carries the rows it came from                                | Accepted |
+| [025](#adr-025) | A template is the plan for tasks, not tasks                           | Accepted |
+| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing | Accepted |
+| [027](#adr-027) | A column that collides is reconciled, never coerced                   | Accepted |
+| [028](#adr-028) | A zone is a name, not a rule set                                      | Accepted |
+| [029](#adr-029) | A link points at an identity and shows a name                         | Accepted |
+| [030](#adr-030) | What counts towards a goal is a decision, not a filter                | Accepted |
+| [031](#adr-031) | Paper is a rendering, not a screenshot                                | Accepted |
+| [032](#adr-032) | The review keeps no state                                             | Accepted |
+| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one    | Accepted |
 
 ---
 
@@ -30,7 +49,8 @@ part that matters most later — the cost we accepted.
 Action Center, autostart, a global hotkey, Mica. It must also start fast and stay small.
 
 **Decision.** Tauri 2, with the Rust side kept as thin as it can be: storage, the operating
-system, and the typed command boundary. No business logic in Rust.
+system, and the typed command boundary. No business logic in Rust; the invariants of the file
+itself are enforced there, because only the host sees every writer (ADR-019, ADR-022, ADR-027).
 
 **Why not Electron.** A ~10 MB binary against ~150 MB, and WebView2 is already on every
 Windows 11 machine. **Why not WPF/WinUI.** The view engine, the block editor and the calendar
@@ -163,7 +183,7 @@ it works precisely because the two models stayed honest about being different.
 
 ## ADR-009 — The block editor is built on TipTap / ProseMirror {#adr-009}
 
-**Decision.** TipTap 2 over ProseMirror, not a hand-written editor.
+**Decision.** TipTap 3 over ProseMirror, not a hand-written editor.
 
 **Why.** ProseMirror enforces document integrity through a schema, which is the difference
 between an editor that survives paste, undo and concurrent edits and one that corrupts a
@@ -209,7 +229,7 @@ declared one by one, with shell execution deliberately absent.
 **Why.** Privacy is a feature of this product, stated in the README, not an omission. It is
 also what makes the security posture simple enough to be true.
 
-**Cost accepted.** No automatic updates in 1.0.0. Releases are downloaded from GitHub.
+**Cost accepted.** No automatic updates. Releases are downloaded from GitHub.
 
 ## ADR-013 — Time is stored in UTC with an IANA zone {#adr-013}
 
@@ -235,7 +255,7 @@ React calendar brings its own CSS and its own visual language, which is exactly 
 this product from looking native. Grid geometry and overlap resolution are pure functions with
 unit tests.
 
-## ADR-015 — Installers are not code-signed in 1.0.0 {#adr-015}
+## ADR-015 — Installers are not code-signed until signing exists {#adr-015}
 
 **Decision.** Ship unsigned MSI and NSIS installers; document the SmartScreen warning in the
 README and `SECURITY.md`.
@@ -261,11 +281,11 @@ from an empty file.
 
 **Cost accepted.** The suite needs a built binary and a driver that matches the WebView2
 runtime, so it is not in the pull-request gate — `npm run gates` stays fast and hermetic. It
-runs on a developer machine and from a manually triggered workflow. A global shortcut cannot be
+runs on a developer machine and from a workflow triggered by hand and every Monday. A global shortcut cannot be
 pressed through WebDriver; that path is proved by Diagnostics reporting its registration and by
 a person.
 
-## ADR-017 — Backups are file copies; import replaces, never merges {#adr-017}
+## ADR-017 — Backups are file copies; restore replaces {#adr-017}
 
 **Decision.** A backup is `VACUUM INTO` a timestamped file beside the workspace, taken on the
 first start of each day and on request, kept in rotation. A restore closes the live connection,
@@ -286,6 +306,11 @@ which this product has deliberately not built (README); a replace that asks firs
 import from a different schema version is refused rather than migrated; the backup path
 covers that case. Two backups in the same instant get a collision suffix rather than sharing a
 name — the test that found the collision is `tests/restore.rs`.
+
+**Narrowed by ADR-026.** Since 1.2.0 there are two doors. Restoring from Tessera's own export
+still replaces every table, as above. Importing rows — from another product, or from a Tessera
+export taken as a source of rows — goes through the additive door of ADR-026, which previews,
+adds and undoes, and reads an older schema leniently. This record now governs restore only.
 
 ## ADR-018 — Accessibility is gated, not reviewed {#adr-018}
 
@@ -443,8 +468,8 @@ it is stated in the year's summary line only as what _is_ there; a count of what
 count over (SPEC, deferred out of P5).
 
 **Cost accepted.** Capacity is a weekday span, so a public holiday on a Tuesday has nine
-hours until a holiday table exists. Working hours are read everywhere and edited nowhere
-yet; the screen is deferred, the reading is not.
+hours until a holiday table exists. Working hours are editable in Settings since 1.2.0
+(the review reads them); a holiday table is still absent.
 
 ## ADR-024 — A figure carries the rows it came from {#adr-024}
 
@@ -518,8 +543,8 @@ decide; the host applies the decided plan in one transaction and records every r
 `import_batch` and `import_row` (migration 013). `undo` walks those rows backwards and removes
 exactly them — or refuses before touching anything.
 
-**Why a plan.** Five importers are coming (Tessera, Todoist, Microsoft To Do, Trello, Notion,
-ICS). If each wrote rows its own way there would be five doors, five previews and five undos,
+**Why a plan.** Six importers share one door (Tessera, Todoist, Microsoft To Do, Trello, Notion,
+ICS). If each wrote rows its own way there would be six doors, six previews and six undos,
 and they would disagree. One intermediate shape makes each importer a parser and a mapping, and
 puts the judgement — duplicates, positions, what a person sees — in one place with one test.
 
@@ -544,6 +569,10 @@ a problem: undo finds nothing and moves on.
 with a sentence, not carried (SPEC, deferred out of A1). Positions are the caller's to hand in,
 because the host does not own the ordering key scheme (`domain/ordering.ts`). Bookkeeping tables
 are part of the export, so a restore carries the import history with it.
+
+**Relation to ADR-017.** Replacing the workspace from an export is restore, and stays ADR-017's.
+This door only adds, and it is the one that reads an older export's rows; ADR-017 narrows to
+restore accordingly. The rules every importer obeys are ADR-033.
 
 ## ADR-027 — A column that collides is reconciled, never coerced {#adr-027}
 
@@ -749,3 +778,34 @@ screens that own those edits, which keeps one editor per thing.
 **Cost accepted.** Somebody who wants the ritual recorded — a habit tracker's satisfaction — does
 not get it here. They can make a repeating task called "Weekly review", which is the product's
 own answer to a recurring commitment, and it will be counted like any other work.
+
+## ADR-033 — An importer reads a file, survives it, and proves it on a real one {#adr-033}
+
+**Context.** 1.2 shipped six importers through the door of ADR-026. The SPEC wrote three rules
+for all of them "once here so no slice relitigates them" (SPEC, 1.2.0), and every importer
+followed them — but a rule that binds every future importer belongs here, not in a release
+section that will scroll out of view.
+
+**Decision.** Every importer, present and future, obeys three rules.
+
+1. **Files, never accounts.** An importer reads a file the person exported. It never signs in
+   and never calls an API (ADR-012). Where a product offers no export of its own, the importer
+   reads what the product does let out — Microsoft To Do's tasks reach Tessera as the Outlook
+   tasks CSV — and the SPEC says so.
+2. **Hostile input.** A parser never throws, is capped in size, and treats every string as text.
+   A malformed file imports what it can and lists what it could not, by line; it neither
+   imports nothing nor imports garbage in silence. Where a source's types disagree, the
+   importer chooses the type that loses nothing — a Notion column whose values disagree becomes
+   text — and says so in the preview.
+3. **A real fixture, opened by the real binary.** Each importer has a real export file,
+   committed, small and scrubbed of anything personal, and the end-to-end suite imports it on
+   the built application. The proof of done is not "the parser passes"; it is "this file
+   imports".
+
+**Why.** The defects an importer ships are in the files nobody wrote by hand — a byte-order
+mark, a CRLF, a zone named the Windows way, a column that is sometimes a number. A parser fed
+only its author's examples passes for the wrong reason. A real file through the real door is
+the only test that has the bytes the person will have.
+
+**Cost accepted.** Every new importer waits for a real export to exist, and the fixtures make
+the repository a little larger. An importer for a product with no export at all is not built.

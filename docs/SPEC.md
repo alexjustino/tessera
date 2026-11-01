@@ -117,7 +117,8 @@ the review reads everything and comes last before the release.
 | A9     | GTD weekly review           | the review shows every project without a next action and every task waiting on nothing, and finishes with neither                    |
 | A10    | Release 1.2.0               | a 1.1 workspace opens in 1.2 without loss, and every importer's fixture imports on the release binary                                |
 
-Three rules for every importer, written once here so no slice relitigates them:
+Three rules for every importer, written once here so no slice relitigates them — and recorded
+as ADR-033, so they outlive this section:
 
 - **Files, never accounts.** An importer reads a file the person exported; it
   never signs in, never calls an API (SPEC §4: no network). Where a product
@@ -198,13 +199,13 @@ Anyone with your Windows account can read it. Use BitLocker if that matters.
 
 ## 6. Testing and gates
 
-| Level        | Tool                         | Target                                                                                                                                                      |
-| ------------ | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Rules        | Vitest over `domain/`        | **≥ 90%** — recurrence and exceptions, occurrence expansion, calendar overlap, timezone and DST arithmetic, query engine, natural-language parser, ordering |
-| Persistence  | `cargo test`                 | CRUD, transactions, FTS, **migration round-trip**                                                                                                           |
-| Contract     | Vitest over `data/`          | the Zod shape matches the Rust serde shape                                                                                                                  |
-| End-to-end   | WebdriverIO + `tauri-driver` | create → move on the board → **drag into the calendar** → restart → still there                                                                             |
-| Architecture | own test                     | fails if `domain/` imports React or Tauri                                                                                                                   |
+| Level        | Tool                                      | Target                                                                                                                                                      |
+| ------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rules        | Vitest over `domain/`                     | **≥ 90%** — recurrence and exceptions, occurrence expansion, calendar overlap, timezone and DST arithmetic, query engine, natural-language parser, ordering |
+| Persistence  | `cargo test`                              | CRUD, transactions, FTS, **migration round-trip**                                                                                                           |
+| Contract     | — (not built)                             | the command types in `data/` mirror the Rust serde shapes by hand; a mismatch is caught by the end-to-end suite, not by a contract test                     |
+| End-to-end   | own W3C client + `tauri-driver` (ADR-016) | create → move on the board → **drag into the calendar** → restart → still there                                                                             |
+| Architecture | own test                                  | fails if `domain/` imports React or Tauri                                                                                                                   |
 
 **Mandatory negative cases** for anything touching time: month boundaries, leap years,
 **daylight-saving transitions**, events crossing midnight, a cancelled occurrence inside a

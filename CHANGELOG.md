@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- The decision record is in step with the code again. The index lists all 33
+  records, not the first fifteen. ADR-017 now says it governs restore only and
+  points at the additive import door of ADR-026, which in turn points back.
+  ADR-009 names TipTap 3, ADR-023 says the working week has been editable since
+  1.2.0, ADR-026 counts six importers, and ADR-001 says where the host does
+  enforce rules. The three rules every importer obeys are now ADR-033 instead
+  of living only in the 1.2 section of the SPEC. The SPEC no longer names a
+  test framework the suite does not use, nor a contract test that was never
+  built.
+
 ## [1.2.0] — 2026-09-08
 
 The adopter. 1.1 answered "will this finish, and when"; 1.2 answers "can I move
