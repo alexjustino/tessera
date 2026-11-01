@@ -87,6 +87,11 @@ export interface Projection {
   /** Open tasks left out because nobody has said how long they take. */
   unestimated: number;
   horizonEnd: string;
+  /**
+   * Day → the free minutes each task claimed on it, in the order claimed. The
+   * mosaic draws these (M4); the receipt does not need them.
+   */
+  allocations: Map<string, Array<{ itemId: string; minutes: number }>>;
 }
 
 /** One task whose projected finish moved. */
@@ -192,6 +197,7 @@ export function project(input: LedgerInput): Projection {
   }
 
   const finishes = new Map<string, string | null>();
+  const allocations = new Map<string, Array<{ itemId: string; minutes: number }>>();
   for (const task of order) {
     // The earliest day this task may take minutes on.
     let from = 0;
@@ -216,6 +222,10 @@ export function project(input: LedgerInput): Projection {
     while (need > 0 && at < horizon) {
       const take = Math.min(need, free[at] ?? 0);
       free[at] = (free[at] ?? 0) - take;
+      if (take > 0) {
+        const day = days[at] ?? '';
+        allocations.set(day, [...(allocations.get(day) ?? []), { itemId: task.id, minutes: take }]);
+      }
       need -= take;
       if (need === 0) finish = at;
       else at++;
@@ -227,7 +237,7 @@ export function project(input: LedgerInput): Projection {
     finishes.set(task.id, day);
   }
 
-  return { finishes, demand, dueDays, unestimated, horizonEnd };
+  return { finishes, demand, dueDays, unestimated, horizonEnd, allocations };
 }
 
 /** Minutes reserved for a task on each day from today: [itemId, minutes, day]. */
