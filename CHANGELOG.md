@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 
+- The 1.3 line is open: **the ledger**. Its question is "what does this
+  cost?" — a week has a fixed number of working hours, and every estimate
+  draws on what is left. Seven slices (M1–M7): the price of yes, dates with
+  confidence, days off, the week mosaic, envelopes, the split tile and the
+  release, with the rules every slice follows written once in the SPEC.
+
 - The decision record is in step with the code again. The index lists all 33
   records, not the first fifteen. ADR-017 now says it governs restore only and
   points at the additive import door of ADR-026, which in turn points back.
