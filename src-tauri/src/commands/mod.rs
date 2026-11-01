@@ -8,6 +8,7 @@ pub mod blocks;
 pub mod calendar;
 pub mod capture;
 pub mod data;
+pub mod days_off;
 pub mod dependencies;
 pub mod goals;
 pub mod importing;
