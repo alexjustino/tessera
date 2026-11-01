@@ -18,6 +18,7 @@ export function FigureRow({
   broken,
   big = false,
   format = formatDuration,
+  noun = { one: 'task', many: 'tasks' },
 }: {
   figure: Figure;
   /** Figures that failed `traceable` — theirs is the dash. */
@@ -28,13 +29,15 @@ export function FigureRow({
    * says them; the mosaic says hours, because its tiles are hours (M4).
    */
   format?: (minutes: number) => string;
+  /** What a counted figure counts — tasks unless said otherwise (the split tile counts hours). */
+  noun?: { one: string; many: string };
 }) {
   const [open, setOpen] = useState(false);
   const isBroken = broken.some((candidate) => candidate.id === figure.id);
   const shown =
     figure.unit === 'minutes'
       ? format(figure.value)
-      : `${figure.value} ${figure.value === 1 ? 'task' : 'tasks'}`;
+      : `${figure.value} ${figure.value === 1 ? noun.one : noun.many}`;
 
   return (
     <div data-testid="figure" data-figure={figure.id}>

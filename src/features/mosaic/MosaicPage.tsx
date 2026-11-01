@@ -28,6 +28,7 @@ import {
   TILE_STATES,
   type Envelopes,
   type Mosaic,
+  type Split,
   type Tile,
   type TileState,
 } from '@/domain/mosaic';
@@ -106,6 +107,7 @@ function initialsOf(name: string): string {
 }
 
 function cellOf(tile: Tile, continued: boolean, goals: readonly string[]): TileCell {
+  if (tile.split !== null) return splitCellOf(tile, tile.split);
   const look = LOOK[tile.state];
   const span = tile.minutes < 60 ? ` (${tile.minutes} minutes)` : '';
   return {
@@ -128,6 +130,58 @@ function cellOf(tile: Tile, continued: boolean, goals: readonly string[]): TileC
             {initialsOf(goals[0] ?? '')}
           </span>
         )}
+      </span>
+    ),
+  };
+}
+
+/**
+ * The split tile (M6): a past hour set aside for a task. Plan above, life
+ * below; when they match, the halves close into one whole tile. The halves
+ * are told apart by a dashed line and a word as well as a fill.
+ */
+function splitCellOf(tile: Tile, split: Split): TileCell {
+  const when = `${weekdayOf(tile.day)} ${clock(tile.startMinute)}`;
+  if (split.closed) {
+    return {
+      id: `${tile.day}@${tile.startMinute}`,
+      label: `${when}: planned ${split.planLabel}, lived ${split.planLabel} — closed`,
+      className: LOOK.lived.className,
+      content: (
+        <span className="flex items-center gap-1" data-state="closed">
+          {LOOK.lived.glyph}
+          <span className="truncate">{split.planLabel}</span>
+        </span>
+      ),
+    };
+  }
+  return {
+    id: `${tile.day}@${tile.startMinute}`,
+    label: `${when}: planned ${split.planLabel}, ${
+      split.livedLabel === null ? 'nothing tracked' : `lived ${split.livedLabel}`
+    } — split`,
+    className: 'border border-stroke-strong',
+    content: (
+      <span className="flex h-full flex-col text-[11px] leading-none" data-state="split">
+        <span className="flex h-1/2 items-center gap-1 truncate text-fg">
+          <Calendar16Regular aria-hidden="true" className="h-3 w-3 shrink-0" />
+          <span className="truncate">{split.planLabel}</span>
+        </span>
+        <span
+          className={[
+            'flex h-1/2 items-center gap-1 truncate border-t border-dashed border-stroke',
+            split.livedLabel === null ? 'text-fg-disabled' : 'text-accent',
+          ].join(' ')}
+        >
+          {split.livedLabel === null ? (
+            'nothing tracked'
+          ) : (
+            <>
+              <Checkmark16Filled aria-hidden="true" className="h-3 w-3 shrink-0" />
+              <span className="truncate">{split.livedLabel}</span>
+            </>
+          )}
+        </span>
       </span>
     ),
   };
@@ -321,8 +375,12 @@ function MosaicBody({
               {mosaic.reserved.value === 0
                 ? 'Nothing is on the calendar.'
                 : `The calendar took ${hoursOf(mosaic.reserved.value)}.`}{' '}
-              Work due by {describeDay(lastWorkingDay)} needs {hoursOf(mosaic.needs.value)}, and{' '}
-              {hoursOf(mosaic.available.value)} is left
+              {mosaic.needs.value === 0
+                ? `No estimated work is due by ${describeDay(lastWorkingDay)}, and `
+                : `Work due by ${describeDay(lastWorkingDay)} needs ${hoursOf(mosaic.needs.value)}, and `}
+              {mosaic.available.value === 0
+                ? 'no working hours are left'
+                : `${hoursOf(mosaic.available.value)} is left`}
               {mosaic.shortTiles > 0 ? (
                 <>
                   {' '}
@@ -388,6 +446,26 @@ function MosaicBody({
                 {state.label} ({mosaic.counts[state.id]})
               </li>
             ))}
+            {mosaic.planned.value > 0 && (
+              <>
+                <li className="flex items-center gap-1.5 text-caption text-fg-secondary">
+                  <span
+                    aria-hidden="true"
+                    className={`inline-flex h-4 w-6 rounded-sm ${LOOK.lived.className}`}
+                  />
+                  Closed — plan matched ({mosaic.splits.closed})
+                </li>
+                <li className="flex items-center gap-1.5 text-caption text-fg-secondary">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex h-4 w-6 flex-col overflow-hidden rounded-sm border border-stroke-strong"
+                  >
+                    <span className="h-1/2 border-b border-dashed border-stroke" />
+                  </span>
+                  Split — plan above, life below ({mosaic.splits.open})
+                </li>
+              </>
+            )}
           </ul>
           {mosaic.days.some((day) => day.off) && (
             <p className="text-caption text-fg-tertiary">
@@ -407,6 +485,23 @@ function MosaicBody({
           )}
         </div>
       </Card>
+
+      {mosaic.planned.value > 0 && (
+        <Card title="Plan and life">
+          <div className="flex flex-col gap-2">
+            <p className="text-body text-fg" data-testid="closure-summary">
+              Of {mosaic.planned.value} {mosaic.planned.value === 1 ? 'hour' : 'hours'} set aside
+              for a task, {mosaic.closed.value} closed — life matched the plan (
+              {Math.round((mosaic.closed.value / mosaic.planned.value) * 100)}%).
+            </p>
+            <FigureRow figure={mosaic.open} broken={[]} noun={{ one: 'hour', many: 'hours' }} />
+            <p className="text-caption text-fg-tertiary">
+              A split tile shows the plan above and what was tracked below; when they match, the
+              tile closes into one.
+            </p>
+          </div>
+        </Card>
+      )}
 
       <EnvelopesCard envelopes={envelopes} />
 
