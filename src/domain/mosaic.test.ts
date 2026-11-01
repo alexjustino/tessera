@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CalendarEvent, Occurrence, WorkHours } from './calendar';
 import type { Item } from './item';
-import { isPastWeek, mosaicOf, type MosaicInput } from './mosaic';
+import { envelopesOf, isPastWeek, mosaicOf, type MosaicInput } from './mosaic';
 import { project, type LedgerInput } from './receipt';
 import type { Entry } from './time';
 
@@ -241,5 +241,49 @@ describe('the week mosaic', () => {
     const sum = Object.values(m.counts).reduce((a, b) => a + b, 0);
     expect(sum).toBe(m.tileCount);
     expect(m.capacity.value).toBe(m.tileCount * H);
+  });
+});
+
+describe('envelopes (M5)', () => {
+  const THESIS = {
+    id: 'thesis',
+    name: 'Thesis',
+    measure: 'tasks' as const,
+    target: 1,
+    dueDay: null,
+    position: 'm',
+  };
+  const links = [{ goalId: 'thesis', itemId: 'Draft' }];
+  const week = () =>
+    mosaic({
+      items: [item('Draft', { estimateMinutes: 3 * H }), item('Other', { estimateMinutes: 2 * H })],
+      occurrences: [occurrence('Stand-up', at('2026-11-02', 9), at('2026-11-02', 11))],
+    });
+
+  it('an envelope spends the committed tiles of its own tasks, and only those', () => {
+    const e = envelopesOf(week(), [{ ...THESIS, weeklyMinutes: 8 * H }], links);
+    expect(e.envelopes).toHaveLength(1);
+    expect(e.envelopes[0]).toMatchObject({ budget: 8 * H, committed: 3 * H, lived: 0, over: 0 });
+    expect(e.envelopes[0]?.used.rows.map((r) => [r.title, r.minutes])).toEqual([['Draft', 3 * H]]);
+    // 40h of capacity, 2h reserved, 8h promised: 30h of margin.
+    expect(e.margin).toBe(30 * H);
+    expect(e.overPromised).toBe(0);
+  });
+
+  it('going over the budget is recorded, never refused', () => {
+    const e = envelopesOf(week(), [{ ...THESIS, weeklyMinutes: 2 * H }], links);
+    expect(e.envelopes[0]?.over).toBe(H);
+  });
+
+  it('promises beyond the open week are said, and the margin is none', () => {
+    const e = envelopesOf(week(), [{ ...THESIS, weeklyMinutes: 39 * H }], links);
+    expect(e.overPromised).toBe(H);
+    expect(e.margin).toBe(0);
+  });
+
+  it('a goal with no weekly budget has no envelope', () => {
+    expect(
+      envelopesOf(week(), [THESIS, { ...THESIS, id: 'x', weeklyMinutes: null }], links).envelopes,
+    ).toEqual([]);
   });
 });
