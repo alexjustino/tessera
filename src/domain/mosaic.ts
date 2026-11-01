@@ -36,7 +36,7 @@ import { workingSpan, minutesInto, type Occurrence, type WorkHours } from './cal
 import type { Goal, GoalLink } from './goal';
 import type { Item } from './item';
 import type { Projection } from './receipt';
-import { summed, type Figure, type ReportRow } from './report';
+import { counted, summed, type Figure, type ReportRow } from './report';
 import { localDay, localPlace } from './schedule';
 import type { Entry } from './time';
 
@@ -62,6 +62,22 @@ export interface Tile {
   itemId: string | null;
   /** The tile the present moment is in. */
   current: boolean;
+  /**
+   * A past tile that time was set aside in for a task (M6): what was planned,
+   * what was lived, and whether the two halves close into one.
+   */
+  split: Split | null;
+}
+
+/** The split tile (M6): plan above, life below. */
+export interface Split {
+  planItemId: string;
+  planLabel: string;
+  /** The task tracked in this hour, or null when nothing was. */
+  livedItemId: string | null;
+  livedLabel: string | null;
+  /** True when life matched the plan: the tile is whole. */
+  closed: boolean;
 }
 
 export interface MosaicDay {
@@ -77,7 +93,10 @@ export interface Mosaic {
   firstMinute: number;
   lastMinute: number;
   tileCount: number;
+  /** Tiles per state, not counting split tiles — those are counted in `splits`. */
   counts: Record<TileState, number>;
+  /** Split tiles (M6) as drawn: whole (closed) and split (open). */
+  splits: { closed: number; open: number };
   /** Tiles' worth of work that the week cannot hold. */
   shortTiles: number;
   /** Minutes the projection put on today that do not fit in what is left of it. */
@@ -88,6 +107,11 @@ export interface Mosaic {
   reserved: Figure;
   needs: Figure;
   available: Figure;
+  /** Past tiles with time set aside for a task, and the ones whose life matched (M6). */
+  planned: Figure;
+  closed: Figure;
+  /** The planned tiles that did not close — what the week's figure opens onto. */
+  open: Figure;
 }
 
 export interface MosaicInput {
@@ -117,6 +141,9 @@ export function mosaicOf(input: MosaicInput): Mosaic {
   const weekEnd = input.week.at(-1) ?? here.day;
 
   const days: MosaicDay[] = [];
+  const plannedRows: ReportRow[] = [];
+  const closedRows: ReportRow[] = [];
+  const openRows: ReportRow[] = [];
   const capacityRows: ReportRow[] = [];
   const reservedRows = new Map<string, ReportRow>();
   const availableRows: ReportRow[] = [];
@@ -174,10 +201,16 @@ export function mosaicOf(input: MosaicInput): Mosaic {
       let reservedLabel: string | null = null;
       let reservedItem: string | null = null;
       let reservedBest = 0;
+      let blockItem: string | null = null;
+      let blockBest = 0;
       for (const o of onDay) {
         const m = overlap(o.from, o.to, start, end);
         if (m === 0) continue;
         reserved += m;
+        if (o.occurrence.event.itemId !== null && m > blockBest) {
+          blockBest = m;
+          blockItem = o.occurrence.event.itemId;
+        }
         const key = `occurrence:${o.occurrence.event.id}@${o.occurrence.originalStart}`;
         const row = reservedRows.get(key);
         if (row === undefined) {
@@ -212,7 +245,50 @@ export function mosaicOf(input: MosaicInput): Mosaic {
         }
       }
 
-      const base = { day, startMinute: start, minutes, current };
+      // The split tile (M6): a past hour set aside for a task, read against
+      // what was tracked in it.
+      const livedEnough = livedMinutes * 2 >= minutes;
+      const split: Split | null =
+        past && blockItem !== null && blockBest * 2 >= minutes
+          ? {
+              planItemId: blockItem,
+              planLabel: titles.get(blockItem) ?? reservedLabel ?? '',
+              livedItemId: livedEnough ? livedItem : null,
+              livedLabel: livedEnough ? (titles.get(livedItem ?? '') ?? null) : null,
+              closed: livedEnough && livedItem === blockItem,
+            }
+          : null;
+      if (split !== null) {
+        const key = `tile:${day}@${start}`;
+        plannedRows.push({
+          key,
+          itemId: split.planItemId,
+          title: split.planLabel,
+          day,
+          minutes: 0,
+        });
+        if (split.closed) {
+          closedRows.push({
+            key,
+            itemId: split.planItemId,
+            title: split.planLabel,
+            day,
+            minutes: 0,
+          });
+        } else {
+          openRows.push({
+            key,
+            itemId: split.planItemId,
+            title: `${clockOf(start)} planned ${split.planLabel} — ${
+              split.livedLabel === null ? 'nothing tracked' : `lived ${split.livedLabel}`
+            }`,
+            day,
+            minutes: 0,
+          });
+        }
+      }
+
+      const base = { day, startMinute: start, minutes, current, split };
       if ((past || current) && livedMinutes * 2 >= minutes) {
         tiles.push({
           ...base,
@@ -294,10 +370,15 @@ export function mosaicOf(input: MosaicInput): Mosaic {
     past: 0,
   };
   let tileCount = 0;
+  const splits = { closed: 0, open: 0 };
   for (const day of days) {
     for (const tile of day.tiles) {
-      counts[tile.state] += 1;
       tileCount += 1;
+      // A split tile is drawn as plan and life, not as its state, so the
+      // legend counts what the grid shows (two readings agree).
+      if (tile.split === null) counts[tile.state] += 1;
+      else if (tile.split.closed) splits.closed += 1;
+      else splits.open += 1;
     }
   }
 
@@ -314,6 +395,7 @@ export function mosaicOf(input: MosaicInput): Mosaic {
     lastMinute,
     tileCount,
     counts,
+    splits,
     shortTiles: Math.ceil(short / HOUR),
     todayOverflow,
     rounded,
@@ -321,7 +403,15 @@ export function mosaicOf(input: MosaicInput): Mosaic {
     reserved: summed('mosaic:reserved', 'Reserved on the calendar', [...reservedRows.values()]),
     needs,
     available: availableFigure,
+    planned: counted('mosaic:planned', 'Hours set aside for a task', plannedRows),
+    closed: counted('mosaic:closed', 'Closed — life matched the plan', closedRows),
+    open: counted('mosaic:open', 'Did not close', openRows),
   };
+}
+
+/** `09:00` for minutes from midnight. */
+function clockOf(minute: number): string {
+  return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
 }
 
 /** Whether a week (as its first day) is wholly before today. */
