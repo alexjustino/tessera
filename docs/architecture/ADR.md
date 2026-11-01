@@ -45,6 +45,7 @@ that a later one narrows says so and points at it.
 | [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted |
 | [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted |
 | [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted |
+| [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan        | Accepted |
 
 ---
 
@@ -951,3 +952,31 @@ tiles state what happened; the difference is the information.
 **Cost accepted.** One budget per goal for every week — no per-week envelopes yet. An envelope
 counts whole tiles, so a tile shared with a reservation counts its whole hour for the goal. A goal
 with an envelope and no tasks in the week shows zero spent, not a guess.
+
+## ADR-039 — An hour closes when life matches the plan, and only a block is a plan {#adr-039}
+
+**Context.** The name's third story (About): a _tessera hospitalis_ was a token broken in two;
+when the halves fitted, the bond was proved. 1.3 ends on that image — the plan and the life of an
+hour as two halves of one tile (M6).
+
+**Decision.** A past hour has a plan when most of it was set aside on the calendar for a task —
+a time block (ADR-008's bridge). Its life is the task tracked for most of it. When the two are
+the same task, the tile closes and is drawn whole; otherwise it is drawn split — plan above, life
+below, "nothing tracked" when nothing was. The week's figure is how many planned hours closed,
+and it opens onto the ones that did not, each saying what was planned and what was lived
+(ADR-024). A split tile is counted apart from its state, so the legend counts what the grid draws
+(ADR-037). The code is `mosaicOf` in `src/domain/mosaic.ts`.
+
+**Why only a block is a plan.** A meeting is time the calendar took, not work the person promised
+to do; there is nothing to track against it, and counting it would make every meeting a failed
+plan. An estimate with no block is a commitment to some hour, not to this one (ADR-034). Only a
+block says "this hour, this task" — the one claim an hour of tracked time can confirm or not.
+
+**Why a ratio and no grade.** "1 of 3 closed (33%)" is a fact about the week's plans; it says
+nothing about the person (SPEC 1.3: the ledger states facts, it does not judge). The figure opens
+onto the hours so the reason is always one click away from the number.
+
+**Cost accepted.** A plan that moved to another hour and was kept there counts as split in the
+first hour and unplanned in the second — the tile knows its hour, not the intention behind it.
+Tracking a different task than the block, for good reason, still splits the tile; the person
+reads the reason in the row.

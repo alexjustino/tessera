@@ -294,6 +294,16 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of M6, and why
+
+- **A plan that moved.** A block kept in another hour reads as split in the
+  first and unplanned in the second; following an intention across hours would
+  need the block to remember where it came from.
+- **Closure over many weeks** — a running ratio that calibrates envelopes. One
+  week's figure first; a trend is a figure about weeks, and earns its own slice.
+- **The year as a mosaic of lived weeks.** It now has something to say (each
+  week's closure); it waits for a release that can give it a screen.
+
 ### Deferred out of M5, and why
 
 - **A different envelope each week.** One weekly budget per goal; a week that

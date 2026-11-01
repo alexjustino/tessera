@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The split tile.** In the Mosaic, every past hour you set aside for a task
+  on the calendar shows two halves: what you planned above, what you tracked
+  below. When they match, the tile closes into one. "Plan and life" says how
+  many of the week's planned hours closed — "Of 3 hours set aside for a task,
+  1 closed (33%)" — and opens onto the ones that did not, each saying what was
+  planned and what was lived. A fact about the plans, not a score (ADR-039).
+
 - **Envelopes.** A goal can hold a weekly budget — "Hours each week" in Goals.
   The Mosaic counts what each envelope has spent this week from the tiles on
   its own tasks ("6h of 4h — 2h over"), marks those tiles with the goal, and
