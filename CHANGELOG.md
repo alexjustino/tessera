@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Days off.** Settings has a new card for holidays and leave. A day off has
+  no working hours anywhere Tessera counts them — the year view reads it as not
+  a working day, and the review, the reports and the price of a change all stop
+  counting its hours. Days off travel with the workspace in backups and exports
+  (ADR-036).
+
 - **Dates with confidence.** Once ten finished tasks have both an estimate and
   tracked time, a projected date reads as a range drawn from your own estimate
   error — "likely by Wed 4 Nov; 85% sure by Thu 5 Nov — from 10 finished
@@ -25,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on paper. Nothing is saved until you leave the field, and Escape puts the old
   estimate back. Tessera shows the cost; it never moves anything for you
   (ADR-034).
+
+### Fixed
+
+- The calendar shows in a workspace that has no tasks yet. It used to show
+  "Nothing here yet" instead, so a calendar that had only imported events — or
+  a year with days off — could not be seen until a task existed.
 
 ### Documentation
 
