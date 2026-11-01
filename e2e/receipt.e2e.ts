@@ -173,6 +173,10 @@ describe('the price of yes', () => {
     expect(panel).toContain('Nothing has changed yet');
     // The horizon is a year away; its date must say which year.
     expect(panel).toContain(String(new Date().getFullYear() + 1));
+    // A fresh workspace has no finished history: no percentage, and it says so (M2).
+    expect(await driver.findAll('[data-testid="forecast-range"]')).toHaveLength(0);
+    const sample = await (await driver.find('[data-testid="forecast-sample"]')).text();
+    expect(sample).toContain('(0 so far)');
     await capture('receipt-late');
   });
 

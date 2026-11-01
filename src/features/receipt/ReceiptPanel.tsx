@@ -1,6 +1,9 @@
+import type { Forecast } from '@/domain/confidence';
 import { isFree, type GoalShift, type Receipt, type Shift } from '@/domain/receipt';
 import { describeDay } from '@/features/reports/format';
 import { InfoBar } from '@/ui/InfoBar';
+
+import { ForecastLine } from './ForecastLine';
 
 /**
  * The receipt for a change that has not been saved yet (M1).
@@ -15,7 +18,17 @@ import { InfoBar } from '@/ui/InfoBar';
  * made from (ADR-024). Lateness is said in words beside the dates, never by
  * colour alone.
  */
-export function ReceiptPanel({ receipt }: { receipt: Receipt | null }) {
+export function ReceiptPanel({
+  receipt,
+  forecast = null,
+  sample = 0,
+}: {
+  receipt: Receipt | null;
+  /** The changed task's own finish as a range (M2), when there is one. */
+  forecast?: Forecast | null;
+  /** How many finished tasks the range stands on. */
+  sample?: number;
+}) {
   if (receipt === null) {
     return (
       <p className="text-caption text-fg-tertiary" data-testid="receipt-loading">
@@ -38,6 +51,7 @@ export function ReceiptPanel({ receipt }: { receipt: Receipt | null }) {
         <div className="flex flex-col gap-2">
           <p data-testid="receipt-cost">{costOf(receipt.costMinutes)}</p>
           {ownLineOf(receipt) !== null && <p data-testid="receipt-own">{ownLineOf(receipt)}</p>}
+          {forecast !== null && <ForecastLine forecast={forecast} sample={sample} rangeOnly />}
 
           {receipt.shifts.length > 0 && (
             <div>

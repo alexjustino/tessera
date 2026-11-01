@@ -60,6 +60,12 @@ export interface LedgerInput {
   /** Minutes already tracked, per item. */
   tracked: ReadonlyMap<string, number>;
   horizonDays?: number;
+  /**
+   * What every remaining estimate is multiplied by — 1 unless a confidence
+   * range is being drawn (M2, `confidence.ts`). The receipt itself always
+   * prices the estimates as typed.
+   */
+  scale?: number;
 }
 
 /** A change being considered. Nothing is saved by considering it. */
@@ -168,7 +174,9 @@ export function project(input: LedgerInput): Projection {
   const dueDays = new Map<string, string>();
   for (const task of tasks) {
     const need =
-      (task.estimateMinutes ?? 0) - (input.tracked.get(task.id) ?? 0) - (blocked.get(task.id) ?? 0);
+      Math.round((task.estimateMinutes ?? 0) * (input.scale ?? 1)) -
+      (input.tracked.get(task.id) ?? 0) -
+      (blocked.get(task.id) ?? 0);
     demand.set(task.id, Math.max(0, need));
     if (task.dueAt !== null) dueDays.set(task.id, localDay(task.dueAt, input.zone));
   }
