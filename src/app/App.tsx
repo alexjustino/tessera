@@ -11,6 +11,7 @@ import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { AboutPage } from '@/features/about/AboutPage';
 import { FocusMode } from '@/features/focus/FocusMode';
 import { GoalsPage } from '@/features/goals/GoalsPage';
+import { MosaicPage } from '@/features/mosaic/MosaicPage';
 import { NotesPage } from '@/features/notes/NotesPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { ReviewPage } from '@/features/review/ReviewPage';
@@ -191,6 +192,7 @@ export function App() {
             {destination === 'calendar' && (
               <TasksPage key={pageKey} initialViewId="view.calendar" />
             )}
+            {destination === 'mosaic' && <MosaicPage key={pageKey} />}
             {destination === 'notes' && <NotesPage key={pageKey} initialPageId={openPageId} />}
             {destination === 'goals' && <GoalsPage key={pageKey} />}
             {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}

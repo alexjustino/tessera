@@ -1,6 +1,6 @@
 import type { Forecast } from '@/domain/confidence';
 import { isFree, type GoalShift, type Receipt, type Shift } from '@/domain/receipt';
-import { describeDay } from '@/features/reports/format';
+import { describeDay, describeHours as hoursOf } from '@/features/reports/format';
 import { InfoBar } from '@/ui/InfoBar';
 
 import { ForecastLine } from './ForecastLine';
@@ -124,17 +124,6 @@ function headlineOf(receipt: Receipt): string {
     receipt.goals.filter((goal) => goal.becameLate).length;
   if (parts.length === 0) return 'This task would finish late.';
   return `Moves ${parts.join(' and ')}${nowLate > 0 ? ` — ${nowLate} would be late` : ''}.`;
-}
-
-/**
- * Hours and minutes, never days: the receipt talks about the free time in the
- * person's own working days, and a "day" of eight hours would not be theirs.
- */
-function hoursOf(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  if (hours === 0) return `${rest}m`;
-  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
 }
 
 function costOf(minutes: number): string {
