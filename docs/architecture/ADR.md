@@ -41,6 +41,7 @@ that a later one narrows says so and points at it.
 | [032](#adr-032) | The review keeps no state                                                    | Accepted |
 | [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one           | Accepted |
 | [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted |
+| [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted |
 
 ---
 
@@ -848,3 +849,30 @@ day. One person, one stream: no parallel work. Tasks with no estimate are counte
 (ADR-020). The horizon is a year; work beyond it has no finish day and is said to be late. The
 receipt appears where an estimate is drafted; a due date saves as it changes, and events are not
 created in the interface, so their receipts are deferred (SPEC, deferred out of M1).
+
+## ADR-035 — A range is the person's own error, and there is none without a sample {#adr-035}
+
+**Context.** M1 projects a single finish day from the estimates as typed. Estimates are wrong,
+and each person is wrong in their own direction. 1.3 promised dates with confidence — and also
+"no percentage without a sample" (SPEC, 1.3.0).
+
+**Decision.** The error is measured, not assumed. Each finished task with an estimate and tracked
+time is one measurement: tracked divided by estimated, clamped to a quarter–four times band. With
+at least ten measurements, the projection of ADR-034 is run twice more with every remaining
+estimate scaled — by the median ("likely") and by the 85th percentile ("85% sure") — and the day
+each task or goal finishes in those runs is the range. Below ten there is no range at all: the
+plain day, and a sentence saying how many measurements exist and how many are needed. The code is
+`src/domain/confidence.ts`; every screen says it through one component, `ForecastLine`.
+
+**Why the person's own history.** A generic correction ("add 30 %") is somebody else's error. The
+ratio of tracked to estimated is already in the workspace for every task finished with a timer,
+it is about this person, and it is checkable: the median and the percentile of a list of numbers.
+
+**Why ten, and why say so.** Below a handful of measurements a percentile is noise presented as
+knowledge — the false precision ADR-020 refuses for plans. Ten is small enough to reach in a
+couple of weeks of tracked work and large enough that one outlier does not set the date. The
+range always says how many tasks it stands on, so its weight is visible.
+
+**Cost accepted.** The band hides real extremes, by design. The scale applies to every remaining
+estimate alike — it does not learn per kind of task. Tracked time is the measure of effort, so a
+person who never tracks never gets a range; that is stated where the range would be.
