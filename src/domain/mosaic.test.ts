@@ -238,7 +238,8 @@ describe('the week mosaic', () => {
       items: [item('Draft', { estimateMinutes: 12 * H })],
       occurrences: [occurrence('Review', at('2026-11-03', 14), at('2026-11-03', 16))],
     });
-    const sum = Object.values(m.counts).reduce((a, b) => a + b, 0);
+    const sum =
+      Object.values(m.counts).reduce((a, b) => a + b, 0) + m.splits.closed + m.splits.open;
     expect(sum).toBe(m.tileCount);
     expect(m.capacity.value).toBe(m.tileCount * H);
   });
@@ -285,5 +286,73 @@ describe('envelopes (M5)', () => {
     expect(
       envelopesOf(week(), [THESIS, { ...THESIS, id: 'x', weeklyMinutes: null }], links).envelopes,
     ).toEqual([]);
+  });
+});
+
+describe('the split tile (M6)', () => {
+  const NOW = at('2026-11-04', 10); // Wednesday, 10:00 — Monday and Tuesday are past.
+  const split = () =>
+    mosaic({
+      now: NOW,
+      items: [item('Draft', { estimateMinutes: 10 * H }), item('Email')],
+      occurrences: [
+        occurrence('Draft block', at('2026-11-02', 9), at('2026-11-02', 11), 'Draft'),
+        occurrence('Draft again', at('2026-11-03', 10), at('2026-11-03', 11), 'Draft'),
+        occurrence('Future block', at('2026-11-05', 9), at('2026-11-05', 10), 'Draft'),
+      ],
+      entries: [
+        { id: 'a', itemId: 'Draft', startedAt: at('2026-11-02', 9), endedAt: at('2026-11-02', 10) },
+        {
+          id: 'b',
+          itemId: 'Email',
+          startedAt: at('2026-11-02', 10),
+          endedAt: at('2026-11-02', 11),
+        },
+        {
+          id: 'c',
+          itemId: 'Email',
+          startedAt: at('2026-11-03', 14),
+          endedAt: at('2026-11-03', 15),
+        },
+      ],
+    });
+
+  it('a past hour set aside for a task closes only when the same task was tracked in it', () => {
+    const m = split();
+    const monday = m.days[0]?.tiles ?? [];
+    expect(monday[0]?.split).toEqual({
+      planItemId: 'Draft',
+      planLabel: 'Draft',
+      livedItemId: 'Draft',
+      livedLabel: 'Draft',
+      closed: true,
+    });
+    expect(monday[1]?.split).toMatchObject({ livedItemId: 'Email', closed: false });
+    const tuesday = m.days[1]?.tiles ?? [];
+    expect(tuesday[1]?.split).toMatchObject({ livedItemId: null, closed: false });
+  });
+
+  it('the week counts three planned hours, one closed, and opens onto the two that did not', () => {
+    const m = split();
+    expect(m.planned.value).toBe(3);
+    expect(m.closed.value).toBe(1);
+    expect(m.open.value).toBe(2);
+    // The legend counts what the grid draws: split tiles are not in their state's count.
+    expect(m.splits).toEqual({ closed: 1, open: 2 });
+    expect(m.counts.lived).toBe(1); // only Tuesday's unplanned hour
+    expect(Object.values(m.counts).reduce((a, b) => a + b, 0) + 3).toBe(m.tileCount);
+    expect(m.open.rows.map((row) => row.title)).toEqual([
+      '10:00 planned Draft — lived Email',
+      '10:00 planned Draft — nothing tracked',
+    ]);
+  });
+
+  it('tracked time with no plan is not a split tile, and a future block is not either', () => {
+    const m = split();
+    const tuesday = m.days[1]?.tiles ?? [];
+    expect(tuesday[5]?.state).toBe('lived'); // 14:00, Email, unplanned
+    expect(tuesday[5]?.split).toBeNull();
+    const thursday = m.days[3]?.tiles ?? [];
+    expect(thursday[0]?.split).toBeNull();
   });
 });

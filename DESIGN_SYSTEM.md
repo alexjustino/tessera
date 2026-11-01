@@ -230,6 +230,12 @@ the legend writes each one out with its count:
 | Gone, nothing tracked       | dashed `border-stroke`, `text-fg-disabled`        | —                                  |
 | Short (does not fit)        | `bg-danger-subtle`, `border-danger`               | in its own strip, counted in words |
 
+A past hour set aside for a task is a **split tile** (M6, ADR-039): the plan in the top half
+(calendar glyph, the task's name) and the life in the bottom half (checkmark and the task tracked,
+or "nothing tracked" in disabled text), divided by a dashed line. When the halves match, the tile
+**closes** and is drawn whole in the tracked look. The legend counts split and closed tiles apart
+from the states, so it counts what the grid draws.
+
 Committed and reserved are never one colour (ADR-023, ADR-034). Every tile has a border, because
 a 10 % tint alone does not reach the 3:1 a non-text mark needs. A block of tiles for one task or
 event names it once, at its top.
