@@ -58,6 +58,7 @@ Gantt · arbitrary attachments · auto-update · AI.
 | **1.0.0** | The workspace       | the list above                                                                                                                                    |
 | 1.1.0     | The project manager | year view · timeline and Gantt · dependencies with critical path · milestones · time tracking · focus mode · reports · templates · daily capacity |
 | 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                      |
+| 1.3.0     | The ledger          | the price of yes · dates with confidence · days off · the week mosaic · envelopes · the split tile                                                |
 | 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                |
 
 ### 1.1.0 — the project manager
@@ -143,6 +144,60 @@ earns it); importing from a live account; merging two histories on import
 beyond what the preview shows as a duplicate — the person decides, the product
 does not guess; property values in templates; a plugin surface for importers
 written outside this repository.
+
+### 1.3.0 — the ledger
+
+1.1 answered "will this finish, and when"; 1.2 answered "can I move in". 1.3
+answers the question every list avoids: **"what does this cost?"** A to-do list
+is a promise that there is always room for one more line. There is not. A week
+has a fixed number of working hours, the calendar has already spent some of
+them, and every estimate draws on what is left. 1.3 makes Tessera the honest
+ledger of that arithmetic — the name's own image: a _tessera_ is one tile of a
+mosaic, and in 1.3 each tile is an hour.
+
+It adds no second data core. The capacity (working hours, ADR-023), the
+reservations (the calendar), the commitments (estimates and due dates), the
+lived time (time entries) and the intent (goals, ADR-030) are all already here.
+1.3 is the reading that puts them in one sentence.
+
+The order follows the squad's recommendation, accepted by the owner on
+2026-10-31: **the receipt first**, because it needs no ritual and no set-up —
+it appears at the moment of decision and asks for nothing. The mosaic is the
+second layer, the envelopes the optional third, and the split tile closes the
+line by reading plan against life.
+
+| #      | Slice                 | Proof of done                                                                                                                                                                                           |
+| ------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M1** | The price of yes      | typing an estimate on a task shows, before it is saved, which other tasks and goals it moves, by how many days, and which become late — computed, naming its rows, on a plan a person can check by hand |
+| M2     | Dates with confidence | with enough history, a date reads as a range ("likely by 14 Nov, almost surely by 21 Nov") drawn from the person's own estimate error; below the sample, no percentage appears                          |
+| M3     | Days off              | a holiday or a day of leave removes that day's capacity everywhere capacity is read — year, day, receipt — and survives export and import                                                               |
+| M4     | The week mosaic       | the week is drawn as one tile per working hour — free, reserved, committed, lived — with a sentence above it whose numbers agree with the tiles; reachable and readable without colour                  |
+| M5     | Envelopes             | a goal can hold a weekly budget of tiles; every tile has a destination, a margin included; going over is recorded, never refused                                                                        |
+| M6     | The split tile        | each past tile shows plan and life as two halves; the week's figure is how many closed; the figure opens onto the hours that did not                                                                    |
+| M7     | Release 1.3.0         | a 1.2 workspace opens in 1.3 without loss, and every M-slice's end-to-end test passes on the release binary                                                                                             |
+
+Rules for every slice of this line, written once here:
+
+- **Show the cost; never decide.** Tessera may compute what a commitment
+  displaces, and say it. It never moves, refuses or reschedules work on its own
+  (1.1: a dependency does not get to decide your day). Quick capture stays
+  instant: the price of a captured line is shown after it is captured, not as a
+  gate before.
+- **Committed is not reserved.** An estimate is a claim on future hours; a
+  calendar block is hours already spent. They are two quantities with two
+  appearances and never one colour (ADR-023 keeps its meaning).
+- **Minutes underneath, tiles on top.** Arithmetic is in minutes; a tile is a
+  drawing. Where a drawing rounds, the screen says so, and the count of tiles
+  and the sum of hours never disagree.
+- **No percentage without a sample.** A confidence is shown only above a
+  stated amount of history, and says how much history it stands on (ADR-020's
+  spirit).
+- **A figure carries its rows** (ADR-024): every number in a receipt, a mosaic
+  or a split tile opens onto the tasks, events and entries it was made from.
+
+What 1.3 deliberately does not add: a scheduler that places work by itself; a
+habit score or a productivity grade (the ledger states facts, it does not
+judge); attention, energy or anything that is not time; sync.
 
 ## 3. Architecture
 
