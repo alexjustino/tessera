@@ -13,6 +13,7 @@ import {
   useUnlinkGoalItem,
   useUpdateGoal,
 } from '@/data/hooks';
+import { calibrationOf, forecastGoals, type Forecast } from '@/domain/confidence';
 import { formatDuration } from '@/domain/criticalPath';
 import {
   checkName,
@@ -31,6 +32,8 @@ import {
 import { between } from '@/domain/ordering';
 import { traceable, type Figure } from '@/domain/report';
 import { systemZone } from '@/domain/schedule';
+import { ForecastLine } from '@/features/receipt/ForecastLine';
+import { useLedger } from '@/features/receipt/useLedger';
 import { FigureRow } from '@/features/reports/FigureRow';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
@@ -64,6 +67,20 @@ export function GoalsPage() {
   // way the task it is being tracked against does.
   const running = (entries.data ?? []).some((entry) => entry.endedAt === null);
   const now = useNow(running ? 60_000 : null);
+
+  // When each goal would be done, on the estimates as typed and — with
+  // history enough — as a range (M2). One projection for the whole page.
+  const ledger = useLedger(now);
+  const { forecasts, sample } = useMemo(() => {
+    if (ledger === null) return { forecasts: new Map<string, Forecast>(), sample: 0 };
+    const calibration = calibrationOf(ledger.items, ledger.tracked);
+    return {
+      forecasts: new Map(
+        forecastGoals(ledger, calibration).map((forecast) => [forecast.goalId, forecast]),
+      ),
+      sample: calibration.sample,
+    };
+  }, [ledger]);
 
   const create = useCreateGoal();
   const update = useUpdateGoal();
@@ -153,6 +170,8 @@ export function GoalsPage() {
               entries={entries.data ?? []}
               now={now}
               zone={zone}
+              forecast={forecasts.get(goal.id) ?? null}
+              sample={sample}
               onOpen={() => setOpenId(goal.id === open?.id ? '' : goal.id)}
               onDelete={() => setConfirming(goal)}
             >
@@ -333,6 +352,8 @@ function GoalCard({
   entries,
   now,
   zone,
+  forecast,
+  sample,
   onOpen,
   onDelete,
   children,
@@ -343,6 +364,9 @@ function GoalCard({
   entries: Parameters<typeof progressOf>[2];
   now: string;
   zone: string;
+  /** When it would be done, if it has open estimated work (M2). */
+  forecast: Forecast | null;
+  sample: number;
   onOpen: () => void;
   onDelete: () => void;
   children: React.ReactNode;
@@ -417,6 +441,10 @@ function GoalCard({
               {describeProgress(figure, goal, hours)}
             </span>
           </div>
+
+          {forecast !== null && state !== 'achieved' && (
+            <ForecastLine forecast={forecast} sample={sample} dueDay={goal.dueDay} />
+          )}
 
           {children}
         </div>
