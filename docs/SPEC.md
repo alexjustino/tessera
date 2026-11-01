@@ -294,6 +294,17 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of M2, and why
+
+- **A range per kind of task.** One scale for every remaining estimate. Learning
+  that meetings run long and writing runs short needs a notion of kind the
+  workspace does not have; collections or tags could be it, later.
+- **A range on the timeline and in the plan editor without a draft.** M2 shows
+  ranges where a date is already being projected (goals, the receipt). The
+  timeline draws dates, not the plan's arithmetic (ADR-021); a forecast there
+  is a separate decision.
+- **Weighting recent history.** All finished tasks count alike, however old.
+
 ### Deferred out of M1, and why
 
 M1 shows the price where a commitment is drafted before it is saved: the

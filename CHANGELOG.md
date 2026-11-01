@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Dates with confidence.** Once ten finished tasks have both an estimate and
+  tracked time, a projected date reads as a range drawn from your own estimate
+  error — "likely by Wed 4 Nov; 85% sure by Thu 5 Nov — from 10 finished
+  tasks". Each goal with open estimated work now says when it would be done,
+  and the price of an estimate shows the task's own range. Until there is
+  enough history, no percentage appears; the screen says how many tasks it has
+  and how many it needs (ADR-035).
+
 - **The price of yes.** Type an estimate on a task and, before you leave the
   field, Tessera shows what saying yes would cost: how much free time it
   claims, which other tasks and goals would finish on a different day and by
