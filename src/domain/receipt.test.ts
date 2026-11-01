@@ -309,3 +309,23 @@ describe('the receipt', () => {
     expect(a?.becameLate).toBe(true);
   });
 });
+
+describe('days off (M3)', () => {
+  it('a day off on Monday moves A to Tuesday and B to Wednesday', () => {
+    const p = project(ledger({ items: [A, B], daysOff: new Set(['2026-11-02']) }));
+    expect(p.finishes.get('A')).toBe('2026-11-03');
+    expect(p.finishes.get('B')).toBe('2026-11-04');
+  });
+
+  it('a receipt counts the day off too: the same new day of work now makes B late', () => {
+    const r = receipt(
+      { kind: 'task', title: 'Brief', minutes: DAY, dueAt: due('2026-11-02') },
+      { daysOff: new Set(['2026-11-03']) },
+    );
+    // Monday: Brief. Tuesday: off. A on Wednesday (due Tue, late), B on Thursday (due Wed, late).
+    expect(r.shifts.map((s) => [s.itemId, s.after, s.becameLate])).toEqual([
+      ['A', '2026-11-04', true],
+      ['B', '2026-11-05', true],
+    ]);
+  });
+});

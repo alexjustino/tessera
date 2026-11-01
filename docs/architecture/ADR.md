@@ -42,6 +42,7 @@ that a later one narrows says so and points at it.
 | [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one           | Accepted |
 | [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted |
 | [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted |
+| [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted |
 
 ---
 
@@ -471,7 +472,7 @@ count over (SPEC, deferred out of P5).
 
 **Cost accepted.** Capacity is a weekday span, so a public holiday on a Tuesday has nine
 hours until a holiday table exists. Working hours are editable in Settings since 1.2.0
-(the review reads them); a holiday table is still absent.
+(the review reads them); since 1.3 a day off gives a day zero hours everywhere (ADR-036).
 
 ## ADR-024 — A figure carries the rows it came from {#adr-024}
 
@@ -876,3 +877,25 @@ range always says how many tasks it stands on, so its weight is visible.
 **Cost accepted.** The band hides real extremes, by design. The scale applies to every remaining
 estimate alike — it does not learn per kind of task. Tracked time is the measure of effort, so a
 person who never tracks never gets a range; that is stated where the range would be.
+
+## ADR-036 — A day off is a fact about capacity, not an event {#adr-036}
+
+**Context.** ADR-023 measured capacity as the working week and said its cost plainly: a public
+holiday on a Tuesday still had nine hours. 1.3 counts free time in four places — the year, the
+review, the reports and the price of a change — and a holiday that had hours would make all four
+promise time that does not exist.
+
+**Decision.** A day off is a row in its own table (`day_off`, migration 017): a local day and
+what the person called it. It is not an event: it has no time, belongs to no calendar and does
+not repeat. Capacity has one reader, `capacityOf`, and it returns zero for a day off, so every
+screen that counts hours agrees without being told. The host checks the day is a real date; the
+schema checks its shape. The table travels with the workspace in export, import and restore.
+
+**Why not an all-day event.** An all-day event already means "something happens that day" — a
+birthday, a deadline — and ADR-023 deliberately does not let it use up capacity. Making some
+all-day events mean "no work" would give one row two meanings and a person no way to tell which
+they had made. A separate fact with one meaning is cheaper to explain than a flag on a shared one.
+
+**Cost accepted.** No recurring days off: next year's holiday is next year's row. No half days:
+a day is off or it is not. Holidays are not imported from a calendar file yet. The calendar's
+day grid still shades a day off's working hours — it draws the week, not the capacity.

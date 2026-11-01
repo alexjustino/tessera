@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 import {
   useCalendars,
+  useDaysOffSet,
   useDependencies,
   useEventExceptions,
   useEvents,
@@ -45,6 +46,7 @@ export function useLedger(now: string): LedgerInput | null {
   const goals = useGoals();
   const goalLinks = useGoalLinks();
   const entries = useTimeEntries();
+  const daysOff = useDaysOffSet();
 
   return useMemo(() => {
     // Without calendars there are no events to wait for.
@@ -78,6 +80,7 @@ export function useLedger(now: string): LedgerInput | null {
       goals: goals.data,
       goalLinks: goalLinks.data,
       tracked,
+      daysOff,
     };
   }, [
     today,
@@ -94,5 +97,6 @@ export function useLedger(now: string): LedgerInput | null {
     goals.data,
     goalLinks.data,
     entries.data,
+    daysOff,
   ]);
 }

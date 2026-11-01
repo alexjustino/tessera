@@ -59,6 +59,8 @@ export interface LedgerInput {
   goalLinks: readonly GoalLink[];
   /** Minutes already tracked, per item. */
   tracked: ReadonlyMap<string, number>;
+  /** Days with no working hours this time (M3). */
+  daysOff?: ReadonlySet<string>;
   horizonDays?: number;
   /**
    * What every remaining estimate is multiplied by — 1 unless a confidence
@@ -154,7 +156,7 @@ export function project(input: LedgerInput): Projection {
   const future = input.occurrences.filter((o) => localDay(o.endsAt, input.zone) >= input.today);
   const reserved = plannedByDay(future, input.zone);
   const free = days.map((day) =>
-    Math.max(0, capacityOf(day, input.hours) - (reserved.get(day) ?? 0)),
+    Math.max(0, capacityOf(day, input.hours, input.daysOff) - (reserved.get(day) ?? 0)),
   );
 
   // Time already reserved for a task, and the last day it is reserved on.

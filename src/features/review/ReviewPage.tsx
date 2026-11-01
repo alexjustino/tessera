@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
 import {
+  useDaysOffSet,
   useDependencies,
   useGoalLinks,
   useGoals,
@@ -50,6 +51,7 @@ export function ReviewPage({ onOpenItem }: { onOpenItem?: (id: string) => void }
   const dependencies = useDependencies();
   const blocked = useTimeBlockedItems();
   const hours = useWorkHours();
+  const daysOff = useDaysOffSet();
 
   const review = useMemo(
     () =>
@@ -62,6 +64,7 @@ export function ReviewPage({ onOpenItem }: { onOpenItem?: (id: string) => void }
           reserved: new Set(blocked.data ?? []),
           period,
           hours: hours.data ?? [],
+          daysOff,
         },
         now,
         zone,
@@ -74,6 +77,7 @@ export function ReviewPage({ onOpenItem }: { onOpenItem?: (id: string) => void }
       blocked.data,
       period,
       hours.data,
+      daysOff,
       now,
       zone,
     ],

@@ -294,6 +294,17 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of M3, and why
+
+- **Recurring days off** ("every 25 December"). A day off is a fact about one
+  day; a rule would make it a schedule, with the exceptions that come with one.
+- **Half days.** Off or not. A shorter day is a change to that day's working
+  hours, which is its own model.
+- **Importing holidays from a calendar file.** The import door (ADR-026) could
+  turn a holidays ICS into days off; it waits for a slice that touches the door.
+- **The day grid.** The calendar's day and week grids still shade a day off's
+  working hours: they draw the working week, not capacity.
+
 ### Deferred out of M2, and why
 
 - **A range per kind of task.** One scale for every remaining estimate. Learning
