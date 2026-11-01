@@ -43,6 +43,7 @@ that a later one narrows says so and points at it.
 | [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted |
 | [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted |
 | [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted |
+| [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted |
 
 ---
 
@@ -899,3 +900,27 @@ they had made. A separate fact with one meaning is cheaper to explain than a fla
 **Cost accepted.** No recurring days off: next year's holiday is next year's row. No half days:
 a day is off or it is not. Holidays are not imported from a calendar file yet. The calendar's
 day grid still shades a day off's working hours — it draws the week, not the capacity.
+
+## ADR-037 — A tile is a drawing of minutes; the week's numbers are minutes {#adr-037}
+
+**Context.** M4 draws the working week as one tile per hour — the product's name made literal.
+A drawing of hours is easy to misread as a measurement of hours: a 45-minute meeting is not a
+tile, a working day that ends at 16:30 does not have eight, and a count of coloured squares is
+not a sum.
+
+**Decision.** Every number on the mosaic is minutes: the capacity, the reservations, the work
+due, the time left, the shortfall — four figures that carry their rows (ADR-024). A tile is a
+drawing of up to sixty of those minutes and takes the state that holds most of them; a day that
+does not end on the hour has a shorter last tile, and the screen says it rounded. The shortfall
+is minutes too, drawn as whole tiles rounded up. Today's hours already gone are drawn as gone,
+not free: the projection's share of today that does not fit what is left is said in words
+rather than painted on the past. The code is `src/domain/mosaic.ts`; the surface is the
+`TileGrid` primitive.
+
+**Why.** The mosaic exists to be believed at a glance. If a person counts the tiles and the
+sentence says otherwise, the glance is worthless; so the count of tiles and the sum of hours
+are made to agree by construction, and where a drawing has to round, it says so.
+
+**Cost accepted.** A tile hides a short event inside a longer free hour (it shows the majority).
+The grid is a week of working hours: evenings and weekends are not drawn, even when something is
+reserved in them.

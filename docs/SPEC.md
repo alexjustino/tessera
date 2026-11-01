@@ -294,6 +294,17 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of M4, and why
+
+- **Moving work by dragging tiles.** The mosaic shows the cost; it never
+  decides (ADR-034). Dragging a committed tile would be a scheduler in disguise.
+- **Evenings and weekends.** The grid is the working week; something reserved
+  outside it is counted in no tile. A wider grid is a decision about what the
+  mosaic is for.
+- **A month and a year of mosaics.** One week first; the year as a mosaic of
+  lived weeks needs M6's split tile to say anything a week does not.
+- **Envelopes and the split tile** are M5 and M6.
+
 ### Deferred out of M3, and why
 
 - **Recurring days off** ("every 25 December"). A day off is a fact about one

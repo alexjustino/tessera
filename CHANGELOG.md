@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The Mosaic.** A new place in the rail draws your working week as one tile
+  per hour — the name's own image, a tessera being one tile of a mosaic. Each
+  tile says where that hour went or is going: reserved by the calendar,
+  committed to estimated work, lived with tracked time, gone, or free. One
+  sentence above says the same in hours — "This week has 45 tiles. Nothing is
+  on the calendar. Work due by Fri needs 50h, and 45h is left — 5 short." — and
+  when the week is short, the missing hours are drawn as tiles too, before the
+  week has had a chance to go wrong. Every number opens onto what it was added
+  up from; the grid can be walked with the arrow keys and every tile is named
+  in words (ADR-037).
+
 - **Days off.** Settings has a new card for holidays and leave. A day off has
   no working hours anywhere Tessera counts them — the year view reads it as not
   a working day, and the review, the reports and the price of a change all stop
