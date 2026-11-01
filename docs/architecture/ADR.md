@@ -5,41 +5,42 @@ supersedes it, not an edit in passing. Each entry states the decision and why, a
 that matters most later — the cost or consequence we accepted, where one was accepted. A record
 that a later one narrows says so and points at it.
 
-| #               | Decision                                                              | Status   |
-| --------------- | --------------------------------------------------------------------- | -------- |
-| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                            | Accepted |
-| [002](#adr-002) | SQLite, one file, WAL                                                 | Accepted |
-| [003](#adr-003) | The domain layer is pure TypeScript                                   | Accepted |
-| [004](#adr-004) | The view query engine runs in memory                                  | Accepted |
-| [005](#adr-005) | Properties are stored entity-attribute-value                          | Accepted |
-| [006](#adr-006) | Ordering uses fractional indexing                                     | Accepted |
-| [007](#adr-007) | Recurrence is RRULE plus a mode                                       | Accepted |
-| [008](#adr-008) | An event is not an item                                               | Accepted |
-| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                     | Accepted |
-| [010](#adr-010) | Fluent is the visual language, with one icon set                      | Accepted |
-| [011](#adr-011) | Apache-2.0                                                            | Accepted |
-| [012](#adr-012) | No network, no telemetry                                              | Accepted |
-| [013](#adr-013) | Time is stored in UTC with an IANA zone                               | Accepted |
-| [014](#adr-014) | The calendar engine is ours                                           | Accepted |
-| [015](#adr-015) | Installers are not code-signed until signing exists                   | Accepted |
-| [016](#adr-016) | End-to-end tests drive the real binary                                | Accepted |
-| [017](#adr-017) | Backups are file copies; restore replaces                             | Accepted |
-| [018](#adr-018) | Accessibility is gated, not reviewed                                  | Accepted |
-| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                | Accepted |
-| [020](#adr-020) | A plan says what it is worth                                          | Accepted |
-| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                   | Accepted |
-| [022](#adr-022) | An invariant the schema can state, the schema states                  | Accepted |
-| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved     | Accepted |
-| [024](#adr-024) | A figure carries the rows it came from                                | Accepted |
-| [025](#adr-025) | A template is the plan for tasks, not tasks                           | Accepted |
-| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing | Accepted |
-| [027](#adr-027) | A column that collides is reconciled, never coerced                   | Accepted |
-| [028](#adr-028) | A zone is a name, not a rule set                                      | Accepted |
-| [029](#adr-029) | A link points at an identity and shows a name                         | Accepted |
-| [030](#adr-030) | What counts towards a goal is a decision, not a filter                | Accepted |
-| [031](#adr-031) | Paper is a rendering, not a screenshot                                | Accepted |
-| [032](#adr-032) | The review keeps no state                                             | Accepted |
-| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one    | Accepted |
+| #               | Decision                                                                     | Status   |
+| --------------- | ---------------------------------------------------------------------------- | -------- |
+| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                                   | Accepted |
+| [002](#adr-002) | SQLite, one file, WAL                                                        | Accepted |
+| [003](#adr-003) | The domain layer is pure TypeScript                                          | Accepted |
+| [004](#adr-004) | The view query engine runs in memory                                         | Accepted |
+| [005](#adr-005) | Properties are stored entity-attribute-value                                 | Accepted |
+| [006](#adr-006) | Ordering uses fractional indexing                                            | Accepted |
+| [007](#adr-007) | Recurrence is RRULE plus a mode                                              | Accepted |
+| [008](#adr-008) | An event is not an item                                                      | Accepted |
+| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                            | Accepted |
+| [010](#adr-010) | Fluent is the visual language, with one icon set                             | Accepted |
+| [011](#adr-011) | Apache-2.0                                                                   | Accepted |
+| [012](#adr-012) | No network, no telemetry                                                     | Accepted |
+| [013](#adr-013) | Time is stored in UTC with an IANA zone                                      | Accepted |
+| [014](#adr-014) | The calendar engine is ours                                                  | Accepted |
+| [015](#adr-015) | Installers are not code-signed until signing exists                          | Accepted |
+| [016](#adr-016) | End-to-end tests drive the real binary                                       | Accepted |
+| [017](#adr-017) | Backups are file copies; restore replaces                                    | Accepted |
+| [018](#adr-018) | Accessibility is gated, not reviewed                                         | Accepted |
+| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                       | Accepted |
+| [020](#adr-020) | A plan says what it is worth                                                 | Accepted |
+| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                          | Accepted |
+| [022](#adr-022) | An invariant the schema can state, the schema states                         | Accepted |
+| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved            | Accepted |
+| [024](#adr-024) | A figure carries the rows it came from                                       | Accepted |
+| [025](#adr-025) | A template is the plan for tasks, not tasks                                  | Accepted |
+| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing        | Accepted |
+| [027](#adr-027) | A column that collides is reconciled, never coerced                          | Accepted |
+| [028](#adr-028) | A zone is a name, not a rule set                                             | Accepted |
+| [029](#adr-029) | A link points at an identity and shows a name                                | Accepted |
+| [030](#adr-030) | What counts towards a goal is a decision, not a filter                       | Accepted |
+| [031](#adr-031) | Paper is a rendering, not a screenshot                                       | Accepted |
+| [032](#adr-032) | The review keeps no state                                                    | Accepted |
+| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one           | Accepted |
+| [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted |
 
 ---
 
@@ -809,3 +810,41 @@ the only test that has the bytes the person will have.
 
 **Cost accepted.** Every new importer waits for a real export to exist, and the fixtures make
 the repository a little larger. An importer for a product with no export at all is not built.
+
+## ADR-034 — A commitment shows its price before it is made, and the ledger never decides {#adr-034}
+
+**Context.** Every list will take one more line; a week will not. 1.3 asks "what does this
+cost?" (SPEC, 1.3.0), and M1 answers it at the moment a commitment is formed — while an
+estimate is being typed, before it is saved.
+
+**Decision.** The price is a **projection run twice**. Each working day has free minutes: its
+capacity (ADR-023) less what the calendar reserved. Open tasks with an estimate claim those
+minutes earliest due day first, never before their start day nor before the tasks that block
+them (ADR-019); where a task's minutes run out is its projected finish. The receipt is the
+difference between that projection without the change and with it: free time claimed or given
+back, and every task and goal that would finish on another day, by how many days, and which of
+them would finish after their due day. It is pure (`src/domain/receipt.ts`), deterministic, and
+names its rows (ADR-024).
+
+The receipt **shows and never decides**. It has no buttons; it does not move, refuse or
+reschedule anything. Leaving the field as it was costs nothing, and quick capture is never
+gated behind a price.
+
+**Why this model and not a scheduler's.** A person has to be able to check the answer on paper
+— "nine hours a day, two days of work, so the second task moves to Wednesday" — or the number
+is a claim, not a fact. Earliest-due-first filling of one stream of free time is the simplest
+model with that property, and it is the order a person would work in when the dates are real.
+A scheduler that places work by itself is what 1.1 refused and 1.3 refuses again: it would
+turn the product from a ledger into an authority.
+
+**Why committed time stays apart from reserved time.** An estimate is a claim on hours that
+are still free; a calendar block is hours already spent. The projection subtracts blocks from
+capacity and counts estimates against what is left; a block reserved for a task counts towards
+that task and the task cannot finish before it. ADR-023 keeps its meaning — load is still what
+the calendar reserved — and the receipt is a second reading, never added to the first.
+
+**Cost accepted.** Today counts as a whole working day, because the projection's clock is the
+day. One person, one stream: no parallel work. Tasks with no estimate are counted, not guessed
+(ADR-020). The horizon is a year; work beyond it has no finish day and is said to be late. The
+receipt appears where an estimate is drafted; a due date saves as it changes, and events are not
+created in the interface, so their receipts are deferred (SPEC, deferred out of M1).

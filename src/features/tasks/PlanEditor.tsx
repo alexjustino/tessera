@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useSetPlan } from '@/data/hooks';
 import { formatDuration, parseDuration, type Timing } from '@/domain/criticalPath';
 import type { Item } from '@/domain/item';
+import { EstimateReceipt } from '@/features/receipt/EstimateReceipt';
 import { Checkbox } from '@/ui/Checkbox';
 import { Input } from '@/ui/Input';
 import { announce } from '@/ui/announce';
@@ -40,6 +41,16 @@ export function PlanEditor({ task, timing }: { task: Item; timing: Timing | unde
     setDraft(asText);
     setUnreadable(false);
   }
+
+  // The estimate the draft would save, when it differs from the stored one:
+  // that is a change with a price, and the receipt shows it before blur
+  // commits it (M1). An unreadable draft proposes nothing.
+  const trimmedDraft = draft.trim();
+  const draftMinutes = trimmedDraft === '' ? null : parseDuration(trimmedDraft);
+  const proposes =
+    !task.isMilestone &&
+    (trimmedDraft === '' || draftMinutes !== null) &&
+    draftMinutes !== task.estimateMinutes;
 
   const commit = () => {
     const trimmed = draft.trim();
@@ -102,6 +113,8 @@ export function PlanEditor({ task, timing }: { task: Item; timing: Timing | unde
             <span className="text-caption text-fg-tertiary">A milestone takes no time.</span>
           )}
         </label>
+
+        {proposes && <EstimateReceipt task={task} minutes={draftMinutes} />}
 
         {unreadable && (
           <p className="text-caption text-caution">

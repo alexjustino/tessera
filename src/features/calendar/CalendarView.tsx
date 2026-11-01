@@ -22,7 +22,6 @@ import {
   addLocalDays,
   CALENDAR_SCALES,
   daysOf,
-  expand,
   layoutDay,
   minutesInto,
   step,
@@ -40,12 +39,13 @@ import {
   placeOf,
   type MoveBounds,
 } from '@/domain/moveByKeys';
-import { occurrencesBetween, systemZone } from '@/domain/schedule';
+import { systemZone } from '@/domain/schedule';
 import { Button } from '@/ui/Button';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { TabStrip } from '@/ui/TabStrip';
 
+import { expandEvents } from './occurrences';
 import { YearView } from './YearView';
 import { announce } from '@/ui/announce';
 
@@ -116,21 +116,7 @@ export function CalendarView({
   }, [unscheduled, blocked.data]);
 
   const occurrences = useMemo(
-    () =>
-      expand(events.data ?? [], exceptions.data ?? [], from, to, (event, windowFrom, windowTo) =>
-        occurrencesBetween(
-          {
-            startAt: null,
-            dueAt: event.startsAt,
-            remindAt: null,
-            rule: event.rrule,
-            mode: 'schedule',
-          },
-          windowFrom,
-          windowTo,
-          event.tz,
-        ),
-      ),
+    () => expandEvents(events.data ?? [], exceptions.data ?? [], from, to),
     [events.data, exceptions.data, from, to],
   );
 
