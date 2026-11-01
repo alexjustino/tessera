@@ -294,6 +294,26 @@ the architecture is wrong, that shows on day two rather than day sixty.
 | F11    | Fluent polish and accessibility                                      | every screen opened for real, both themes, keyboard                                                                      |
 | F12    | Release 1.0.0                                                        | the installer runs on a clean machine                                                                                    |
 
+### Deferred out of M1, and why
+
+M1 shows the price where a commitment is drafted before it is saved: the
+estimate field. What it leaves, each with the reason:
+
+- **A receipt for a due date.** The due date saves as it changes (the schedule
+  editor has no draft), so there is no "before" to price. Giving it one is a
+  change to how the schedule editor commits, which is its own slice.
+- **A receipt for events and imports.** Events are not created in the interface
+  — they arrive by import or by reserving time for a task. The import door's
+  preview (ADR-026) is where an imported calendar's price belongs; it waits for
+  a slice that touches the door.
+- **A receipt for quick capture.** The capture grammar has no estimate yet, so a
+  captured line has no price to show. When it has one, the price is shown after
+  capture, never as a gate before it (SPEC 1.3).
+- **Today's remaining hours.** Today counts as a whole working day; subtracting
+  the hours already gone needs a clock finer than the day in the projection.
+- **Confidence.** Dates are single days in M1; ranges drawn from estimate error
+  are M2.
+
 ### Deferred out of A9, and why
 
 The review shows three gaps and finishes when the first two are empty. What a

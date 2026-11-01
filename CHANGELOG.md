@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The price of yes.** Type an estimate on a task and, before you leave the
+  field, Tessera shows what saying yes would cost: how much free time it
+  claims, which other tasks and goals would finish on a different day and by
+  how many days, and which of them would then be late. It is worked out over
+  your working hours and calendar, earliest due date first, so you can check it
+  on paper. Nothing is saved until you leave the field, and Escape puts the old
+  estimate back. Tessera shows the cost; it never moves anything for you
+  (ADR-034).
+
 ### Documentation
 
 - The 1.3 line is open: **the ledger**. Its question is "what does this
