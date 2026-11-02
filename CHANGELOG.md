@@ -81,6 +81,16 @@ nothing was lost, and uses what 1.3 added on its rows.
 - The note editor has an accessible name. TipTap 3.32 declares it a text field,
   and a field with no name is announced as nothing; it now says "Notes on" the
   task or "Text of" the page.
+- Choosing Light on a dark desktop, or Dark on a light one, no longer leaves the
+  window a washed-out grey. Windows paints the window's material in the window's
+  own theme, and the choice only ever reached the page. It reaches the window now.
+- The message when a shortcut cannot be registered reads as sentences. The two
+  parts of it were joined with no full stop between them.
+- The Review's working time left this week no longer counts the hours of today
+  that have gone. On a Monday afternoon it said 45 hours where the Mosaic said 38.
+- What is behind a drawer, a dialog or a menu no longer shows through it. These
+  surfaces rely on a blur that did not take effect in the window, which left the
+  text underneath readable behind the receipt.
 - Dragging a card on the board can no longer give it the same order key as
   another card. The key was worked out from the column alone, while keys are
   shared by the whole collection, so a drop could repeat a key held in another
