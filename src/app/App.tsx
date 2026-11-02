@@ -187,10 +187,19 @@ export function App() {
             {destination === 'tasks' && (
               <TasksPage key={pageKey} initialDetailId={focus.itemId} onFocus={setFocused} />
             )}
-            {destination === 'today' && <TasksPage key={pageKey} initialViewId="view.today" />}
-            {destination === 'board' && <TasksPage key={pageKey} initialViewId="tasks.board" />}
+            {destination === 'today' && (
+              <TasksPage
+                key={pageKey}
+                place="today"
+                onFocus={setFocused}
+                onShowAll={() => go('tasks')}
+              />
+            )}
+            {destination === 'board' && (
+              <TasksPage key={pageKey} place="board" onFocus={setFocused} />
+            )}
             {destination === 'calendar' && (
-              <TasksPage key={pageKey} initialViewId="view.calendar" />
+              <TasksPage key={pageKey} place="calendar" onFocus={setFocused} />
             )}
             {destination === 'mosaic' && <MosaicPage key={pageKey} />}
             {destination === 'notes' && <NotesPage key={pageKey} initialPageId={openPageId} />}
