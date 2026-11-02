@@ -11,6 +11,7 @@ import {
   useSettings,
 } from '@/data/hooks';
 import { DENSITIES, DEFAULT_SETTINGS, SHORTCUTS, THEMES, type Settings } from '@/domain/settings';
+import type { SettingsCard } from '@/features/guide/GettingStarted';
 import { Card } from '@/ui/Card';
 import { Checkbox } from '@/ui/Checkbox';
 import { ChoiceGroup } from '@/ui/ChoiceGroup';
@@ -32,7 +33,7 @@ import { WorkHoursCard } from './WorkHoursCard';
  * refused value never looks accepted. Appearance changes are applied at once
  * and saved behind, so the screen answers before the disk does.
  */
-export function SettingsPage() {
+export function SettingsPage({ focusCard = null }: { focusCard?: SettingsCard | null }) {
   const settings = useSettings();
   const save = useSaveSettings();
   const autostart = useAutostart();
@@ -40,6 +41,11 @@ export function SettingsPage() {
   const capture = useCaptureStatus();
 
   const current: Settings = settings.data ?? DEFAULT_SETTINGS;
+
+  // Arriving from the guide: bring the card it pointed at into view.
+  const focused = useCallback((element: HTMLDivElement | null) => {
+    element?.scrollIntoView({ block: 'start' });
+  }, []);
 
   const update = useCallback(
     (patch: Partial<Settings>) => {
@@ -155,8 +161,12 @@ export function SettingsPage() {
           </label>
         </Card>
 
-        <WorkHoursCard />
-        <DaysOffCard />
+        <div ref={focusCard === 'hours' ? focused : undefined}>
+          <WorkHoursCard />
+        </div>
+        <div ref={focusCard === 'daysOff' ? focused : undefined}>
+          <DaysOffCard />
+        </div>
 
         <BackupsCard settings={current} onChange={update} busy={settings.isPending} />
         <ExportImportCard />

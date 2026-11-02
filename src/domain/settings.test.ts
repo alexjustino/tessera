@@ -26,6 +26,9 @@ describe('readSettings', () => {
       quickCaptureShortcut: 'Ctrl+Alt+Space',
       backupsEnabled: false,
       backupsKeep: 3,
+      guideHoursSet: false,
+      guideDaysOffSet: false,
+      guideDismissed: false,
     });
   });
 

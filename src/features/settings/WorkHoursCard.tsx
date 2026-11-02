@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { describeError } from '@/data/errors';
 import { useSetWorkHours, useWorkHours } from '@/data/hooks';
 import type { WorkHours } from '@/domain/calendar';
+import { useGuideAnswer } from '@/features/guide/useGuideAnswer';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { Checkbox } from '@/ui/Checkbox';
@@ -54,6 +55,7 @@ function toMinutes(clock: string): number | null {
 export function WorkHoursCard() {
   const hours = useWorkHours();
   const save = useSetWorkHours();
+  const answer = useGuideAnswer();
   const [draft, setDraft] = useState<WorkHours[] | null>(null);
 
   const stored = useMemo(() => hours.data ?? [], [hours.data]);
@@ -160,6 +162,7 @@ export function WorkHoursCard() {
             onClick={() =>
               save.mutate(week, {
                 onSuccess: () => {
+                  answer({ guideHoursSet: true });
                   setDraft(null);
                   announce('Working hours saved');
                 },

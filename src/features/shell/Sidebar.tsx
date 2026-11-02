@@ -65,7 +65,10 @@ export function Sidebar({
   active,
   onNavigate,
   onSearch,
+  asks = {},
 }: {
+  /** A question a destination is waiting on, said on its entry in the rail. */
+  asks?: Partial<Record<Destination, string>>;
   active: Destination;
   onNavigate: (destination: Destination) => void;
   /** Open the command palette. */
@@ -100,8 +103,13 @@ export function Sidebar({
             type="button"
             disabled={!entry.ready}
             aria-current={selected ? 'page' : undefined}
+            aria-description={asks[entry.id as Destination]}
             onClick={() => entry.ready && onNavigate(entry.id as Destination)}
-            title={entry.ready ? entry.label : `${entry.label} — not built yet`}
+            title={
+              entry.ready
+                ? (asks[entry.id as Destination] ?? entry.label)
+                : `${entry.label} — not built yet`
+            }
             className={[
               'flex h-(--density-row) items-center gap-3 rounded-md px-3 text-body',
               'transition-colors duration-100 ease-easy',
@@ -113,6 +121,9 @@ export function Sidebar({
               {entry.icon}
             </span>
             <span className="truncate">{entry.label}</span>
+            {asks[entry.id as Destination] !== undefined && (
+              <span aria-hidden="true" className="ml-auto size-2 shrink-0 rounded-full bg-accent" />
+            )}
             {!entry.ready && <span className="ml-auto text-caption text-fg-disabled">soon</span>}
           </button>
         );
