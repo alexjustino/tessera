@@ -324,7 +324,7 @@ export function TasksPage({
           {/* Stated only once the list has actually been read. Saying "nothing
               open" when the read failed would be the interface asserting
               something it does not know. */}
-          {items.isSuccess && (place !== 'today' || result.matched > 0) && (
+          {items.isSuccess && place !== 'calendar' && (place !== 'today' || result.matched > 0) && (
             <p className="mt-1 text-body text-fg-secondary">
               {result.matched === 0
                 ? 'Nothing to show.'
@@ -344,7 +344,7 @@ export function TasksPage({
             Print
           </Button>
           {/* Ways to shape the whole list, so they live where the whole list is. */}
-          {place !== 'today' && (
+          {place !== 'today' && place !== 'calendar' && (
             <>
               <Button
                 appearance="subtle"
@@ -365,7 +365,7 @@ export function TasksPage({
         </div>
       </header>
 
-      {!planned.unplanned && place !== 'today' && (
+      {!planned.unplanned && place !== 'today' && place !== 'calendar' && (
         <p className="-mt-1 text-caption text-fg-tertiary">
           {formatDuration(planned.durationMinutes)} of work on the longest route
           {planned.longestChain.length > 1 && `, through ${planned.longestChain.length} tasks`}
@@ -427,7 +427,7 @@ export function TasksPage({
         </div>
       )}
 
-      {view !== null && place !== 'today' && (
+      {view !== null && place !== 'today' && place !== 'calendar' && (
         <QueryBar
           query={query}
           board={board}

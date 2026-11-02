@@ -5,7 +5,7 @@ import {
   Delete16Regular,
   ReOrderDotsVertical16Regular,
 } from '@fluentui/react-icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 
 import { describeError } from '@/data/errors';
 import {
@@ -26,7 +26,9 @@ import {
   minutesInto,
   step,
   todayIn,
+  fittedHourHeight,
   workingSpan,
+  workingWindow,
   type CalendarScale,
   type Occurrence,
 } from '@/domain/calendar';
@@ -48,9 +50,6 @@ import { TabStrip } from '@/ui/TabStrip';
 import { expandEvents } from './occurrences';
 import { YearView } from './YearView';
 import { announce } from '@/ui/announce';
-
-/** How tall an hour is, in pixels. Everything on the grid derives from this. */
-const HOUR_HEIGHT = 48;
 
 /** The grid a drag snaps to. Fifteen minutes is what a person means by "about". */
 const SNAP_MINUTES = 15;
@@ -90,6 +89,18 @@ export function CalendarView({
 
   const [scale, setScale] = useState<CalendarScale>('week');
   const [anchor, setAnchor] = useState(() => todayIn(now, zone));
+  const scroller = useRef<HTMLDivElement>(null);
+
+  // Work with a date, on the day it is due: what a person looks at a week to see.
+  const dueByDay = useMemo(() => {
+    const byDay = new Map<string, Item[]>();
+    for (const item of unscheduled) {
+      if (item.dueAt === null) continue;
+      const day = dayOf(item.dueAt, zone);
+      byDay.set(day, [...(byDay.get(day) ?? []), item]);
+    }
+    return byDay;
+  }, [unscheduled, zone]);
 
   const days = useMemo(() => daysOf(scale, anchor), [scale, anchor]);
   const from = useMemo(() => new Date(`${days[0]}T00:00:00`).toISOString(), [days]);
@@ -278,6 +289,7 @@ export function CalendarView({
         )}
 
         <div
+          ref={scroller}
           className="min-h-0 flex-1 overflow-auto"
           // A scrollable region a keyboard cannot reach cannot be scrolled by one.
           tabIndex={0}
@@ -285,7 +297,14 @@ export function CalendarView({
           aria-label="Calendar grid"
         >
           {scale === 'month' ? (
-            <MonthGrid days={days} anchor={anchor} occurrences={occurrences} zone={zone} />
+            <MonthGrid
+              days={days}
+              anchor={anchor}
+              occurrences={occurrences}
+              zone={zone}
+              dueByDay={dueByDay}
+              onOpenItem={onOpenItem}
+            />
           ) : scale === 'year' ? (
             <YearView
               year={Number(anchor.slice(0, 4))}
@@ -311,6 +330,9 @@ export function CalendarView({
               onDelete={(id) => deleteEvent.mutate(id)}
               carrying={carrying}
               onPickUp={pickUpEvent}
+              scroller={scroller}
+              dueByDay={dueByDay}
+              onOpenItem={onOpenItem}
             />
           )}
         </div>
@@ -339,7 +361,14 @@ function TimeGrid({
   onDelete,
   carrying,
   onPickUp,
+  scroller,
+  dueByDay,
+  onOpenItem,
 }: {
+  /** The region that scrolls this grid, and whose height the hours are fitted to. */
+  scroller: RefObject<HTMLDivElement | null>;
+  dueByDay: ReadonlyMap<string, readonly Item[]>;
+  onOpenItem: (item: Item) => void;
   days: string[];
   occurrences: Occurrence[];
   zone: string;
@@ -355,46 +384,78 @@ function TimeGrid({
   const nowMinutes = minutesInto(now, today, zone);
 
   const allDay = occurrences.filter((occurrence) => occurrence.event.allDay);
+  const hasBand = allDay.length > 0 || days.some((day) => dueByDay.has(day));
+
+  // The working day fills the room there is, so a week is seen at a glance. The
+  // rest of the day is still there, a scroll away.
+  const header = useRef<HTMLDivElement>(null);
+  const workWindow = useMemo(() => workingWindow(days, workHours), [days, workHours]);
+  const [hourHeight, setHourHeight] = useState(48);
+
+  useLayoutEffect(() => {
+    const region = scroller.current;
+    if (region === null) return;
+    const fit = () =>
+      setHourHeight(
+        fittedHourHeight(region.clientHeight - (header.current?.offsetHeight ?? 0), workWindow),
+      );
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(region);
+    return () => observer.disconnect();
+  }, [scroller, workWindow, hasBand]);
+
+  useLayoutEffect(() => {
+    const region = scroller.current;
+    // A little above the first hour, so its label is not cut by the day names.
+    region?.scrollTo({ top: (workWindow.startsMinute / 60) * hourHeight - 12 });
+  }, [scroller, workWindow, hourHeight]);
 
   return (
     <div className="min-w-max">
-      <div className="grid" style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, 1fr)` }}>
-        <div />
-        {days.map((day) => (
-          <div
-            key={day}
-            className={[
-              'border-b border-stroke-subtle px-2 py-1 text-center text-caption',
-              day === today ? 'font-semibold text-accent' : 'text-fg-secondary',
-            ].join(' ')}
-          >
-            {labelOf(day)}
-          </div>
-        ))}
-      </div>
-
-      {allDay.length > 0 && (
-        <div
-          className="grid border-b border-stroke-subtle"
-          style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, 1fr)` }}
-        >
-          <div className="px-1 py-1 text-right text-caption text-fg-tertiary">All day</div>
+      <div ref={header} className="sticky top-0 z-10 bg-card">
+        <div className="grid" style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, 1fr)` }}>
+          <div />
           {days.map((day) => (
-            <div key={day} className="min-h-7 space-y-0.5 border-l border-stroke-subtle p-0.5">
-              {allDay
-                .filter((occurrence) => occurrence.startsAt.slice(0, 10) <= day)
-                .map((occurrence) => (
-                  <div
-                    key={occurrence.event.id}
-                    className="truncate rounded-sm bg-accent-subtle px-1 text-caption text-accent"
-                  >
-                    {occurrence.event.title}
-                  </div>
-                ))}
+            <div
+              key={day}
+              className={[
+                'border-b border-stroke-subtle px-2 py-1 text-center text-caption',
+                day === today ? 'font-semibold text-accent' : 'text-fg-secondary',
+              ].join(' ')}
+            >
+              {labelOf(day)}
             </div>
           ))}
         </div>
-      )}
+
+        {hasBand && (
+          <div
+            className="grid border-b border-stroke-subtle"
+            style={{ gridTemplateColumns: `3.5rem repeat(${days.length}, 1fr)` }}
+          >
+            <div className="px-1 py-1 text-right text-caption text-fg-tertiary">All day</div>
+            {days.map((day) => (
+              <div key={day} className="min-h-7 space-y-0.5 border-l border-stroke-subtle p-0.5">
+                {allDay
+                  // On the day it is on, not on every day from then on.
+                  .filter((occurrence) => dayOf(occurrence.startsAt, zone) === day)
+                  .map((occurrence) => (
+                    <div
+                      key={occurrence.event.id}
+                      className="truncate rounded-sm bg-accent-subtle px-1 text-caption text-accent"
+                    >
+                      {occurrence.event.title}
+                    </div>
+                  ))}
+                {(dueByDay.get(day) ?? []).map((item) => (
+                  <DueLine key={item.id} item={item} onOpen={onOpenItem} />
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div
         className="relative grid"
@@ -404,7 +465,7 @@ function TimeGrid({
           {Array.from({ length: 24 }, (_, hour) => (
             <div
               key={hour}
-              style={{ height: HOUR_HEIGHT }}
+              style={{ height: hourHeight }}
               className="relative -top-2 pr-1 text-right text-caption text-fg-tertiary"
             >
               {hour === 0 ? '' : `${String(hour).padStart(2, '0')}:00`}
@@ -419,13 +480,16 @@ function TimeGrid({
           return (
             <div
               key={day}
-              className="relative border-l border-stroke-subtle"
-              style={{ height: 24 * HOUR_HEIGHT }}
+              className={[
+                'relative border-l border-stroke-subtle',
+                day === today ? 'bg-accent-subtle' : '',
+              ].join(' ')}
+              style={{ height: 24 * hourHeight }}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
                 const bounds = event.currentTarget.getBoundingClientRect();
-                const minutes = ((event.clientY - bounds.top) / HOUR_HEIGHT) * 60;
+                const minutes = ((event.clientY - bounds.top) / hourHeight) * 60;
                 onDrop(day, minutes, event.dataTransfer);
               }}
             >
@@ -436,8 +500,8 @@ function TimeGrid({
                   aria-hidden="true"
                   className="absolute inset-x-0 bg-card/40"
                   style={{
-                    top: (working.startsMinute / 60) * HOUR_HEIGHT,
-                    height: ((working.endsMinute - working.startsMinute) / 60) * HOUR_HEIGHT,
+                    top: (working.startsMinute / 60) * hourHeight,
+                    height: ((working.endsMinute - working.startsMinute) / 60) * hourHeight,
                   }}
                 />
               )}
@@ -447,7 +511,7 @@ function TimeGrid({
                   key={hour}
                   aria-hidden="true"
                   className="border-b border-stroke-subtle/60"
-                  style={{ height: HOUR_HEIGHT }}
+                  style={{ height: hourHeight }}
                 />
               ))}
 
@@ -455,7 +519,7 @@ function TimeGrid({
                 <div
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-danger"
-                  style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }}
+                  style={{ top: (nowMinutes / 60) * hourHeight }}
                 >
                   <span className="absolute -top-1 -left-1 size-2 rounded-full bg-danger" />
                 </div>
@@ -468,8 +532,8 @@ function TimeGrid({
                   aria-hidden="true"
                   className="pointer-events-none absolute inset-x-0.5 z-30 rounded-sm border-2 border-dashed border-accent bg-accent-subtle px-1 text-caption font-semibold text-accent"
                   style={{
-                    top: (carriedPlace.minute / 60) * HOUR_HEIGHT,
-                    height: (carrying.durationMs / 3_600_000) * HOUR_HEIGHT - 2,
+                    top: (carriedPlace.minute / 60) * hourHeight,
+                    height: (carrying.durationMs / 3_600_000) * hourHeight - 2,
                   }}
                 >
                   {carrying.title}
@@ -498,8 +562,8 @@ function TimeGrid({
                       : 'border-stroke bg-card text-fg',
                   ].join(' ')}
                   style={{
-                    top: (box.topMinutes / 60) * HOUR_HEIGHT,
-                    height: (box.heightMinutes / 60) * HOUR_HEIGHT - 2,
+                    top: (box.topMinutes / 60) * hourHeight,
+                    height: (box.heightMinutes / 60) * hourHeight - 2,
                     left: `calc(${box.left * 100}% + 2px)`,
                     width: `calc(${box.width * 100}% - 4px)`,
                   }}
@@ -543,6 +607,21 @@ function TimeGrid({
   );
 }
 
+/** A task on the day it is due. Pressing it opens the task. */
+function DueLine({ item, onOpen }: { item: Item; onOpen: (item: Item) => void }) {
+  return (
+    <button
+      type="button"
+      title={`Due: ${item.title}`}
+      aria-label={`Due: ${item.title}`}
+      onClick={() => onOpen(item)}
+      className="block w-full truncate rounded-sm border border-stroke bg-layer px-1 text-left text-caption text-fg hover:bg-card-hover"
+    >
+      {item.title}
+    </button>
+  );
+}
+
 // ── Month and agenda ───────────────────────────────────────────────────────
 
 function MonthGrid({
@@ -550,11 +629,15 @@ function MonthGrid({
   anchor,
   occurrences,
   zone,
+  dueByDay,
+  onOpenItem,
 }: {
   days: string[];
   anchor: string;
   occurrences: Occurrence[];
   zone: string;
+  dueByDay: ReadonlyMap<string, readonly Item[]>;
+  onOpenItem: (item: Item) => void;
 }) {
   const month = anchor.slice(0, 7);
 
@@ -586,6 +669,14 @@ function MonthGrid({
               ))}
               {onThisDay.length > 3 && (
                 <p className="px-1 text-caption text-fg-tertiary">+{onThisDay.length - 3} more</p>
+              )}
+              {(dueByDay.get(day) ?? []).slice(0, 3).map((item) => (
+                <DueLine key={item.id} item={item} onOpen={onOpenItem} />
+              ))}
+              {(dueByDay.get(day) ?? []).length > 3 && (
+                <p className="px-1 text-caption text-fg-tertiary">
+                  +{(dueByDay.get(day) ?? []).length - 3} more due
+                </p>
               )}
             </div>
           </div>
