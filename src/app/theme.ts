@@ -8,6 +8,8 @@
  * a dark one — light themes take the darker steps, dark themes the lighter.
  */
 
+import { getCurrentWindow } from '@tauri-apps/api/window';
+
 import type { AccentRamp } from '@/data/system';
 
 export type ThemeChoice = 'system' | 'light' | 'dark';
@@ -17,6 +19,10 @@ export type Density = 'comfortable' | 'compact';
  * Apply the theme choice. `system` removes the attribute entirely so the
  * `prefers-color-scheme` rules take over — the default must be the absence of a
  * choice, not a third value the stylesheet has to know about.
+ *
+ * The window is told as well, because Windows paints Mica in the window's theme
+ * and the surfaces are translucent over it. Left on the desktop's theme, a light
+ * surface over dark Mica comes out mid-grey, and so does a dark one over light.
  */
 export function applyTheme(choice: ThemeChoice): void {
   const root = document.documentElement;
@@ -24,6 +30,20 @@ export function applyTheme(choice: ThemeChoice): void {
     root.removeAttribute('data-theme');
   } else {
     root.setAttribute('data-theme', choice);
+  }
+  applyWindowTheme(choice);
+}
+
+/** Without a host there is no window to tell, and no Mica for it to matter to. */
+function applyWindowTheme(choice: ThemeChoice): void {
+  try {
+    void getCurrentWindow()
+      .setTheme(choice === 'system' ? null : choice)
+      .catch((error: unknown) => {
+        console.warn('The window kept its theme:', error);
+      });
+  } catch {
+    // Opened outside the host, as in a browser to check a layout.
   }
 }
 
