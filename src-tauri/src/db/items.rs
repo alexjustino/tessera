@@ -959,6 +959,18 @@ mod tests {
     }
 
     #[test]
+    fn accepts_every_shape_of_order_key_the_domain_mints() {
+        // Appends count after a run of `z` (ADR-006), and older keys stay stored.
+        let mut conn = workspace();
+        for position in [
+            "V", "z", "zV", "zzl", "za1", "zaz", "zb01", "zzzc001", "za1V",
+        ] {
+            let item = add(&mut conn, "keyed", position);
+            assert_eq!(item.position, position);
+        }
+    }
+
+    #[test]
     fn reports_a_missing_item_rather_than_pretending() {
         let mut conn = workspace();
         assert!(matches!(get_item(&conn, "nope"), Err(Error::NotFound)));
