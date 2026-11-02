@@ -155,9 +155,11 @@ logical order. A new key can always be generated strictly between any two.
 keys, a move is one UPDATE of one row regardless of list length, and sorting is plain
 lexicographic comparison that both SQLite and JavaScript agree on.
 
-**Cost accepted.** Keys grow slowly under pathological insert patterns (always inserting at the
-same point). The invariant "a key never ends in the lowest digit" is enforced, and the growth is
-logarithmic in practice. Implementation and its property tests: `src/domain/ordering.ts`.
+**Cost accepted.** Keys grow linearly when every insert lands at the same end or the same point:
+10,000 appends reach 2,001 digits, 10,000 prepends 1,667. Inserting into random gaps stays
+short, at 6 digits after 10,000. Appending is the ordinary way to add a row, so this is not a rare
+pattern, and it is priced at one digit per five appends. The invariant "a key never ends in the
+lowest digit" is enforced. Implementation and its property tests: `src/domain/ordering.ts`.
 
 ## ADR-007 — Recurrence is RRULE plus a mode {#adr-007}
 

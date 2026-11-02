@@ -87,6 +87,40 @@ describe('between', () => {
     }
   });
 
+  it('appends after a key far longer than the call stack is deep', () => {
+    // Appending adds a digit every five appends and the descent takes a step per
+    // digit. This overflowed the stack while it recursed, and the query benchmark
+    // hit it first, because seeding 50,000 rows reaches a 10,001-digit key.
+    const long = `${'z'.repeat(100_000)}V`;
+    const later = between(long, null);
+    expect(later > long).toBe(true);
+    expect(isValidKey(later)).toBe(true);
+  });
+
+  it('inserts between long keys that differ only at the end', () => {
+    const shared = 'z'.repeat(100_000);
+    const low = `${shared}V`;
+    const high = `${shared}l`;
+    const middle = between(low, high);
+    expect(low < middle).toBe(true);
+    expect(middle < high).toBe(true);
+    expect(isValidKey(middle)).toBe(true);
+  });
+
+  it('mints exactly the keys it always has', () => {
+    // Keys are persisted, and a stored key is never rewritten. A change here
+    // changes the order new rows take among existing ones, so it is a data
+    // decision and has to be taken as one.
+    expect(sequence(null, null, 8)).toEqual(['V', 'l', 't', 'x', 'z', 'zV', 'zl', 'zt']);
+    expect(between('V', 'l')).toBe('d');
+    expect(between('V', 'W')).toBe('VV');
+    expect(between('a', 'a5')).toBe('a3');
+    expect(between('zV', 'zl')).toBe('zd');
+    expect(between(null, 'V')).toBe('G');
+    expect(between(null, '1')).toBe('0V');
+    expect(between(null, '0V')).toBe('0G');
+  });
+
   // ── Negative cases ─────────────────────────────────────────────────────
   it('refuses bounds that are the wrong way round', () => {
     const a = firstKey();

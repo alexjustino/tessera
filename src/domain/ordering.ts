@@ -51,43 +51,58 @@ function assertValid(key: string | null, role: string): void {
 }
 
 /**
- * The recursive core: a digit string strictly between `lower` and `upper`.
+ * The core: a digit string strictly between `lower` and `upper`.
  *
  * `lower` is `''` for "before everything"; `upper` is `null` for "after
  * everything". Both are digit strings without an integer part.
+ *
+ * A loop and not recursion, because descending costs one step per digit and
+ * appending adds a digit every five appends. Recursing here overflowed the stack
+ * at a key of 6,000 to 7,000 digits, on a call as ordinary as adding a row.
  */
-function midpoint(lower: string, upper: string | null): string {
-  if (upper !== null) {
-    // Strip the longest common prefix and solve the remainder. Missing digits
-    // on the left read as the lowest digit, which is what makes `'a'` sort
-    // before `'a5'`.
-    let shared = 0;
-    while (shared < upper.length && (lower[shared] ?? FIRST) === upper[shared]) {
-      shared += 1;
+function midpoint(initialLower: string, initialUpper: string | null): string {
+  let lower = initialLower;
+  let upper = initialUpper;
+  let prefix = '';
+
+  for (;;) {
+    if (upper !== null) {
+      // Strip the longest common prefix and solve the remainder. Missing digits
+      // on the left read as the lowest digit, which is what makes `'a'` sort
+      // before `'a5'`.
+      let shared = 0;
+      while (shared < upper.length && (lower[shared] ?? FIRST) === upper[shared]) {
+        shared += 1;
+      }
+      if (shared > 0) {
+        prefix += upper.slice(0, shared);
+        lower = lower.slice(shared);
+        upper = upper.slice(shared);
+        continue;
+      }
     }
-    if (shared > 0) {
-      return upper.slice(0, shared) + midpoint(lower.slice(shared), upper.slice(shared));
+
+    const lowerDigit = lower.length > 0 ? DIGITS.indexOf(lower[0]!) : 0;
+    const upperDigit = upper !== null ? DIGITS.indexOf(upper[0]!) : DIGITS.length;
+
+    if (upperDigit - lowerDigit > 1) {
+      // There is room for a digit in between; take the middle one.
+      const middle = Math.round((lowerDigit + upperDigit) / 2);
+      return prefix + DIGITS[middle]!;
     }
+
+    // The two digits are adjacent, so the answer has to be longer than one digit.
+    if (upper !== null && upper.length > 1) {
+      // `upper` has more to it, so its own first digit is already strictly above
+      // `lower` and strictly below `upper`.
+      return prefix + upper.slice(0, 1);
+    }
+
+    // Descend: keep the lower digit and find room in the next position.
+    prefix += DIGITS[lowerDigit]!;
+    lower = lower.slice(1);
+    upper = null;
   }
-
-  const lowerDigit = lower.length > 0 ? DIGITS.indexOf(lower[0]!) : 0;
-  const upperDigit = upper !== null ? DIGITS.indexOf(upper[0]!) : DIGITS.length;
-
-  if (upperDigit - lowerDigit > 1) {
-    // There is room for a digit in between; take the middle one.
-    const middle = Math.round((lowerDigit + upperDigit) / 2);
-    return DIGITS[middle]!;
-  }
-
-  // The two digits are adjacent, so the answer has to be longer than one digit.
-  if (upper !== null && upper.length > 1) {
-    // `upper` has more to it, so its own first digit is already strictly above
-    // `lower` and strictly below `upper`.
-    return upper.slice(0, 1);
-  }
-
-  // Descend: keep the lower digit and find room in the next position.
-  return DIGITS[lowerDigit]! + midpoint(lower.slice(1), null);
 }
 
 /**

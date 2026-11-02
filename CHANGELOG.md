@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Adding to a very long list no longer overflows the stack. Each append lengthens
+  the order key a little, and at 30,000 or so appends to one list the code that
+  computes the next key ran out of stack. It is a loop now, and it mints the same
+  keys as before, so nothing stored changes. `npm run test:coverage` was failing
+  on this and now runs to the end.
+
 ## [1.3.0] — 2026-11-02
 
 The ledger. 1.1 answered "will this finish, and when"; 1.2 answered "can I move
