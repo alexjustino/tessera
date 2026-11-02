@@ -45,7 +45,7 @@ const goal = (id: string, over: Partial<Goal> = {}): Goal => ({
 
 const edge = (blockerId: string, blockedId: string): Edge => ({ blockerId, blockedId });
 
-const review = (over: Partial<ReviewInput> = {}) =>
+const review = (over: Partial<ReviewInput> = {}, now = NOW) =>
   buildReview(
     {
       goals: [],
@@ -57,7 +57,7 @@ const review = (over: Partial<ReviewInput> = {}) =>
       hours: HOURS,
       ...over,
     },
-    NOW,
+    now,
     SP,
   );
 
@@ -208,9 +208,27 @@ describe('planned but not scheduled', () => {
     expect(found.unscheduled.rows).toEqual([]);
   });
 
-  it('says how much working time the period has left, today included', () => {
-    // Wednesday: Wed, Thu, Fri of an 09:00–17:00 week.
-    expect(review().capacityLeft).toBe(3 * 8 * 60);
+  it('says how much working time the period has left, and today only from now', () => {
+    // Wednesday noon in Sao Paulo: 5 hours of an 09:00–17:00 day, then Thu and Fri.
+    expect(review().capacityLeft).toBe((5 + 8 + 8) * 60);
+  });
+
+  it('counts the whole of today before the working day starts', () => {
+    expect(review({}, '2026-09-09T10:00:00.000Z').capacityLeft).toBe(3 * 8 * 60);
+  });
+
+  // ── Negative cases ─────────────────────────────────────────────────────
+  it('counts nothing of today once the working day is over', () => {
+    expect(review({}, '2026-09-09T23:00:00.000Z').capacityLeft).toBe(2 * 8 * 60);
+  });
+
+  it('counts nothing of a day off, whatever the hour', () => {
+    const daysOff = new Set(['2026-09-09']);
+    expect(review({ daysOff }).capacityLeft).toBe(2 * 8 * 60);
+  });
+
+  it('has nothing left in a week already gone', () => {
+    expect(review({}, '2026-09-20T15:00:00.000Z').capacityLeft).toBe(0);
   });
 });
 

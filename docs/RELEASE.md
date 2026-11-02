@@ -40,6 +40,17 @@ can reason about afterwards.
    npm run e2e:only
    ```
 
+   This step runs on a developer machine: WebDriver does not start on a hosted
+   runner (ADR-016). `screen-reader` reads system focus, which needs the foreground.
+   If it fails naming a control of another program, run that file again by itself;
+   if it names anything of Tessera's, that is a defect.
+
+   The **Install proof** workflow runs by itself on a push to `release/**`: a fresh
+   machine, the published previous version, this build on top with nothing lost, the
+   interface appearing, uninstall keeping the data, and the MSI. It must be green. It
+   is Windows Server with tools on it and WebView2 present, so it does not replace
+   the next step.
+
 6. **Install the MSI and use it.** The suite cannot press a global shortcut,
    cannot see a toast beside the clock, and cannot judge how a screen reader
    sounds. A person does:
