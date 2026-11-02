@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the rail until the two answers are in. The guide can be hidden, closes by itself
   when everything is done, and also appears in a workspace that already has tasks.
 
+- **The Mosaic can be used, not only read.** Tasks with no estimate are listed above the
+  week with their sizes one press away, which is what fills an empty grid. Pressing a
+  tile opens its task, and pressing a free hour sets it aside for one.
+
 ### Changed
 
 - **Today is a place of its own.** It says what it is, what is due today or already
@@ -26,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Work no longer sticks to a day that has gone. The price of a change and the Mosaic
+  gave today its full day of hours whatever the time was, so in the evening work stayed
+  on today instead of moving to tomorrow.
 - A maximised window is used. Every screen kept its own narrow column with empty space
   around it; the content now fills the window, and screens made of cards spread into
   two or three columns when there is room.
