@@ -95,16 +95,28 @@ jobs:
           python e2e/fixtures/install_proof.py check "$file"
           if ($LASTEXITCODE -ne 0) { throw 'the upgrade lost the task or did not migrate' }
 
+      - name: Fetch the driver that matches this machine's WebView2
+        # The runner's own driver matches the Edge browser, not the runtime the
+        # application actually runs in.
+        run: |
+          $key = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
+          $webview = (Get-ItemProperty $key).pv
+          Write-Host "WebView2 runtime: $webview; runner's driver: $(& "$env:EdgeWebDriver\msedgedriver.exe" --version)"
+          Invoke-WebRequest "https://msedgedriver.microsoft.com/$webview/edgedriver_win64.zip" -OutFile driver.zip
+          Expand-Archive driver.zip -DestinationPath driver
+          & driver\msedgedriver.exe --version
+
       - name: The suites, on the installed program
         run: |
           $env:TESSERA_E2E_APP = "$env:LOCALAPPDATA\Tessera\tessera.exe"
-          $env:TESSERA_E2E_EDGEDRIVER = "$env:EdgeWebDriver\msedgedriver.exe"
+          $env:TESSERA_E2E_EDGEDRIVER = (Resolve-Path driver\msedgedriver.exe).Path
           foreach ($suite in 'shell', 'mosaic', 'upgrade-1-2', 'screen-reader') {
             npx vitest run --config vitest.e2e.config.ts "e2e/$suite.e2e.ts"
             if ($LASTEXITCODE -ne 0) { throw "$suite failed on the installed program" }
           }
 
       - name: Uninstall, and the data stays
+        if: ${{ !cancelled() }}
         run: |
           Start-Process -FilePath "$env:LOCALAPPDATA\Tessera\uninstall.exe" -ArgumentList '/S' -Wait
           $exe = "$env:LOCALAPPDATA\Tessera\tessera.exe"
@@ -116,6 +128,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'the workspace changed on uninstall' }
 
       - name: The MSI installs, runs and uninstalls
+        if: ${{ !cancelled() }}
         run: |
           $msi = (Get-ChildItem src-tauri\target\release\bundle\msi\*.msi).FullName
           $p = Start-Process msiexec -ArgumentList '/i', "`"$msi`"", '/qn', '/norestart', '/l*v', 'msi-install.log' -Wait -PassThru
