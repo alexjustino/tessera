@@ -7,7 +7,9 @@ name: Install proof
 #
 # It walks the path a person walks: the published 1.2.0, a workspace with a task
 # in it, 1.3 installed on top, the task still there and the schema migrated, the
-# suites on the installed program, then uninstall, which must leave the data.
+# interface appearing, then uninstall, which must leave the data. The WebDriver
+# suites cannot run here (ADR-016); they run on the release binary on a developer
+# machine (docs/RELEASE.md, step 5).
 
 on:
   workflow_dispatch:
@@ -95,29 +97,9 @@ jobs:
           python e2e/fixtures/install_proof.py check "$file"
           if ($LASTEXITCODE -ne 0) { throw 'the upgrade lost the task or did not migrate' }
 
-      - name: Fetch the driver that matches this machine's WebView2
-        # The runner's own driver matches the Edge browser, not the runtime the
-        # application actually runs in.
-        run: |
-          $key = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}'
-          $webview = (Get-ItemProperty $key).pv
-          Write-Host "WebView2 runtime: $webview; runner's driver: $(& "$env:EdgeWebDriver\msedgedriver.exe" --version)"
-          Invoke-WebRequest "https://msedgedriver.microsoft.com/$webview/edgedriver_win64.zip" -OutFile driver.zip
-          Expand-Archive driver.zip -DestinationPath driver
-          & driver\msedgedriver.exe --version
-
-      - name: The suites, on the installed program
-        run: |
-          # The application was stopped by force above; a WebView2 still holding
-          # its data folder would refuse the driver's debugging port.
-          Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Stop-Process -Force
-          Start-Sleep -Seconds 3
-          $env:TESSERA_E2E_APP = "$env:LOCALAPPDATA\Tessera\tessera.exe"
-          $env:TESSERA_E2E_EDGEDRIVER = (Resolve-Path driver\msedgedriver.exe).Path
-          foreach ($suite in 'shell', 'mosaic', 'upgrade-1-2', 'screen-reader') {
-            npx vitest run --config vitest.e2e.config.ts "e2e/$suite.e2e.ts"
-            if ($LASTEXITCODE -ne 0) { throw "$suite failed on the installed program" }
-          }
+      - name: The installed program opens, and its interface appears
+        # Read through UI Automation: WebDriver does not start on a hosted runner.
+        run: powershell -NoProfile -File e2e/fixtures/install_proof_ui.ps1
 
       - name: Uninstall, and the data stays
         if: ${{ !cancelled() }}
