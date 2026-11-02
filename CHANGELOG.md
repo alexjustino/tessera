@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Getting started.** A new workspace asks for your working hours and days off, then
+  your first task and estimate, in a guide on Today and Tasks. Settings carries a mark
+  in the rail until the two answers are in. The guide can be hidden, closes by itself
+  when everything is done, and also appears in a workspace that already has tasks.
+
 ### Changed
 
 - **Today is a place of its own.** It says what it is, what is due today or already
