@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The calendar fits the window.** Week and day views open on your working hours, sized
+  so the whole working day is seen at once, with the day names kept in view and the rest
+  of the day a scroll away. Tasks with a date show on the day they are due, in week and
+  month, and pressing one opens it.
 - **Today is a place of its own.** It says what it is, what is due today or already
   late, and beside it what is coming up in the next seven days and how much has no
   date. A task typed there is due today. Today, Board and Calendar are no longer also
@@ -30,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- An all-day event shows on its own day. It used to show on every day after it too.
 - Work no longer sticks to a day that has gone. The price of a change and the Mosaic
   gave today its full day of hours whatever the time was, so in the evening work stayed
   on today instead of moving to tomorrow.
