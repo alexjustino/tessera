@@ -201,7 +201,12 @@ export function NotesPage({ initialPageId }: { initialPageId?: string | null }) 
 
             {/* Keyed on the page: opening another one is a different document,
                 and an editor that kept its content would show the last one. */}
-            <Editor key={open.id} ownerKind="page" ownerId={open.id} />
+            <Editor
+              key={open.id}
+              ownerKind="page"
+              ownerId={open.id}
+              label={`Text of ${open.title}`}
+            />
 
             <section aria-label="Linked from" className="mt-4 border-t border-stroke-subtle pt-4">
               <h2 className="mb-2 flex items-center gap-2 text-caption font-semibold text-fg-tertiary uppercase">
