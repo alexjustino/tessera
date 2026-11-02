@@ -12,7 +12,7 @@ import {
   type Column,
 } from './board';
 import type { Item } from './item';
-import { isValidKey } from './ordering';
+import { isValidKey, sequence } from './ordering';
 import type { Property } from './property';
 import { run, type FieldRef, type Row } from './query';
 
@@ -83,6 +83,11 @@ function board(rows: Row[], config: BoardConfig = EMPTY_BOARD_CONFIG): Column[] 
   return toColumns(result.groups, config);
 }
 
+/** The collection behind a board with nothing filtered out. */
+function itemsOf(columns: readonly Column[]): Item[] {
+  return columns.flatMap((column) => column.rows.map((candidate) => candidate.item));
+}
+
 const ROWS = [row('a', 'a', 'todo'), row('b', 'b', 'todo'), row('c', 'c', 'doing'), row('d', 'd')];
 
 describe('columns come from the engine, not from a store of their own', () => {
@@ -143,7 +148,13 @@ describe('planning a move', () => {
   const cardC = ROWS[2]!;
 
   it('sets the field when a card changes column', () => {
-    const move = planMove(cardA, { columnKey: 'doing', index: 0 }, columns, GROUP_BY);
+    const move = planMove(
+      cardA,
+      { columnKey: 'doing', index: 0 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    );
 
     expect(move).not.toBeNull();
     expect(move?.value).toBe('doing');
@@ -155,17 +166,35 @@ describe('planning a move', () => {
   it('clears the field when a card is dropped into the no-value column', () => {
     // Un-setting a status has to be expressible, or the only way back is the
     // detail panel.
-    const move = planMove(cardA, { columnKey: null, index: 0 }, columns, GROUP_BY);
+    const move = planMove(
+      cardA,
+      { columnKey: null, index: 0 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    );
     expect(move?.value).toBeNull();
   });
 
   it('places a card at the head of its new column', () => {
-    const move = planMove(cardA, { columnKey: 'doing', index: 0 }, columns, GROUP_BY)!;
+    const move = planMove(
+      cardA,
+      { columnKey: 'doing', index: 0 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    )!;
     expect(move.position < cardC.item.position).toBe(true);
   });
 
   it('places a card at the tail of its new column', () => {
-    const move = planMove(cardA, { columnKey: 'doing', index: 1 }, columns, GROUP_BY)!;
+    const move = planMove(
+      cardA,
+      { columnKey: 'doing', index: 1 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    )!;
     expect(move.position > cardC.item.position).toBe(true);
   });
 
@@ -177,7 +206,13 @@ describe('planning a move', () => {
       row('mover', 'z', 'todo'),
     ];
     const target = board(three);
-    const move = planMove(three[3]!, { columnKey: 'doing', index: 2 }, target, GROUP_BY)!;
+    const move = planMove(
+      three[3]!,
+      { columnKey: 'doing', index: 2 },
+      target,
+      GROUP_BY,
+      itemsOf(target),
+    )!;
 
     expect(move.position > 'b').toBe(true);
     expect(move.position < 'c').toBe(true);
@@ -194,7 +229,13 @@ describe('planning a move', () => {
     const target = board(same);
 
     // Move `a` from slot 0 to the end.
-    const move = planMove(same[0]!, { columnKey: 'todo', index: 2 }, target, GROUP_BY);
+    const move = planMove(
+      same[0]!,
+      { columnKey: 'todo', index: 2 },
+      target,
+      GROUP_BY,
+      itemsOf(target),
+    );
 
     expect(move).not.toBeNull();
     expect(move!.position > 'c').toBe(true);
@@ -210,7 +251,9 @@ describe('planning a move', () => {
     const same = [row('a', 'a', 'todo'), row('b', 'b', 'todo'), row('c', 'c', 'todo')];
     const target = board(same);
 
-    expect(planMove(same[1]!, { columnKey: 'todo', index: 1 }, target, GROUP_BY)).toBeNull();
+    expect(
+      planMove(same[1]!, { columnKey: 'todo', index: 1 }, target, GROUP_BY, itemsOf(target)),
+    ).toBeNull();
   });
 
   it('does write when a card moves to a slot it is not already in', () => {
@@ -219,29 +262,55 @@ describe('planning a move', () => {
     const same = [row('a', 'a', 'todo'), row('b', 'b', 'todo'), row('c', 'c', 'todo')];
     const target = board(same);
 
-    const toTheEnd = planMove(same[1]!, { columnKey: 'todo', index: 2 }, target, GROUP_BY);
+    const toTheEnd = planMove(
+      same[1]!,
+      { columnKey: 'todo', index: 2 },
+      target,
+      GROUP_BY,
+      itemsOf(target),
+    );
     expect(toTheEnd).not.toBeNull();
     expect(toTheEnd!.position > 'c').toBe(true);
 
-    const toTheHead = planMove(same[1]!, { columnKey: 'todo', index: 0 }, target, GROUP_BY);
+    const toTheHead = planMove(
+      same[1]!,
+      { columnKey: 'todo', index: 0 },
+      target,
+      GROUP_BY,
+      itemsOf(target),
+    );
     expect(toTheHead).not.toBeNull();
     expect(toTheHead!.position < 'a').toBe(true);
   });
 
   it('still writes when a card is dropped in the same slot of a different column', () => {
-    const move = planMove(cardA, { columnKey: 'done', index: 0 }, columns, GROUP_BY);
+    const move = planMove(
+      cardA,
+      { columnKey: 'done', index: 0 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    );
     expect(move).not.toBeNull();
     expect(move?.changedColumn).toBe(true);
   });
 
   it('clamps a slot beyond the end of the column', () => {
-    const move = planMove(cardA, { columnKey: 'doing', index: 99 }, columns, GROUP_BY);
+    const move = planMove(
+      cardA,
+      { columnKey: 'doing', index: 99 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    );
     expect(move).not.toBeNull();
     expect(isValidKey(move!.position)).toBe(true);
   });
 
   it('refuses a column that is not on the board', () => {
-    expect(planMove(cardA, { columnKey: 'nowhere', index: 0 }, columns, GROUP_BY)).toBeNull();
+    expect(
+      planMove(cardA, { columnKey: 'nowhere', index: 0 }, columns, GROUP_BY, itemsOf(columns)),
+    ).toBeNull();
   });
 
   it('produces keys that stay ordered across many moves', () => {
@@ -265,6 +334,7 @@ describe('planning a move', () => {
         { columnKey: 'todo', index: slot },
         current,
         GROUP_BY,
+        itemsOf(current),
       );
       if (move === null) continue;
 
@@ -280,6 +350,176 @@ describe('planning a move', () => {
     const positions = finalColumn.rows.map((r) => r.item.position);
     expect([...positions].sort()).toEqual(positions);
     expect(new Set(positions).size).toBe(positions.length);
+  });
+});
+
+describe('a drop never repeats a key held elsewhere in the collection', () => {
+  // A column shows part of a collection and order keys belong to all of it. Each
+  // key refused here is what the column's own neighbours would have produced.
+  const moving = row('moving', 'x', 'todo');
+
+  it('at the tail of a column, where the next key is in another column', () => {
+    const rows = [row('l', 'l', 'doing'), row('t', 't', 'todo'), moving];
+    const columns = board(rows);
+    const move = planMove(
+      moving,
+      { columnKey: 'doing', index: 1 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    )!;
+
+    expect(move.position).not.toBe('t');
+    expect(move.position > 'l').toBe(true);
+    expect(move.position < 't').toBe(true);
+  });
+
+  it('in the middle of a column, where the midpoint is in another column', () => {
+    const rows = [row('v', 'V', 'doing'), row('l', 'l', 'doing'), row('d', 'd', 'todo'), moving];
+    const columns = board(rows);
+    const move = planMove(
+      moving,
+      { columnKey: 'doing', index: 1 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    )!;
+
+    expect(move.position).not.toBe('d');
+    expect(move.position > 'V').toBe(true);
+    expect(move.position < 'l').toBe(true);
+  });
+
+  it('at the head of a column', () => {
+    const rows = [row('g', 'G', 'todo'), row('v', 'V', 'doing'), moving];
+    const columns = board(rows);
+    const move = planMove(
+      moving,
+      { columnKey: 'doing', index: 0 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    )!;
+
+    expect(move.position).not.toBe('G');
+    expect(move.position < 'V').toBe(true);
+  });
+
+  it('in an empty column, which has no neighbours to read at all', () => {
+    const rows = [row('v', 'V', 'todo'), row('l', 'l', 'doing'), moving];
+    const columns = board(rows);
+    const move = planMove(
+      moving,
+      { columnKey: 'done', index: 0 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    )!;
+
+    expect(move.position > 'l').toBe(true);
+  });
+
+  it('against a card the view has filtered out', () => {
+    // The filtered card is in no column, so only the collection can say it is there.
+    const hidden = row('hidden', 't', 'todo');
+    const shown = [row('l', 'l', 'doing'), moving];
+    const columns = board(shown);
+    const move = planMove(moving, { columnKey: 'doing', index: 1 }, columns, GROUP_BY, [
+      ...itemsOf(columns),
+      hidden.item,
+    ])!;
+
+    expect(move.position).not.toBe('t');
+    expect(move.position < 't').toBe(true);
+  });
+
+  it('does not count the dragged card as being in the way', () => {
+    // Its own key is about to be free. Treating it as a bound would squeeze the
+    // card in below where it already is, for no reason.
+    const dragged = row('dragged', 'b', 'todo');
+    const columns = board([row('a', 'a', 'doing'), dragged]);
+    const move = planMove(
+      dragged,
+      { columnKey: 'doing', index: 1 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    )!;
+
+    expect(move.position > 'b').toBe(true);
+  });
+
+  it('holds for every card, across many drops between columns', () => {
+    const statuses = ['todo', 'doing', 'done'];
+    let cards = sequence(null, null, 12).map((key, index) =>
+      row(`c${index}`, key, statuses[index % statuses.length]),
+    );
+    let seed = 20261102;
+    const random = () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+
+    for (let step = 0; step < 500; step += 1) {
+      const current = board(cards);
+      const moved = cards[Math.floor(random() * cards.length)]!;
+      const column = current[Math.floor(random() * 3)]!;
+      const slot = Math.floor(random() * (column.rows.length + 1));
+
+      const move = planMove(
+        moved,
+        { columnKey: column.key, index: slot },
+        current,
+        GROUP_BY,
+        itemsOf(current),
+      );
+      if (move === null) continue;
+
+      const others = cards.filter((candidate) => candidate.item.id !== move.itemId);
+      expect(others.map((candidate) => candidate.item.position)).not.toContain(move.position);
+      cards = [
+        ...others,
+        {
+          item: { ...moved.item, position: move.position },
+          values: { 'p-status': String(move.value) },
+        },
+      ];
+    }
+
+    const positions = cards.map((candidate) => candidate.item.position);
+    expect(new Set(positions).size).toBe(positions.length);
+  });
+
+  // ── Negative cases ─────────────────────────────────────────────────────
+  it('places a card after two neighbours that already share a key, without refusing', () => {
+    // A stored key is never rewritten, so nothing can go between these two. What
+    // must not happen is what used to: asking for a key between a key and itself.
+    const rows = [row('p', 't', 'todo'), row('q', 't', 'todo'), moving, row('r', 'v', 'doing')];
+    const columns = board(rows);
+    const move = planMove(
+      moving,
+      { columnKey: 'todo', index: 1 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    )!;
+
+    expect(isValidKey(move.position)).toBe(true);
+    expect(move.position > 't').toBe(true);
+    expect(move.position < 'v').toBe(true);
+  });
+
+  it('mints a valid key when the dragged card is the whole collection', () => {
+    const columns = board([moving]);
+    const move = planMove(
+      moving,
+      { columnKey: 'done', index: 0 },
+      columns,
+      GROUP_BY,
+      itemsOf(columns),
+    )!;
+
+    expect(isValidKey(move.position)).toBe(true);
   });
 });
 
