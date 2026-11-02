@@ -289,7 +289,11 @@ from an empty file.
 
 **Cost accepted.** The suite needs a built binary and a driver that matches the WebView2
 runtime, so it is not in the pull-request gate — `npm run gates` stays fast and hermetic. It
-runs on a developer machine and from a workflow triggered by hand and every Monday. A global shortcut cannot be
+runs on a developer machine only: on a hosted runner WebDriver fails to start a session
+("DevToolsActivePort file doesn't exist", seen November 2026, cause not found), so the workflow is
+by hand and has no schedule, and the Install proof workflow checks installed builds through UI
+Automation instead. No run of that workflow had ever started before 1.3, because of a wrong
+driver path nobody saw: an unattended check nobody reads is not a check. A global shortcut cannot be
 pressed through WebDriver; that path is proved by Diagnostics reporting its registration and by
 a person.
 

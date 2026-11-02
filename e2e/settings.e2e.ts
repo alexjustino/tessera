@@ -66,6 +66,33 @@ describe('settings and data', () => {
     );
   });
 
+  it('the window takes the chosen theme, so Mica is painted to match', async () => {
+    // The surfaces are translucent over Mica, and Windows paints Mica in the
+    // window's theme. A page and a window that disagree come out mid-grey, and no
+    // test of the page alone can see it. Both choices, so it holds on any desktop.
+    const windowTheme = (driver: Session['driver']) =>
+      driver.executeAsync<string>(
+        `const done = arguments[arguments.length - 1];
+         window.__TAURI_INTERNALS__.invoke('plugin:window|theme', { label: 'main' }).then(done);`,
+      );
+    const choose = async (theme: 'light' | 'dark') => {
+      const { driver } = session;
+      await goTo('Settings');
+      await driver.waitForText('Kept in your workspace file');
+      await (await driver.findByXPath(`//*[@role="radio"][normalize-space(.)="${theme}"]`)).click();
+      await driver.waitFor(`the window on ${theme}`, async () =>
+        (await windowTheme(driver)) === theme ? true : null,
+      );
+    };
+
+    await choose('light');
+    await session.restart();
+    await session.driver.waitFor('the window on light after a restart', async () =>
+      (await windowTheme(session.driver)) === 'light' ? true : null,
+    );
+    await choose('dark');
+  });
+
   it('choosing another shortcut re-binds it and Diagnostics agrees', async () => {
     const { driver } = session;
     await goTo('Settings');

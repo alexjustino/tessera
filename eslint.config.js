@@ -5,7 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default tseslint.config(
-  { ignores: ['dist', 'src-tauri/target', 'src-tauri/gen', 'coverage'] },
+  { ignores: ['.claude', 'dist', 'src-tauri/target', 'src-tauri/gen', 'coverage'] },
 
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
