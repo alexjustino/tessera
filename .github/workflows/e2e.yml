@@ -43,10 +43,12 @@ jobs:
 
       - name: Run the suite
         # The runner image ships Microsoft Edge WebDriver at $env:EdgeWebDriver.
-        run: npm run e2e
+        # Read in the shell: `${{ env.EdgeWebDriver }}` is the workflow's env, not
+        # the machine's, so it was empty and no run of this workflow ever started.
+        run: |
+          $env:TESSERA_E2E_EDGEDRIVER = "$env:EdgeWebDriver\msedgedriver.exe"
+          npm run e2e
         shell: pwsh
-        env:
-          TESSERA_E2E_EDGEDRIVER: ${{ env.EdgeWebDriver }}\msedgedriver.exe
 
       - name: Keep the screenshots
         if: always()

@@ -108,6 +108,10 @@ jobs:
 
       - name: The suites, on the installed program
         run: |
+          # The application was stopped by force above; a WebView2 still holding
+          # its data folder would refuse the driver's debugging port.
+          Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 3
           $env:TESSERA_E2E_APP = "$env:LOCALAPPDATA\Tessera\tessera.exe"
           $env:TESSERA_E2E_EDGEDRIVER = (Resolve-Path driver\msedgedriver.exe).Path
           foreach ($suite in 'shell', 'mosaic', 'upgrade-1-2', 'screen-reader') {
@@ -133,8 +137,11 @@ jobs:
           $msi = (Get-ChildItem src-tauri\target\release\bundle\msi\*.msi).FullName
           $p = Start-Process msiexec -ArgumentList '/i', "`"$msi`"", '/qn', '/norestart', '/l*v', 'msi-install.log' -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "msiexec install exited $($p.ExitCode)" }
-          $exe = "$env:ProgramFiles\Tessera\tessera.exe"
-          if (-not (Test-Path $exe)) { throw 'the MSI did not put the program where expected' }
+          # The MSI reuses the folder an earlier install recorded, so a machine that
+          # had the NSIS build gets it there rather than in Program Files.
+          $exe = "$env:ProgramFiles\Tessera\tessera.exe", "$env:LOCALAPPDATA\Tessera\tessera.exe" | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if ($null -eq $exe) { throw 'the MSI did not install the program' }
+          Write-Host "the MSI installed to $exe"
           Start-Process -FilePath $exe | Out-Null
           Start-Sleep -Seconds 10
           if (-not (Get-Process tessera -ErrorAction SilentlyContinue)) { throw 'the program from the MSI did not stay running' }
