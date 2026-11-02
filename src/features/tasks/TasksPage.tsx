@@ -411,6 +411,17 @@ export function TasksPage({
               />
             ))}
           </div>
+        ) : view?.kind === 'calendar' ? (
+          // Before the empty states: the calendar is events, working hours,
+          // days off and the year, none of which needs a task to exist. An
+          // empty workspace — or one with only an imported calendar — showed
+          // "Nothing here yet" instead of its calendar until 1.3.
+          <CalendarView
+            // Work with no time reserved for it. The panel exists so a person
+            // can drag it onto the grid, which is the whole point of the slice.
+            unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
+            onOpenItem={(item) => setDetailId(item.id)}
+          />
         ) : result.total === 0 ? (
           <EmptyState
             icon={<TaskListSquareLtr24Regular />}
@@ -422,13 +433,6 @@ export function TasksPage({
             title="No item matches this view"
             description="The items are still there — this view's filters just do not include any of them."
             action={<Button onClick={() => setEditingQuery(true)}>Change the filters</Button>}
-          />
-        ) : view?.kind === 'calendar' ? (
-          <CalendarView
-            // Work with no time reserved for it. The panel exists so a person
-            // can drag it onto the grid, which is the whole point of the slice.
-            unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
-            onOpenItem={(item) => setDetailId(item.id)}
           />
         ) : view?.kind === 'timeline' ? (
           <TimelineView
@@ -452,6 +456,7 @@ export function TasksPage({
         ) : view?.kind === 'board' ? (
           <BoardView
             groups={result.groups}
+            items={items.data ?? []}
             properties={properties.data ?? []}
             query={query}
             board={board}

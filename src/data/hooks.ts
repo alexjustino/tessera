@@ -12,6 +12,7 @@
  */
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
 import type { Capture } from '@/domain/capture';
 import type { Settings } from '@/domain/settings';
@@ -39,6 +40,7 @@ import * as backupsApi from './backups';
 import * as timeApi from './time';
 import * as templateApi from './templates';
 import * as importApi from './importing';
+import * as daysOffApi from './daysOff';
 import * as goalApi from './goals';
 import * as pageApi from './pages';
 import type { TemplateBody, TemplateEdge } from '@/domain/template';
@@ -958,5 +960,40 @@ export function useUnlinkGoalItem() {
     mutationFn: ({ goalId, itemId }: { goalId: string; itemId: string }) =>
       goalApi.unlinkGoalItem(goalId, itemId),
     onSuccess: () => client.invalidateQueries({ queryKey: goalKeys.links }),
+  });
+}
+
+// ── Days off (M3) ──────────────────────────────────────────────────────────
+
+const daysOffKey = ['days-off'] as const;
+
+export function useDaysOff() {
+  return useQuery({ queryKey: daysOffKey, queryFn: daysOffApi.listDaysOff });
+}
+
+/**
+ * The days off as a set, for the domain's capacity readers — empty while it
+ * loads, which reads every weekday as working: the state before M3, not an
+ * invented one.
+ */
+export function useDaysOffSet(): ReadonlySet<string> {
+  const daysOff = useDaysOff();
+  return useMemo(() => new Set((daysOff.data ?? []).map((row) => row.day)), [daysOff.data]);
+}
+
+export function useSetDayOff() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ day, label }: { day: string; label: string }) =>
+      daysOffApi.setDayOff(day, label),
+    onSuccess: () => client.invalidateQueries({ queryKey: daysOffKey }),
+  });
+}
+
+export function useRemoveDayOff() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (day: string) => daysOffApi.removeDayOff(day),
+    onSuccess: () => client.invalidateQueries({ queryKey: daysOffKey }),
   });
 }

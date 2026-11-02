@@ -53,6 +53,7 @@ pub const TABLES: &[&str] = &[
     "event_exception",
     "time_block",
     "work_hours",
+    "day_off",
     "time_entry",
     "template",
     "import_batch",
@@ -637,6 +638,8 @@ mod tests {
         let id = item(&mut source, "Buy milk");
         items::set_completed(&source, &id, true).unwrap();
         event(&source, "Dentist", Some("FREQ=WEEKLY"));
+        // A day off travels with the workspace (M3).
+        crate::db::days_off::set(&source, "2026-12-25", "Christmas").unwrap();
         source
             .execute(
                 "INSERT INTO block (id, owner_kind, owner_id, type, position, content_json, created_at, updated_at)

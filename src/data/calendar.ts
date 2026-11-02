@@ -3,7 +3,7 @@
  *
  * The host stores instants and returns windows. Expanding a rule, applying an
  * exception and placing a box on the grid are the domain layer's job, where the
- * timezone arithmetic has a daylight-saving test (ADR-014).
+ * timezone arithmetic has a daylight-saving test (ADR-013, ADR-014).
  */
 
 import { invoke } from '@tauri-apps/api/core';

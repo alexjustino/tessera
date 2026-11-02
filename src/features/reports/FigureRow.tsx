@@ -17,18 +17,27 @@ export function FigureRow({
   figure,
   broken,
   big = false,
+  format = formatDuration,
+  noun = { one: 'task', many: 'tasks' },
 }: {
   figure: Figure;
   /** Figures that failed `traceable` — theirs is the dash. */
   broken: Figure[];
   big?: boolean;
+  /**
+   * How minutes are said. Days of eight hours by default, as every report
+   * says them; the mosaic says hours, because its tiles are hours (M4).
+   */
+  format?: (minutes: number) => string;
+  /** What a counted figure counts — tasks unless said otherwise (the split tile counts hours). */
+  noun?: { one: string; many: string };
 }) {
   const [open, setOpen] = useState(false);
   const isBroken = broken.some((candidate) => candidate.id === figure.id);
   const shown =
     figure.unit === 'minutes'
-      ? formatDuration(figure.value)
-      : `${figure.value} ${figure.value === 1 ? 'task' : 'tasks'}`;
+      ? format(figure.value)
+      : `${figure.value} ${figure.value === 1 ? noun.one : noun.many}`;
 
   return (
     <div data-testid="figure" data-figure={figure.id}>
@@ -79,7 +88,7 @@ export function FigureRow({
               {row.day !== null && <span className="tabular-nums">{describeDay(row.day)}</span>}
               {figure.unit === 'minutes' && (
                 <span className="w-16 text-right tabular-nums" data-testid="row-minutes">
-                  {formatDuration(row.minutes)}
+                  {format(row.minutes)}
                 </span>
               )}
             </li>

@@ -22,6 +22,9 @@ import {
 } from './calendar';
 import { splitInterval } from './time';
 
+/** No days off: the default for a caller that has none to say. */
+const NONE: ReadonlySet<string> = new Set();
+
 /** How full a day is, in words. */
 export type Level = 'off' | 'free' | 'light' | 'half' | 'busy' | 'full' | 'over';
 
@@ -44,8 +47,17 @@ export interface DayLoad {
   level: Level;
 }
 
-/** The working minutes in a day, or zero when it is not a working day. */
-export function capacityOf(day: string, hours: readonly WorkHours[]): number {
+/**
+ * The working minutes in a day, or zero when it is not a working day — a
+ * weekday outside the working week, or a day off (M3). Every reader of
+ * capacity goes through here, so a holiday has no hours on any screen.
+ */
+export function capacityOf(
+  day: string,
+  hours: readonly WorkHours[],
+  daysOff: ReadonlySet<string> = NONE,
+): number {
+  if (daysOff.has(day)) return 0;
   const span = workingSpan(day, hours);
   return span === null ? 0 : Math.max(0, span.endsMinute - span.startsMinute);
 }
@@ -117,6 +129,7 @@ export function yearOf(
   hours: readonly WorkHours[],
   zone: string,
   startsOn = 1,
+  daysOff: ReadonlySet<string> = NONE,
 ): YearLoad {
   const planned = plannedByDay(occurrences, zone);
   const months: MonthLoad[] = [];
@@ -134,7 +147,7 @@ export function yearOf(
       };
       months.push(current);
     }
-    const capacity = capacityOf(day, hours);
+    const capacity = capacityOf(day, hours, daysOff);
     const reserved = planned.get(day) ?? 0;
     current.days.push({ day, capacity, planned: reserved, level: levelOf(reserved, capacity) });
     current.capacity += capacity;
@@ -159,8 +172,9 @@ export function dayLoad(
   occurrences: readonly Occurrence[],
   hours: readonly WorkHours[],
   zone: string,
+  daysOff: ReadonlySet<string> = NONE,
 ): DayLoad {
-  const capacity = capacityOf(day, hours);
+  const capacity = capacityOf(day, hours, daysOff);
   const planned = plannedByDay(occurrences, zone).get(day) ?? 0;
   return { day, capacity, planned, level: levelOf(planned, capacity) };
 }

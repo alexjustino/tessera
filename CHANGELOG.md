@@ -7,6 +7,142 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-11-02
+
+The ledger. 1.1 answered "will this finish, and when"; 1.2 answered "can I move
+in"; 1.3 answers the question every list avoids — **what does this cost?** A
+week has a fixed number of working hours, the calendar has already spent some
+of them, and every estimate draws on what is left. 1.3 shows that arithmetic
+where decisions are made: the price of an estimate before you save it, dates
+as ranges drawn from your own history, and the Mosaic — your working week, one
+tile per hour, the name's own image — with envelopes for the goals that matter
+and, for every hour you planned, whether life matched the plan. It shows; it
+never moves anything for you. Still entirely on your machine.
+
+### Migrations
+
+This release adds migrations **017** (`day_off`, the days a working weekday has
+no hours) and **018** (`goal.weekly_minutes`, a goal's weekly envelope). Both
+forward-only. A 1.2.0 workspace — schema version 16 — opens in 1.3.0 and is
+migrated to 18 on first start; `e2e/upgrade-1-2.e2e.ts` opens one, checks
+nothing was lost, and uses what 1.3 added on its rows.
+
+### Added
+
+- **The price of yes.** Type an estimate on a task and, before you leave the
+  field, Tessera shows what saying yes would cost: how much free time it
+  claims, which other tasks and goals would finish on a different day and by
+  how many days, and which of them would then be late. It is worked out over
+  your working hours and calendar, earliest due date first, so you can check it
+  on paper. Nothing is saved until you leave the field, and Escape puts the old
+  estimate back. Tessera shows the cost; it never moves anything for you
+  (ADR-034).
+
+- **Dates with confidence.** Once ten finished tasks have both an estimate and
+  tracked time, a projected date reads as a range drawn from your own estimate
+  error — "likely by Wed 4 Nov; 85% sure by Thu 5 Nov — from 10 finished
+  tasks". Each goal with open estimated work now says when it would be done,
+  and the price of an estimate shows the task's own range. Until there is
+  enough history, no percentage appears; the screen says how many tasks it has
+  and how many it needs (ADR-035).
+
+- **The Mosaic.** A new place in the rail draws your working week as one tile
+  per hour — the name's own image, a tessera being one tile of a mosaic. Each
+  tile says where that hour went or is going: reserved by the calendar,
+  committed to estimated work, lived with tracked time, gone, or free. One
+  sentence above says the same in hours — "This week has 45 tiles. Nothing is
+  on the calendar. Work due by Fri needs 50h, and 45h is left — 5 short." — and
+  when the week is short, the missing hours are drawn as tiles too, before the
+  week has had a chance to go wrong. Every number opens onto what it was added
+  up from; the grid can be walked with the arrow keys and every tile is named
+  in words (ADR-037).
+
+- **Envelopes.** A goal can hold a weekly budget — "Hours each week" in Goals.
+  The Mosaic counts what each envelope has spent this week from the tiles on
+  its own tasks ("6h of 4h — 2h over"), marks those tiles with the goal, and
+  says how much open time is promised to no goal. Going over is said, never
+  refused (ADR-038).
+
+- **The split tile.** In the Mosaic, every past hour you set aside for a task
+  on the calendar shows two halves: what you planned above, what you tracked
+  below. When they match, the tile closes into one. "Plan and life" says how
+  many of the week's planned hours closed — "Of 3 hours set aside for a task,
+  1 closed (33%)" — and opens onto the ones that did not, each saying what was
+  planned and what was lived. A fact about the plans, not a score (ADR-039).
+
+- **Days off.** Settings has a new card for holidays and leave. A day off has
+  no working hours anywhere Tessera counts them — the year view reads it as not
+  a working day, and the review, the reports and the price of a change all stop
+  counting its hours. Days off travel with the workspace in backups and exports
+  (ADR-036).
+
+### Fixed
+
+- The note editor has an accessible name. TipTap 3.32 declares it a text field,
+  and a field with no name is announced as nothing; it now says "Notes on" the
+  task or "Text of" the page.
+- Choosing Light on a dark desktop, or Dark on a light one, no longer leaves the
+  window a washed-out grey. Windows paints the window's material in the window's
+  own theme, and the choice only ever reached the page. It reaches the window now.
+- The message when a shortcut cannot be registered reads as sentences. The two
+  parts of it were joined with no full stop between them.
+- The Review's working time left this week no longer counts the hours of today
+  that have gone. On a Monday afternoon it said 45 hours where the Mosaic said 38.
+- What is behind a drawer, a dialog or a menu no longer shows through it. These
+  surfaces rely on a blur that did not take effect in the window, which left the
+  text underneath readable behind the receipt.
+- Dragging a card on the board can no longer give it the same order key as
+  another card. The key was worked out from the column alone, while keys are
+  shared by the whole collection, so a drop could repeat a key held in another
+  column or filtered out of view, and every drop into an empty column took the
+  same one. Two cards with one key have no order between them, and dropping a
+  card between them failed. Keys already stored are left as they are, and such a
+  drop now lands just after the pair.
+- A goal's date set in Goals is saved. The host read the change as snake_case
+  while the interface sent camelCase, so the date was dropped without a word;
+  it is read as sent now, and a test pins it.
+- The calendar shows in a workspace that has no tasks yet. It used to show
+  "Nothing here yet" instead, so a calendar that had only imported events — or
+  a year with days off — could not be seen until a task existed.
+
+### Changed
+
+- Dependencies brought up to date before the release: Tauri 2.12 and its plugins,
+  rusqlite 0.40 (with a newer bundled SQLite), windows 0.61,
+  tauri-winrt-notification 0.8, TipTap 3.32, Vite 8, plugin-react 6, vitest 5,
+  axe-core 4.14. TypeScript stays on 5.8: `typescript-eslint`, which the lint gate
+  depends on, does not support 7 yet. Two security advisories in the build tools
+  (Vite, brace-expansion) are cleared; neither reached the installed program.
+
+### Tests
+
+- `e2e/screen-reader.e2e.ts` reads what Windows publishes to a screen reader, not
+  the page: names, control types and system focus through UI Automation.
+- The Install proof workflow walks the real path on a fresh machine: the published
+  1.2.0, a task in its workspace, this build on top, nothing lost, the interface
+  appearing, uninstall keeping the data, and the MSI.
+- The End-to-end workflow's driver path is fixed, but WebDriver does not start on a
+  hosted runner at all, so the suite runs on a developer machine and the workflow has
+  no schedule (ADR-016).
+
+### Documentation
+
+- The 1.3 line is open: **the ledger**. Its question is "what does this
+  cost?" — a week has a fixed number of working hours, and every estimate
+  draws on what is left. Seven slices (M1–M7): the price of yes, dates with
+  confidence, days off, the week mosaic, envelopes, the split tile and the
+  release, with the rules every slice follows written once in the SPEC.
+
+- The decision record is in step with the code again. The index lists all 33
+  records, not the first fifteen. ADR-017 now says it governs restore only and
+  points at the additive import door of ADR-026, which in turn points back.
+  ADR-009 names TipTap 3, ADR-023 says the working week has been editable since
+  1.2.0, ADR-026 counts six importers, and ADR-001 says where the host does
+  enforce rules. The three rules every importer obeys are now ADR-033 instead
+  of living only in the 1.2 section of the SPEC. The SPEC no longer names a
+  test framework the suite does not use, nor a contract test that was never
+  built.
+
 ## [1.2.0] — 2026-09-08
 
 The adopter. 1.1 answered "will this finish, and when"; 1.2 answers "can I move

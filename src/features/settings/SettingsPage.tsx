@@ -21,6 +21,7 @@ import { Select } from '@/ui/Select';
 import { BackupsCard } from './BackupsCard';
 import { ExportImportCard } from './ExportImportCard';
 import { ImportsCard } from './ImportsCard';
+import { DaysOffCard } from './DaysOffCard';
 import { WorkHoursCard } from './WorkHoursCard';
 
 /**
@@ -153,6 +154,7 @@ export function SettingsPage() {
       </Card>
 
       <WorkHoursCard />
+      <DaysOffCard />
 
       <BackupsCard settings={current} onChange={update} busy={settings.isPending} />
       <ExportImportCard />

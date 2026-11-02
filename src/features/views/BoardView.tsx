@@ -37,6 +37,7 @@ import {
   type Column,
   type Move,
 } from '@/domain/board';
+import type { Item } from '@/domain/item';
 import { formatValue, optionsOf, type Property } from '@/domain/property';
 import type { Group, Query, Row } from '@/domain/query';
 import { Chip } from '@/ui/Chip';
@@ -58,6 +59,7 @@ import { announce } from '@/ui/announce';
  */
 export function BoardView({
   groups,
+  items,
   properties,
   query,
   board,
@@ -66,6 +68,8 @@ export function BoardView({
   onOpen,
 }: {
   groups: readonly Group[];
+  /** The whole collection, not the filtered columns: a drop's key is new to all of it. */
+  items: readonly Item[];
   properties: Property[];
   query: Query;
   board: BoardConfig;
@@ -126,7 +130,13 @@ export function BoardView({
     const overIndex = destination.rows.findIndex((candidate) => candidate.item.id === over.id);
     const index = overIndex === -1 ? destination.rows.length : overIndex;
 
-    const move = planMove(row, { columnKey: destination.key, index }, columns, query.groupBy);
+    const move = planMove(
+      row,
+      { columnKey: destination.key, index },
+      columns,
+      query.groupBy,
+      items,
+    );
     if (move !== null) onMove(move);
   };
 

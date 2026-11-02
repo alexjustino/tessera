@@ -1,14 +1,15 @@
 name: End-to-end
 
-# The real binary, driven through WebDriver (ADR-016). Not a pull-request gate:
-# it needs a debug build and a driver that matches the runner's WebView2, and
-# it takes minutes. Run it by hand before a release, or let the weekly run
-# catch a seam that the unit suites cannot see.
+# The real binary, driven through WebDriver (ADR-016).
+#
+# It does not work on a hosted runner: every session fails with "DevToolsActivePort
+# file doesn't exist", on a clean machine, with a driver of the same version as the
+# WebView2 runtime (seen November 2026). So it has no schedule: a weekly run would
+# only ever be red. It stays runnable by hand, to try again after an image or a
+# WebView2 change. The suite that counts runs on a developer machine (RELEASE.md).
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 6 * * 1'
 
 permissions:
   contents: read
@@ -43,14 +44,16 @@ jobs:
 
       - name: Run the suite
         # The runner image ships Microsoft Edge WebDriver at $env:EdgeWebDriver.
-        run: npm run e2e
+        # Read in the shell: `${{ env.EdgeWebDriver }}` is the workflow's env, not
+        # the machine's, so it was empty and no run of this workflow ever started.
+        run: |
+          $env:TESSERA_E2E_EDGEDRIVER = "$env:EdgeWebDriver\msedgedriver.exe"
+          npm run e2e
         shell: pwsh
-        env:
-          TESSERA_E2E_EDGEDRIVER: ${{ env.EdgeWebDriver }}\msedgedriver.exe
 
       - name: Keep the screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-screenshots
           path: e2e/artefacts

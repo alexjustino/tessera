@@ -13,6 +13,7 @@ import {
   useUnlinkGoalItem,
   useUpdateGoal,
 } from '@/data/hooks';
+import { calibrationOf, forecastGoals, type Forecast } from '@/domain/confidence';
 import { formatDuration } from '@/domain/criticalPath';
 import {
   checkName,
@@ -31,6 +32,8 @@ import {
 import { between } from '@/domain/ordering';
 import { traceable, type Figure } from '@/domain/report';
 import { systemZone } from '@/domain/schedule';
+import { ForecastLine } from '@/features/receipt/ForecastLine';
+import { useLedger } from '@/features/receipt/useLedger';
 import { FigureRow } from '@/features/reports/FigureRow';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
@@ -64,6 +67,20 @@ export function GoalsPage() {
   // way the task it is being tracked against does.
   const running = (entries.data ?? []).some((entry) => entry.endedAt === null);
   const now = useNow(running ? 60_000 : null);
+
+  // When each goal would be done, on the estimates as typed and — with
+  // history enough — as a range (M2). One projection for the whole page.
+  const ledger = useLedger(now);
+  const { forecasts, sample } = useMemo(() => {
+    if (ledger === null) return { forecasts: new Map<string, Forecast>(), sample: 0 };
+    const calibration = calibrationOf(ledger.items, ledger.tracked);
+    return {
+      forecasts: new Map(
+        forecastGoals(ledger, calibration).map((forecast) => [forecast.goalId, forecast]),
+      ),
+      sample: calibration.sample,
+    };
+  }, [ledger]);
 
   const create = useCreateGoal();
   const update = useUpdateGoal();
@@ -153,6 +170,8 @@ export function GoalsPage() {
               entries={entries.data ?? []}
               now={now}
               zone={zone}
+              forecast={forecasts.get(goal.id) ?? null}
+              sample={sample}
               onOpen={() => setOpenId(goal.id === open?.id ? '' : goal.id)}
               onDelete={() => setConfirming(goal)}
             >
@@ -235,6 +254,43 @@ export function GoalsPage() {
                       />
                     </label>
                   </div>
+
+                  <label className="flex flex-col gap-1">
+                    <span className="text-caption text-fg-tertiary">
+                      Hours each week (optional) — the goal&apos;s envelope in the Mosaic
+                    </span>
+                    <Input
+                      aria-label="Hours each week"
+                      type="number"
+                      min={0}
+                      max={168}
+                      step={0.5}
+                      placeholder="No envelope"
+                      defaultValue={
+                        goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
+                          ? ''
+                          : String(goal.weeklyMinutes / 60)
+                      }
+                      className="w-40"
+                      onBlur={(event) => {
+                        const text = event.target.value.trim();
+                        const hours = Number(text);
+                        const minutes = text === '' || hours === 0 ? null : Math.round(hours * 60);
+                        if (
+                          minutes !== null &&
+                          (!Number.isFinite(hours) || hours < 0 || hours > 168)
+                        ) {
+                          event.target.value =
+                            goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
+                              ? ''
+                              : String(goal.weeklyMinutes / 60);
+                          return;
+                        }
+                        if (minutes === (goal.weeklyMinutes ?? null)) return;
+                        update.mutate({ id: goal.id, patch: { weeklyMinutes: minutes } });
+                      }}
+                    />
+                  </label>
 
                   <section aria-label="Tasks in this goal">
                     <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">
@@ -333,6 +389,8 @@ function GoalCard({
   entries,
   now,
   zone,
+  forecast,
+  sample,
   onOpen,
   onDelete,
   children,
@@ -343,6 +401,9 @@ function GoalCard({
   entries: Parameters<typeof progressOf>[2];
   now: string;
   zone: string;
+  /** When it would be done, if it has open estimated work (M2). */
+  forecast: Forecast | null;
+  sample: number;
   onOpen: () => void;
   onDelete: () => void;
   children: React.ReactNode;
@@ -417,6 +478,10 @@ function GoalCard({
               {describeProgress(figure, goal, hours)}
             </span>
           </div>
+
+          {forecast !== null && state !== 'achieved' && (
+            <ForecastLine forecast={forecast} sample={sample} dueDay={goal.dueDay} />
+          )}
 
           {children}
         </div>

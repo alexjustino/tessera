@@ -1,26 +1,51 @@
 # Architecture Decision Records
 
 Binding decisions. A record here is not a suggestion: changing one requires a new record that
-supersedes it, not an edit in passing. Each entry states the context, the decision, and — the
-part that matters most later — the cost we accepted.
+supersedes it, not an edit in passing. Each entry states the decision and why, and — the part
+that matters most later — the cost or consequence we accepted, where one was accepted. A record
+that a later one narrows says so and points at it.
 
-| #               | Decision                                          | Status   |
-| --------------- | ------------------------------------------------- | -------- |
-| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host        | Accepted |
-| [002](#adr-002) | SQLite, one file, WAL                             | Accepted |
-| [003](#adr-003) | The domain layer is pure TypeScript               | Accepted |
-| [004](#adr-004) | The view query engine runs in memory              | Accepted |
-| [005](#adr-005) | Properties are stored entity-attribute-value      | Accepted |
-| [006](#adr-006) | Ordering uses fractional indexing                 | Accepted |
-| [007](#adr-007) | Recurrence is RRULE plus a mode                   | Accepted |
-| [008](#adr-008) | An event is not an item                           | Accepted |
-| [009](#adr-009) | The block editor is built on TipTap / ProseMirror | Accepted |
-| [010](#adr-010) | Fluent is the visual language, with one icon set  | Accepted |
-| [011](#adr-011) | Apache-2.0                                        | Accepted |
-| [012](#adr-012) | No network, no telemetry                          | Accepted |
-| [013](#adr-013) | Time is stored in UTC with an IANA zone           | Accepted |
-| [014](#adr-014) | The calendar engine is ours                       | Accepted |
-| [015](#adr-015) | Installers are not code-signed in 1.0.0           | Accepted |
+| #               | Decision                                                                     | Status   |
+| --------------- | ---------------------------------------------------------------------------- | -------- |
+| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                                   | Accepted |
+| [002](#adr-002) | SQLite, one file, WAL                                                        | Accepted |
+| [003](#adr-003) | The domain layer is pure TypeScript                                          | Accepted |
+| [004](#adr-004) | The view query engine runs in memory                                         | Accepted |
+| [005](#adr-005) | Properties are stored entity-attribute-value                                 | Accepted |
+| [006](#adr-006) | Ordering uses fractional indexing                                            | Accepted |
+| [007](#adr-007) | Recurrence is RRULE plus a mode                                              | Accepted |
+| [008](#adr-008) | An event is not an item                                                      | Accepted |
+| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                            | Accepted |
+| [010](#adr-010) | Fluent is the visual language, with one icon set                             | Accepted |
+| [011](#adr-011) | Apache-2.0                                                                   | Accepted |
+| [012](#adr-012) | No network, no telemetry                                                     | Accepted |
+| [013](#adr-013) | Time is stored in UTC with an IANA zone                                      | Accepted |
+| [014](#adr-014) | The calendar engine is ours                                                  | Accepted |
+| [015](#adr-015) | Installers are not code-signed until signing exists                          | Accepted |
+| [016](#adr-016) | End-to-end tests drive the real binary                                       | Accepted |
+| [017](#adr-017) | Backups are file copies; restore replaces                                    | Accepted |
+| [018](#adr-018) | Accessibility is gated, not reviewed                                         | Accepted |
+| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                       | Accepted |
+| [020](#adr-020) | A plan says what it is worth                                                 | Accepted |
+| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                          | Accepted |
+| [022](#adr-022) | An invariant the schema can state, the schema states                         | Accepted |
+| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved            | Accepted |
+| [024](#adr-024) | A figure carries the rows it came from                                       | Accepted |
+| [025](#adr-025) | A template is the plan for tasks, not tasks                                  | Accepted |
+| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing        | Accepted |
+| [027](#adr-027) | A column that collides is reconciled, never coerced                          | Accepted |
+| [028](#adr-028) | A zone is a name, not a rule set                                             | Accepted |
+| [029](#adr-029) | A link points at an identity and shows a name                                | Accepted |
+| [030](#adr-030) | What counts towards a goal is a decision, not a filter                       | Accepted |
+| [031](#adr-031) | Paper is a rendering, not a screenshot                                       | Accepted |
+| [032](#adr-032) | The review keeps no state                                                    | Accepted |
+| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one           | Accepted |
+| [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted |
+| [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted |
+| [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted |
+| [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted |
+| [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted |
+| [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan        | Accepted |
 
 ---
 
@@ -30,7 +55,8 @@ part that matters most later — the cost we accepted.
 Action Center, autostart, a global hotkey, Mica. It must also start fast and stay small.
 
 **Decision.** Tauri 2, with the Rust side kept as thin as it can be: storage, the operating
-system, and the typed command boundary. No business logic in Rust.
+system, and the typed command boundary. No business logic in Rust; the invariants of the file
+itself are enforced there, because only the host sees every writer (ADR-019, ADR-022, ADR-027).
 
 **Why not Electron.** A ~10 MB binary against ~150 MB, and WebView2 is already on every
 Windows 11 machine. **Why not WPF/WinUI.** The view engine, the block editor and the calendar
@@ -163,7 +189,7 @@ it works precisely because the two models stayed honest about being different.
 
 ## ADR-009 — The block editor is built on TipTap / ProseMirror {#adr-009}
 
-**Decision.** TipTap 2 over ProseMirror, not a hand-written editor.
+**Decision.** TipTap 3 over ProseMirror, not a hand-written editor.
 
 **Why.** ProseMirror enforces document integrity through a schema, which is the difference
 between an editor that survives paste, undo and concurrent edits and one that corrupts a
@@ -209,7 +235,7 @@ declared one by one, with shell execution deliberately absent.
 **Why.** Privacy is a feature of this product, stated in the README, not an omission. It is
 also what makes the security posture simple enough to be true.
 
-**Cost accepted.** No automatic updates in 1.0.0. Releases are downloaded from GitHub.
+**Cost accepted.** No automatic updates. Releases are downloaded from GitHub.
 
 ## ADR-013 — Time is stored in UTC with an IANA zone {#adr-013}
 
@@ -235,7 +261,7 @@ React calendar brings its own CSS and its own visual language, which is exactly 
 this product from looking native. Grid geometry and overlap resolution are pure functions with
 unit tests.
 
-## ADR-015 — Installers are not code-signed in 1.0.0 {#adr-015}
+## ADR-015 — Installers are not code-signed until signing exists {#adr-015}
 
 **Decision.** Ship unsigned MSI and NSIS installers; document the SmartScreen warning in the
 README and `SECURITY.md`.
@@ -261,11 +287,15 @@ from an empty file.
 
 **Cost accepted.** The suite needs a built binary and a driver that matches the WebView2
 runtime, so it is not in the pull-request gate — `npm run gates` stays fast and hermetic. It
-runs on a developer machine and from a manually triggered workflow. A global shortcut cannot be
+runs on a developer machine only: on a hosted runner WebDriver fails to start a session
+("DevToolsActivePort file doesn't exist", seen November 2026, cause not found), so the workflow is
+by hand and has no schedule, and the Install proof workflow checks installed builds through UI
+Automation instead. No run of that workflow had ever started before 1.3, because of a wrong
+driver path nobody saw: an unattended check nobody reads is not a check. A global shortcut cannot be
 pressed through WebDriver; that path is proved by Diagnostics reporting its registration and by
 a person.
 
-## ADR-017 — Backups are file copies; import replaces, never merges {#adr-017}
+## ADR-017 — Backups are file copies; restore replaces {#adr-017}
 
 **Decision.** A backup is `VACUUM INTO` a timestamped file beside the workspace, taken on the
 first start of each day and on request, kept in rotation. A restore closes the live connection,
@@ -286,6 +316,11 @@ which this product has deliberately not built (README); a replace that asks firs
 import from a different schema version is refused rather than migrated; the backup path
 covers that case. Two backups in the same instant get a collision suffix rather than sharing a
 name — the test that found the collision is `tests/restore.rs`.
+
+**Narrowed by ADR-026.** Since 1.2.0 there are two doors. Restoring from Tessera's own export
+still replaces every table, as above. Importing rows — from another product, or from a Tessera
+export taken as a source of rows — goes through the additive door of ADR-026, which previews,
+adds and undoes, and reads an older schema leniently. This record now governs restore only.
 
 ## ADR-018 — Accessibility is gated, not reviewed {#adr-018}
 
@@ -443,8 +478,8 @@ it is stated in the year's summary line only as what _is_ there; a count of what
 count over (SPEC, deferred out of P5).
 
 **Cost accepted.** Capacity is a weekday span, so a public holiday on a Tuesday has nine
-hours until a holiday table exists. Working hours are read everywhere and edited nowhere
-yet; the screen is deferred, the reading is not.
+hours until a holiday table exists. Working hours are editable in Settings since 1.2.0
+(the review reads them); since 1.3 a day off gives a day zero hours everywhere (ADR-036).
 
 ## ADR-024 — A figure carries the rows it came from {#adr-024}
 
@@ -518,8 +553,8 @@ decide; the host applies the decided plan in one transaction and records every r
 `import_batch` and `import_row` (migration 013). `undo` walks those rows backwards and removes
 exactly them — or refuses before touching anything.
 
-**Why a plan.** Five importers are coming (Tessera, Todoist, Microsoft To Do, Trello, Notion,
-ICS). If each wrote rows its own way there would be five doors, five previews and five undos,
+**Why a plan.** Six importers share one door (Tessera, Todoist, Microsoft To Do, Trello, Notion,
+ICS). If each wrote rows its own way there would be six doors, six previews and six undos,
 and they would disagree. One intermediate shape makes each importer a parser and a mapping, and
 puts the judgement — duplicates, positions, what a person sees — in one place with one test.
 
@@ -544,6 +579,10 @@ a problem: undo finds nothing and moves on.
 with a sentence, not carried (SPEC, deferred out of A1). Positions are the caller's to hand in,
 because the host does not own the ordering key scheme (`domain/ordering.ts`). Bookkeeping tables
 are part of the export, so a restore carries the import history with it.
+
+**Relation to ADR-017.** Replacing the workspace from an export is restore, and stays ADR-017's.
+This door only adds, and it is the one that reads an older export's rows; ADR-017 narrows to
+restore accordingly. The rules every importer obeys are ADR-033.
 
 ## ADR-027 — A column that collides is reconciled, never coerced {#adr-027}
 
@@ -749,3 +788,199 @@ screens that own those edits, which keeps one editor per thing.
 **Cost accepted.** Somebody who wants the ritual recorded — a habit tracker's satisfaction — does
 not get it here. They can make a repeating task called "Weekly review", which is the product's
 own answer to a recurring commitment, and it will be counted like any other work.
+
+## ADR-033 — An importer reads a file, survives it, and proves it on a real one {#adr-033}
+
+**Context.** 1.2 shipped six importers through the door of ADR-026. The SPEC wrote three rules
+for all of them "once here so no slice relitigates them" (SPEC, 1.2.0), and every importer
+followed them — but a rule that binds every future importer belongs here, not in a release
+section that will scroll out of view.
+
+**Decision.** Every importer, present and future, obeys three rules.
+
+1. **Files, never accounts.** An importer reads a file the person exported. It never signs in
+   and never calls an API (ADR-012). Where a product offers no export of its own, the importer
+   reads what the product does let out — Microsoft To Do's tasks reach Tessera as the Outlook
+   tasks CSV — and the SPEC says so.
+2. **Hostile input.** A parser never throws, is capped in size, and treats every string as text.
+   A malformed file imports what it can and lists what it could not, by line; it neither
+   imports nothing nor imports garbage in silence. Where a source's types disagree, the
+   importer chooses the type that loses nothing — a Notion column whose values disagree becomes
+   text — and says so in the preview.
+3. **A real fixture, opened by the real binary.** Each importer has a real export file,
+   committed, small and scrubbed of anything personal, and the end-to-end suite imports it on
+   the built application. The proof of done is not "the parser passes"; it is "this file
+   imports".
+
+**Why.** The defects an importer ships are in the files nobody wrote by hand — a byte-order
+mark, a CRLF, a zone named the Windows way, a column that is sometimes a number. A parser fed
+only its author's examples passes for the wrong reason. A real file through the real door is
+the only test that has the bytes the person will have.
+
+**Cost accepted.** Every new importer waits for a real export to exist, and the fixtures make
+the repository a little larger. An importer for a product with no export at all is not built.
+
+## ADR-034 — A commitment shows its price before it is made, and the ledger never decides {#adr-034}
+
+**Context.** Every list will take one more line; a week will not. 1.3 asks "what does this
+cost?" (SPEC, 1.3.0), and M1 answers it at the moment a commitment is formed — while an
+estimate is being typed, before it is saved.
+
+**Decision.** The price is a **projection run twice**. Each working day has free minutes: its
+capacity (ADR-023) less what the calendar reserved. Open tasks with an estimate claim those
+minutes earliest due day first, never before their start day nor before the tasks that block
+them (ADR-019); where a task's minutes run out is its projected finish. The receipt is the
+difference between that projection without the change and with it: free time claimed or given
+back, and every task and goal that would finish on another day, by how many days, and which of
+them would finish after their due day. It is pure (`src/domain/receipt.ts`), deterministic, and
+names its rows (ADR-024).
+
+The receipt **shows and never decides**. It has no buttons; it does not move, refuse or
+reschedule anything. Leaving the field as it was costs nothing, and quick capture is never
+gated behind a price.
+
+**Why this model and not a scheduler's.** A person has to be able to check the answer on paper
+— "nine hours a day, two days of work, so the second task moves to Wednesday" — or the number
+is a claim, not a fact. Earliest-due-first filling of one stream of free time is the simplest
+model with that property, and it is the order a person would work in when the dates are real.
+A scheduler that places work by itself is what 1.1 refused and 1.3 refuses again: it would
+turn the product from a ledger into an authority.
+
+**Why committed time stays apart from reserved time.** An estimate is a claim on hours that
+are still free; a calendar block is hours already spent. The projection subtracts blocks from
+capacity and counts estimates against what is left; a block reserved for a task counts towards
+that task and the task cannot finish before it. ADR-023 keeps its meaning — load is still what
+the calendar reserved — and the receipt is a second reading, never added to the first.
+
+**Cost accepted.** Today counts as a whole working day, because the projection's clock is the
+day. One person, one stream: no parallel work. Tasks with no estimate are counted, not guessed
+(ADR-020). The horizon is a year; work beyond it has no finish day and is said to be late. The
+receipt appears where an estimate is drafted; a due date saves as it changes, and events are not
+created in the interface, so their receipts are deferred (SPEC, deferred out of M1).
+
+## ADR-035 — A range is the person's own error, and there is none without a sample {#adr-035}
+
+**Context.** M1 projects a single finish day from the estimates as typed. Estimates are wrong,
+and each person is wrong in their own direction. 1.3 promised dates with confidence — and also
+"no percentage without a sample" (SPEC, 1.3.0).
+
+**Decision.** The error is measured, not assumed. Each finished task with an estimate and tracked
+time is one measurement: tracked divided by estimated, clamped to a quarter–four times band. With
+at least ten measurements, the projection of ADR-034 is run twice more with every remaining
+estimate scaled — by the median ("likely") and by the 85th percentile ("85% sure") — and the day
+each task or goal finishes in those runs is the range. Below ten there is no range at all: the
+plain day, and a sentence saying how many measurements exist and how many are needed. The code is
+`src/domain/confidence.ts`; every screen says it through one component, `ForecastLine`.
+
+**Why the person's own history.** A generic correction ("add 30 %") is somebody else's error. The
+ratio of tracked to estimated is already in the workspace for every task finished with a timer,
+it is about this person, and it is checkable: the median and the percentile of a list of numbers.
+
+**Why ten, and why say so.** Below a handful of measurements a percentile is noise presented as
+knowledge — the false precision ADR-020 refuses for plans. Ten is small enough to reach in a
+couple of weeks of tracked work and large enough that one outlier does not set the date. The
+range always says how many tasks it stands on, so its weight is visible.
+
+**Cost accepted.** The band hides real extremes, by design. The scale applies to every remaining
+estimate alike — it does not learn per kind of task. Tracked time is the measure of effort, so a
+person who never tracks never gets a range; that is stated where the range would be.
+
+## ADR-036 — A day off is a fact about capacity, not an event {#adr-036}
+
+**Context.** ADR-023 measured capacity as the working week and said its cost plainly: a public
+holiday on a Tuesday still had nine hours. 1.3 counts free time in four places — the year, the
+review, the reports and the price of a change — and a holiday that had hours would make all four
+promise time that does not exist.
+
+**Decision.** A day off is a row in its own table (`day_off`, migration 017): a local day and
+what the person called it. It is not an event: it has no time, belongs to no calendar and does
+not repeat. Capacity has one reader, `capacityOf`, and it returns zero for a day off, so every
+screen that counts hours agrees without being told. The host checks the day is a real date; the
+schema checks its shape. The table travels with the workspace in export, import and restore.
+
+**Why not an all-day event.** An all-day event already means "something happens that day" — a
+birthday, a deadline — and ADR-023 deliberately does not let it use up capacity. Making some
+all-day events mean "no work" would give one row two meanings and a person no way to tell which
+they had made. A separate fact with one meaning is cheaper to explain than a flag on a shared one.
+
+**Cost accepted.** No recurring days off: next year's holiday is next year's row. No half days:
+a day is off or it is not. Holidays are not imported from a calendar file yet. The calendar's
+day grid still shades a day off's working hours — it draws the week, not the capacity.
+
+## ADR-037 — A tile is a drawing of minutes; the week's numbers are minutes {#adr-037}
+
+**Context.** M4 draws the working week as one tile per hour — the product's name made literal.
+A drawing of hours is easy to misread as a measurement of hours: a 45-minute meeting is not a
+tile, a working day that ends at 16:30 does not have eight, and a count of coloured squares is
+not a sum.
+
+**Decision.** Every number on the mosaic is minutes: the capacity, the reservations, the work
+due, the time left, the shortfall — four figures that carry their rows (ADR-024). A tile is a
+drawing of up to sixty of those minutes and takes the state that holds most of them; a day that
+does not end on the hour has a shorter last tile, and the screen says it rounded. The shortfall
+is minutes too, drawn as whole tiles rounded up. Today's hours already gone are drawn as gone,
+not free: the projection's share of today that does not fit what is left is said in words
+rather than painted on the past. The code is `src/domain/mosaic.ts`; the surface is the
+`TileGrid` primitive.
+
+**Why.** The mosaic exists to be believed at a glance. If a person counts the tiles and the
+sentence says otherwise, the glance is worthless; so the count of tiles and the sum of hours
+are made to agree by construction, and where a drawing has to round, it says so.
+
+**Cost accepted.** A tile hides a short event inside a longer free hour (it shows the majority).
+The grid is a week of working hours: evenings and weekends are not drawn, even when something is
+reserved in them.
+
+## ADR-038 — An envelope is a promise of tiles, and its spend is read from the tiles {#adr-038}
+
+**Context.** 1.3 promised that every tile has a destination (SPEC, 1.3.0). The calendar gives
+some hours theirs; goals (ADR-030) are what the rest are for. A goal could say what counts
+towards it, but not how much of a week it should get.
+
+**Decision.** A goal may hold a weekly budget in minutes (`goal.weekly_minutes`, migration 018) —
+its envelope. In the mosaic, an envelope's spend is the committed and lived tiles on the goal's
+own tasks this week, read from the tiles themselves (`envelopesOf`), so the number beside an
+envelope is always tiles a person can count on the grid (ADR-037). The open week — capacity less
+what the calendar reserved — splits into the envelopes and a margin promised to no goal. Going
+over an envelope, or promising envelopes beyond the open week, is recorded in words; nothing is
+refused and nothing moves (ADR-034). A task in two goals spends in both, and its tiles name both.
+
+**Why read the spend from the tiles.** An envelope summed from estimates would be a second
+arithmetic beside the mosaic's, and two readings of one fact must agree (DESIGN_SYSTEM, "Two
+readings of one fact agree"). Reading the tiles makes the agreement structural.
+
+**Why a budget and not a limit.** A limit would refuse work at the moment it arrives, which is a
+scheduler deciding the day — refused in 1.1 and again in 1.3. A budget states an intention; the
+tiles state what happened; the difference is the information.
+
+**Cost accepted.** One budget per goal for every week — no per-week envelopes yet. An envelope
+counts whole tiles, so a tile shared with a reservation counts its whole hour for the goal. A goal
+with an envelope and no tasks in the week shows zero spent, not a guess.
+
+## ADR-039 — An hour closes when life matches the plan, and only a block is a plan {#adr-039}
+
+**Context.** The name's third story (About): a _tessera hospitalis_ was a token broken in two;
+when the halves fitted, the bond was proved. 1.3 ends on that image — the plan and the life of an
+hour as two halves of one tile (M6).
+
+**Decision.** A past hour has a plan when most of it was set aside on the calendar for a task —
+a time block (ADR-008's bridge). Its life is the task tracked for most of it. When the two are
+the same task, the tile closes and is drawn whole; otherwise it is drawn split — plan above, life
+below, "nothing tracked" when nothing was. The week's figure is how many planned hours closed,
+and it opens onto the ones that did not, each saying what was planned and what was lived
+(ADR-024). A split tile is counted apart from its state, so the legend counts what the grid draws
+(ADR-037). The code is `mosaicOf` in `src/domain/mosaic.ts`.
+
+**Why only a block is a plan.** A meeting is time the calendar took, not work the person promised
+to do; there is nothing to track against it, and counting it would make every meeting a failed
+plan. An estimate with no block is a commitment to some hour, not to this one (ADR-034). Only a
+block says "this hour, this task" — the one claim an hour of tracked time can confirm or not.
+
+**Why a ratio and no grade.** "1 of 3 closed (33%)" is a fact about the week's plans; it says
+nothing about the person (SPEC 1.3: the ledger states facts, it does not judge). The figure opens
+onto the hours so the reason is always one click away from the number.
+
+**Cost accepted.** A plan that moved to another hour and was kept there counts as split in the
+first hour and unplanned in the second — the tile knows its hour, not the intention behind it.
+Tracking a different task than the block, for good reason, still splits the tile; the person
+reads the reason in the row.

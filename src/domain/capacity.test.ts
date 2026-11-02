@@ -203,3 +203,24 @@ describe('the week around a day', () => {
     expect(weekOf('2026-09-09', 0)[0]).toBe('2026-09-06');
   });
 });
+
+describe('days off (M3)', () => {
+  const OFF = new Set(['2026-09-07']); // a Monday
+
+  it('a day off has no working minutes, though its weekday does', () => {
+    expect(capacityOf('2026-09-07', HOURS, OFF)).toBe(0);
+    expect(capacityOf('2026-09-08', HOURS, OFF)).toBe(540);
+  });
+
+  it('a day off on a weekend changes nothing: it had no hours to lose', () => {
+    expect(capacityOf('2026-09-12', HOURS, new Set(['2026-09-12']))).toBe(0);
+  });
+
+  it('the year reads a day off as not a working day, and a reserved hour on it as over', () => {
+    const year = yearOf(2026, [], HOURS, 'UTC', 1, OFF);
+    const september = year.months.find((month) => month.month === '2026-09');
+    const monday = september?.days.find((day) => day.day === '2026-09-07');
+    expect(monday).toMatchObject({ capacity: 0, level: 'off' });
+    expect(dayLoad('2026-09-07', [], HOURS, 'UTC', OFF).capacity).toBe(0);
+  });
+});

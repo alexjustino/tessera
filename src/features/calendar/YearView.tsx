@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 
+import { useDaysOffSet } from '@/data/hooks';
 import type { Occurrence, WorkHours } from '@/domain/calendar';
 import { LEVELS, yearOf, type DayLoad, type Level } from '@/domain/capacity';
 
@@ -31,9 +32,11 @@ export function YearView({
   today: string;
   onOpenDay: (day: string) => void;
 }) {
+  // A day off has no hours (M3): it reads as not a working day here too.
+  const daysOff = useDaysOffSet();
   const load = useMemo(
-    () => yearOf(year, occurrences, workHours, zone),
-    [year, occurrences, workHours, zone],
+    () => yearOf(year, occurrences, workHours, zone, 1, daysOff),
+    [year, occurrences, workHours, zone, daysOff],
   );
 
   return (

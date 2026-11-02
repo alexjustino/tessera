@@ -27,3 +27,15 @@ export function describePeriod(period: Period): string {
   const end = new Date(ly!, lm! - 1, ld!);
   return `${start.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}`;
 }
+
+/**
+ * Hours and minutes, never eight-hour days: `9h`, `2h 30m`, `45m`. For the
+ * screens that talk about the person's own working days — the receipt and the
+ * mosaic, whose tiles are hours — where a "day" of eight would not be theirs.
+ */
+export function describeHours(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = Math.round(minutes % 60);
+  if (hours === 0) return `${rest}m`;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
+}

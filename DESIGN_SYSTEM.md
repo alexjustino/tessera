@@ -209,8 +209,36 @@ first — not inline in the feature.
 `Skeleton` · `EmptyState` · `Toast` · `InfoBar` · `Kbd` · `Resizer` · `VirtualList`
 
 Present today: `Button`, `IconButton`, `Card`, `InfoBar`, `Input`, `Select`, `Checkbox`, `Chip`,
-`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`. The rest arrive with the slice that first
+`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`, `TileGrid`. The rest arrive with the slice that first
 needs them, and arrive _here_.
+
+### A grid of tiles
+
+`TileGrid` (1.3, M4) is the one two-dimensional surface: an ARIA grid with one tab stop, the
+arrow keys to move, Home/End for the row and Ctrl+Home/End for the grid, a hole (`null`) where a
+day has no hour, and an `aria-label` per tile that says the whole tile in words. It draws no
+colour of its own; the caller passes each cell's classes, from tokens. The mosaic's states use
+existing tokens and never colour alone — every state has a glyph, a border style or a word, and
+the legend writes each one out with its count:
+
+| State                       | Look                                              | Glyph                              |
+| --------------------------- | ------------------------------------------------- | ---------------------------------- |
+| Free                        | `bg-layer-alt`, `border-stroke`                   | —                                  |
+| Reserved on the calendar    | `bg-card`, `border-stroke-strong`                 | calendar                           |
+| Committed to estimated work | `bg-accent-subtle`, `border-accent`               | task list                          |
+| Time tracked                | `bg-accent`, `border-accent`, `text-fg-on-accent` | checkmark                          |
+| Gone, nothing tracked       | dashed `border-stroke`, `text-fg-disabled`        | —                                  |
+| Short (does not fit)        | `bg-danger-subtle`, `border-danger`               | in its own strip, counted in words |
+
+A past hour set aside for a task is a **split tile** (M6, ADR-039): the plan in the top half
+(calendar glyph, the task's name) and the life in the bottom half (checkmark and the task tracked,
+or "nothing tracked" in disabled text), divided by a dashed line. When the halves match, the tile
+**closes** and is drawn whole in the tracked look. The legend counts split and closed tiles apart
+from the states, so it counts what the grid draws.
+
+Committed and reserved are never one colour (ADR-023, ADR-034). Every tile has a border, because
+a 10 % tint alone does not reach the 3:1 a non-text mark needs. A block of tiles for one task or
+event names it once, at its top.
 
 A shortcut shown beside the thing it triggers is a `Kbd`, everywhere — the palette, the rail,
 Diagnostics, the capture window — so a person learns to read it once.

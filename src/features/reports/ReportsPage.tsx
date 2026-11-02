@@ -9,6 +9,7 @@ import {
   useItems,
   useTimeEntries,
   useWorkHours,
+  useDaysOffSet,
 } from '@/data/hooks';
 import { addLocalDays, expand, todayIn } from '@/domain/calendar';
 import { formatDuration } from '@/domain/criticalPath';
@@ -86,6 +87,7 @@ export function ReportsPage() {
     [events.data, exceptions.data, from, to],
   );
 
+  const daysOff = useDaysOffSet();
   const report = useMemo(
     () =>
       buildReport(
@@ -95,11 +97,12 @@ export function ReportsPage() {
           items: items.data ?? [],
           occurrences,
           hours: workHours.data ?? [],
+          daysOff,
         },
         zone,
         now,
       ),
-    [period, entries.data, items.data, occurrences, workHours.data, zone, now],
+    [period, entries.data, items.data, occurrences, workHours.data, zone, now, daysOff],
   );
 
   const failure = entries.error ?? items.error ?? events.error ?? workHours.error;
