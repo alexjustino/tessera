@@ -78,7 +78,13 @@ function startDriverProcess(dataDir: string): ChildProcess {
       nativeDriver(),
     ],
     {
-      env: { ...process.env, TESSERA_DATA_DIR: dataDir },
+      env: {
+        ...process.env,
+        TESSERA_DATA_DIR: dataDir,
+        // The engine's own profile too: an installed Tessera holds the default
+        // one while it runs, and a second engine on it exits at once.
+        WEBVIEW2_USER_DATA_FOLDER: path.join(dataDir, 'webview'),
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     },

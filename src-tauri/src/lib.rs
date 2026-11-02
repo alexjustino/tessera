@@ -37,8 +37,11 @@ pub fn run() {
     // A second launch must focus the window that already exists rather than
     // opening a rival one — two processes would fight over the same database
     // and raise every reminder twice.
+    //
+    // Not when pointed at a workspace of its own: that is no rival for the
+    // database, and it is how the test suite runs beside an installed Tessera.
     #[cfg(all(desktop, not(any(target_os = "android", target_os = "ios"))))]
-    {
+    if std::env::var_os("TESSERA_DATA_DIR").is_none() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();
