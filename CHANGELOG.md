@@ -81,6 +81,13 @@ nothing was lost, and uses what 1.3 added on its rows.
 - The note editor has an accessible name. TipTap 3.32 declares it a text field,
   and a field with no name is announced as nothing; it now says "Notes on" the
   task or "Text of" the page.
+- Dragging a card on the board can no longer give it the same order key as
+  another card. The key was worked out from the column alone, while keys are
+  shared by the whole collection, so a drop could repeat a key held in another
+  column or filtered out of view, and every drop into an empty column took the
+  same one. Two cards with one key have no order between them, and dropping a
+  card between them failed. Keys already stored are left as they are, and such a
+  drop now lands just after the pair.
 - A goal's date set in Goals is saved. The host read the change as snake_case
   while the interface sent camelCase, so the date was dropped without a word;
   it is read as sent now, and a test pins it.

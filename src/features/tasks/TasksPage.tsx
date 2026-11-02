@@ -456,6 +456,7 @@ export function TasksPage({
         ) : view?.kind === 'board' ? (
           <BoardView
             groups={result.groups}
+            items={items.data ?? []}
             properties={properties.data ?? []}
             query={query}
             board={board}
