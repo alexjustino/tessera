@@ -49,7 +49,19 @@ const SAVE_DELAY_MS = 600;
  * shut the panel before the debounce fired, which is the failure people never
  * forgive and never report accurately.
  */
-export function Editor({ ownerKind, ownerId }: { ownerKind: string; ownerId: string }) {
+export function Editor({
+  ownerKind,
+  ownerId,
+  label,
+}: {
+  ownerKind: string;
+  ownerId: string;
+  /**
+   * The editor's accessible name. TipTap 3.32 declares the editable area a text
+   * field, and a text field with no name is announced as nothing at all.
+   */
+  label: string;
+}) {
   const blocks = useBlocks(ownerKind, ownerId);
   const apply = useApplyBlocks();
   // Every page, for two reasons: to know what a link in this document points
@@ -154,6 +166,7 @@ export function Editor({ ownerKind, ownerId }: { ownerKind: string; ownerId: str
     editorProps: {
       attributes: {
         class: 'tessera-prose',
+        'aria-label': label,
         'data-selectable': 'true',
       },
     },
