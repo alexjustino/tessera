@@ -42,6 +42,7 @@ import { describeDay, describeHours as hoursOf, describePeriod } from '@/feature
 import { Card } from '@/ui/Card';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
+import { Page } from '@/ui/Page';
 import { TileGrid, type TileCell } from '@/ui/TileGrid';
 import { useNow } from '@/ui/useNow';
 
@@ -254,7 +255,7 @@ export function MosaicPage() {
   const failure = hours.error ?? events.error ?? entries.error ?? items.error;
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
+    <Page>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-title font-semibold text-fg">Mosaic</h1>
@@ -302,7 +303,7 @@ export function MosaicPage() {
           goalsOf={goalsOf}
         />
       )}
-    </div>
+    </Page>
   );
 }
 

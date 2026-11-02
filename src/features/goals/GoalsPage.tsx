@@ -42,6 +42,7 @@ import { EmptyState } from '@/ui/EmptyState';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { Input } from '@/ui/Input';
+import { Page } from '@/ui/Page';
 import { Select } from '@/ui/Select';
 import { announce } from '@/ui/announce';
 import { useNow } from '@/ui/useNow';
@@ -135,7 +136,7 @@ export function GoalsPage() {
     goals.error ?? links.error ?? create.error ?? update.error ?? remove.error ?? link.error;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
+    <Page>
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-title font-semibold text-fg">Goals</h1>
         <Button icon={<Add20Regular />} onClick={add}>
@@ -377,7 +378,7 @@ export function GoalsPage() {
         The goal goes; the tasks in it stay exactly as they are. A goal keeps no work of its own —
         only the intention, and which rows counted for it.
       </ConfirmDialog>
-    </div>
+    </Page>
   );
 }
 

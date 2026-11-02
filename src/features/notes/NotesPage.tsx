@@ -159,7 +159,7 @@ export function NotesPage({ initialPageId }: { initialPageId?: string | null }) 
             />
           </div>
         ) : (
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 {draftTitle === null ? (
