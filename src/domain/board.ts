@@ -15,6 +15,7 @@
  * Pure: no I/O, no React, no host.
  */
 
+import type { Item } from './item';
 import { between } from './ordering';
 import type { Property, PropertyValue } from './property';
 import type { FieldRef, Group, Row } from './query';
@@ -99,12 +100,48 @@ export interface DropTarget {
 }
 
 /**
+ * The bounds a new key takes, so that nothing in the collection sits between them.
+ *
+ * A column shows some of a collection and order keys are shared by all of it.
+ * Bounds read off the column alone leave room for a key another card already
+ * holds, in another column or filtered out of this one, and two cards with one
+ * key have no order between them and no key to put between them either. So the
+ * column says where the card goes and the collection says how close to go.
+ *
+ * Two neighbours that already share a key are not separated: the card lands
+ * after both, because reaching between them would mean rewriting a stored key.
+ */
+function boundsIn(
+  keys: readonly string[],
+  lower: string | null,
+  upper: string | null,
+): { lower: string | null; upper: string | null } {
+  if (lower !== null) {
+    let next: string | null = null;
+    for (const key of keys) {
+      if (key > lower && (next === null || key < next)) next = key;
+    }
+    return { lower, upper: next };
+  }
+
+  // The head of a column, or an empty column, whose card goes after everything.
+  let previous: string | null = null;
+  for (const key of keys) {
+    if ((upper === null || key < upper) && (previous === null || key > previous)) previous = key;
+  }
+  return { lower: previous, upper };
+}
+
+/**
  * Compute the single write a drop implies.
  *
  * The subtlety worth stating: `index` counts the column *without* the card
  * being dragged. Computing the neighbours from the column as displayed — which
  * still contains the card — puts a card dragged one slot down back exactly
  * where it started, because its own key becomes one of the two bounds.
+ *
+ * `items` is the whole collection, including what the view filters out, because
+ * the key has to be new to all of it (see `boundsIn`).
  *
  * Returns null when there is nothing to write: a drop onto the card's own
  * position is a no-op, and writing anyway would touch `updated_at` and reorder
@@ -115,6 +152,7 @@ export function planMove(
   target: DropTarget,
   columns: readonly Column[],
   groupBy: FieldRef | null,
+  items: readonly Item[],
 ): Move | null {
   const destination = columns.find((column) => column.key === target.columnKey);
   if (destination === undefined) return null;
@@ -136,9 +174,14 @@ export function planMove(
     if (currentIndex === slot || currentIndex === slot - 1) return null;
   }
 
+  const keys = items
+    .filter((candidate) => candidate.id !== row.item.id)
+    .map((candidate) => candidate.position);
+  const bounds = boundsIn(keys, lower, upper);
+
   return {
     itemId: row.item.id,
-    position: between(lower, upper),
+    position: between(bounds.lower, bounds.upper),
     field: groupBy,
     value: target.columnKey,
     changedColumn,

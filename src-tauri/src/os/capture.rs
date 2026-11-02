@@ -92,10 +92,7 @@ fn register(app: &AppHandle, label: &str) -> CaptureStatus {
             CaptureStatus {
                 shortcut: label,
                 registered: false,
-                problem: Some(
-                    "another program owns this key combination; use the tray menu or the palette"
-                        .to_string(),
-                ),
+                problem: Some("Another program owns this key combination.".to_string()),
             }
         }
     }
