@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.3.0] — 2026-11-01
+## [1.3.0] — 2026-11-02
 
 The ledger. 1.1 answered "will this finish, and when"; 1.2 answered "can I move
 in"; 1.3 answers the question every list avoids — **what does this cost?** A
@@ -78,12 +78,32 @@ nothing was lost, and uses what 1.3 added on its rows.
 
 ### Fixed
 
+- The note editor has an accessible name. TipTap 3.32 declares it a text field,
+  and a field with no name is announced as nothing; it now says "Notes on" the
+  task or "Text of" the page.
 - A goal's date set in Goals is saved. The host read the change as snake_case
   while the interface sent camelCase, so the date was dropped without a word;
   it is read as sent now, and a test pins it.
 - The calendar shows in a workspace that has no tasks yet. It used to show
   "Nothing here yet" instead, so a calendar that had only imported events — or
   a year with days off — could not be seen until a task existed.
+
+### Changed
+
+- Dependencies brought up to date before the release: Tauri 2.12 and its plugins,
+  rusqlite 0.40 (with a newer bundled SQLite), windows 0.61,
+  tauri-winrt-notification 0.8, TipTap 3.32, Vite 8, plugin-react 6, vitest 5,
+  axe-core 4.14. TypeScript stays on 5.8: `typescript-eslint`, which the lint gate
+  depends on, does not support 7 yet. Two security advisories in the build tools
+  (Vite, brace-expansion) are cleared; neither reached the installed program.
+
+### Tests
+
+- `e2e/screen-reader.e2e.ts` reads what Windows publishes to a screen reader, not
+  the page: names, control types and system focus through UI Automation.
+- The Install proof workflow walks the real path on a fresh machine: the published
+  1.2.0, a task in its workspace, this build on top, nothing lost, the suites on the
+  installed program, uninstall keeping the data, and the MSI.
 
 ### Documentation
 
