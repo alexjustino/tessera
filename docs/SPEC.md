@@ -59,6 +59,7 @@ Gantt · arbitrary attachments · auto-update · AI.
 | 1.1.0     | The project manager | year view · timeline and Gantt · dependencies with critical path · milestones · time tracking · focus mode · reports · templates · daily capacity |
 | 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                      |
 | 1.3.0     | The ledger          | the price of yes · dates with confidence · days off · the week mosaic · envelopes · the split tile                                                |
+| 1.4.0     | The notebook        | the formatting bar · note tags and the tag summary · follow-ups from a note line · the email draft · meeting notes                                |
 | 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                |
 
 ### 1.1.0 — the project manager
@@ -198,6 +199,42 @@ Rules for every slice of this line, written once here:
 What 1.3 deliberately does not add: a scheduler that places work by itself; a
 habit score or a productivity grade (the ledger states facts, it does not
 judge); attention, energy or anything that is not time; sync.
+
+### 1.4.0 — the notebook
+
+Asked by the owner on 2026-11-01: bring what OneNote gets right about notes —
+the markers, the toolbar, the follow-up — into Tessera, and let a set of topics
+become an email, already formatted. Most of the substance is here already: a
+block editor (ADR-009), pages that link (ADR-029), tasks with dates and
+reminders. 1.4 is the refinement that makes a note the place work starts.
+
+The line's one idea: **a note line can become a commitment without leaving the
+note.** A marker says what a line is (a to-do, a question, a decision, a
+follow-up); a follow-up on a line is a task that points back at it; the lines a
+person picks become an email draft.
+
+| #      | Slice                  | Proof of done                                                                                                                                                                                                                              |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **N1** | The formatting bar     | a visible toolbar over the editor — headings, bold, italic, underline, highlight, lists, checklist, quote, code, link, table — every button reachable by keyboard, with its shortcut, and each one a TipTap command the editor already had |
+| N2     | Note tags              | a line can carry a marker — To do, Important, Question, Decision, Follow up, and the person's own — set from the bar or a shortcut, shown as glyph and word; markers are data on the block, not formatting                                 |
+| N3     | The tag summary        | one screen lists every marked line across every page and task, grouped by marker, each opening onto its line; a To do marker's checkbox is the line's own                                                                                  |
+| N4     | Follow-ups from a line | "Follow up" on a line creates a task with a due date and a reminder that links back to the line (ADR-029's identity link); finishing the task marks the line done                                                                          |
+| N5     | The email draft        | selected lines or a whole page become an email draft — subject, a greeting, the topics as a formatted list, the follow-ups with their dates — opened in the default mail client as a `.eml` file, never sent by Tessera                    |
+| N6     | Meeting notes          | a page started from a calendar event carries its title, time and attendees' names as typed, and its follow-ups and email draft in one place                                                                                                |
+| N7     | Release 1.4.0          | a 1.3 workspace opens in 1.4 without loss, and every N-slice's end-to-end test passes on the release binary                                                                                                                                |
+
+Rules for every slice of this line:
+
+- **No network, still** (ADR-012). The email is a draft file handed to the
+  person's own mail client; Tessera never sends, never signs in to mail.
+- **A marker is meaning, not style.** It is stored with the block and survives
+  export, import and search; it is never a colour alone.
+- **A follow-up is a task.** It lives where tasks live, with the same dates,
+  reminders and receipt (M1); it points back at the line by identity, so the
+  link survives the line being edited.
+
+What 1.4 deliberately does not add: handwriting and ink, audio recording,
+sections and section groups beyond pages, shared notebooks, sending mail.
 
 ## 3. Architecture
 
