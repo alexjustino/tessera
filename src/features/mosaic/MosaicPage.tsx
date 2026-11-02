@@ -19,6 +19,8 @@ import {
   useItems,
   useTimeEntries,
   useWorkHours,
+  useProperties,
+  usePropertyValues,
 } from '@/data/hooks';
 import { addLocalDays, todayIn } from '@/domain/calendar';
 import {
@@ -34,8 +36,12 @@ import {
 } from '@/domain/mosaic';
 import { project } from '@/domain/receipt';
 import { daysIn, periodOf, shiftPeriod, traceable } from '@/domain/report';
+import type { Item } from '@/domain/item';
 import { systemZone } from '@/domain/schedule';
 import { expandEvents } from '@/features/calendar/occurrences';
+import { TaskDetail } from '@/features/tasks/TaskDetail';
+import { FillTheWeek } from './FillTheWeek';
+import { ReserveHour, type HourChoice } from './ReserveHour';
 import { useLedger } from '@/features/receipt/useLedger';
 import { FigureRow } from '@/features/reports/FigureRow';
 import { describeDay, describeHours as hoursOf, describePeriod } from '@/features/reports/format';
@@ -59,6 +65,8 @@ import { useNow } from '@/ui/useNow';
  *
  * It shows; it never moves anything (SPEC 1.3, ADR-034).
  */
+
+const COLLECTION = 'tasks';
 
 function clock(minute: number): string {
   return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
@@ -189,6 +197,11 @@ function splitCellOf(tile: Tile, split: Split): TileCell {
 }
 
 export function MosaicPage() {
+  const [picked, setPicked] = useState<HourChoice | null>(null);
+  // A task opens here, over the week, so closing it comes back to the week.
+  const [openId, setOpenId] = useState<string | null>(null);
+  const properties = useProperties(COLLECTION);
+  const values = usePropertyValues(COLLECTION);
   const zone = useMemo(() => systemZone(), []);
   const now = useNow(60_000);
   const today = todayIn(now, zone);
@@ -301,8 +314,22 @@ export function MosaicPage() {
           past={isPastWeek(week, now, zone)}
           envelopes={envelopesOf(mosaic, goals.data ?? [], goalLinks.data ?? [])}
           goalsOf={goalsOf}
+          items={items.data ?? []}
+          onOpenItem={setOpenId}
+          onPickHour={setPicked}
         />
       )}
+
+      <ReserveHour hour={picked} items={items.data ?? []} onClose={() => setPicked(null)} />
+
+      <TaskDetail
+        task={(items.data ?? []).find((item) => item.id === openId) ?? null}
+        items={items.data ?? []}
+        timing={undefined}
+        properties={properties.data ?? []}
+        values={openId === null ? {} : (values.data?.[openId] ?? {})}
+        onClose={() => setOpenId(null)}
+      />
     </Page>
   );
 }
@@ -313,7 +340,15 @@ function MosaicBody({
   past,
   envelopes,
   goalsOf,
+  items,
+  onOpenItem,
+  onPickHour,
 }: {
+  items: readonly Item[];
+  /** Open a task, from a tile that names one. */
+  onOpenItem: (itemId: string) => void;
+  /** A free hour was pressed. */
+  onPickHour: (hour: HourChoice) => void;
   mosaic: Mosaic;
   week: string[];
   past: boolean;
@@ -343,12 +378,26 @@ function MosaicBody({
             above.state === tile.state &&
             above.label === tile.label &&
             above.itemId === tile.itemId;
-          return cellOf(tile, continued, tile.itemId === null ? [] : goalsOf(tile.itemId));
+          const itemId = tile.itemId;
+          return {
+            ...cellOf(tile, continued, itemId === null ? [] : goalsOf(itemId)),
+            onActivate:
+              itemId !== null
+                ? () => onOpenItem(itemId)
+                : tile.state === 'free'
+                  ? () =>
+                      onPickHour({
+                        day: tile.day,
+                        startMinute: tile.startMinute,
+                        minutes: tile.minutes,
+                      })
+                  : undefined,
+          };
         }),
       });
     }
     return out;
-  }, [mosaic, workingDays, goalsOf]);
+  }, [mosaic, workingDays, goalsOf, onOpenItem, onPickHour]);
 
   if (mosaic.tileCount === 0) {
     return (
@@ -395,6 +444,8 @@ function MosaicBody({
         </p>
       </section>
 
+      {!past && <FillTheWeek items={items} onOpen={onOpenItem} />}
+
       {mosaic.shortTiles > 0 && !past && (
         <InfoBar
           severity="caution"
@@ -434,6 +485,11 @@ function MosaicBody({
             columns={workingDays.map((day) => ({ id: day.day, header: describeDay(day.day) }))}
             rows={rows}
           />
+          {!past && (
+            <p className="text-caption text-fg-tertiary">
+              Press a tile to open its task, or a free hour to set it aside for one.
+            </p>
+          )}
           <ul aria-label="What the tiles mean" className="flex flex-wrap gap-x-4 gap-y-1">
             {TILE_STATES.map((state) => (
               <li

@@ -24,6 +24,8 @@ export interface TileCell {
   content?: ReactNode;
   /** The present moment is in this tile. */
   current?: boolean;
+  /** What pressing the tile does, by pointer or with Enter or Space. */
+  onActivate?: (() => void) | undefined;
 }
 
 export function TileGrid({
@@ -123,10 +125,22 @@ export function TileGrid({
                 data-tile={cell.id}
                 tabIndex={active !== null && active[0] === r && active[1] === c ? 0 : -1}
                 onFocus={() => setFocused([r, c])}
-                onKeyDown={(event) => onKeyDown(event, r, c)}
+                onClick={cell.onActivate}
+                onKeyDown={(event) => {
+                  if (
+                    cell.onActivate !== undefined &&
+                    (event.key === 'Enter' || event.key === ' ')
+                  ) {
+                    event.preventDefault();
+                    cell.onActivate();
+                    return;
+                  }
+                  onKeyDown(event, r, c);
+                }}
                 className={[
                   'h-9 min-w-0 flex-1 overflow-hidden rounded-sm px-1.5 py-1 text-caption outline-none',
                   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg',
+                  cell.onActivate === undefined ? '' : 'cursor-pointer hover:brightness-110',
                   cell.className,
                 ].join(' ')}
               >
