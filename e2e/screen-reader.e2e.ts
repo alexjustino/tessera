@@ -109,8 +109,12 @@ describe('what a screen reader is given', () => {
     await focusWindow();
     await driver.execute('arguments[0].focus()', [{ [ELEMENT]: first.id }]);
 
-    const atStart = await focusedElement();
-    expect(atStart.type).toBe('ControlType.DataItem');
+    // System focus follows the page's a moment later; read it too soon and it is
+    // still on whatever had it, which is what the release binary's first run hit.
+    const atStart = await driver.waitFor('system focus on the first tile', async () => {
+      const focused = await focusedElement();
+      return focused.type === 'ControlType.DataItem' ? focused : null;
+    });
     expect(atStart.name).toMatch(/^Monday /);
 
     await driver.chord(Keys.ARROW_RIGHT);
