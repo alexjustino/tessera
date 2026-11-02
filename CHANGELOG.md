@@ -7,20 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-11-01
+
+The ledger. 1.1 answered "will this finish, and when"; 1.2 answered "can I move
+in"; 1.3 answers the question every list avoids — **what does this cost?** A
+week has a fixed number of working hours, the calendar has already spent some
+of them, and every estimate draws on what is left. 1.3 shows that arithmetic
+where decisions are made: the price of an estimate before you save it, dates
+as ranges drawn from your own history, and the Mosaic — your working week, one
+tile per hour, the name's own image — with envelopes for the goals that matter
+and, for every hour you planned, whether life matched the plan. It shows; it
+never moves anything for you. Still entirely on your machine.
+
+### Migrations
+
+This release adds migrations **017** (`day_off`, the days a working weekday has
+no hours) and **018** (`goal.weekly_minutes`, a goal's weekly envelope). Both
+forward-only. A 1.2.0 workspace — schema version 16 — opens in 1.3.0 and is
+migrated to 18 on first start; `e2e/upgrade-1-2.e2e.ts` opens one, checks
+nothing was lost, and uses what 1.3 added on its rows.
+
 ### Added
 
-- **The split tile.** In the Mosaic, every past hour you set aside for a task
-  on the calendar shows two halves: what you planned above, what you tracked
-  below. When they match, the tile closes into one. "Plan and life" says how
-  many of the week's planned hours closed — "Of 3 hours set aside for a task,
-  1 closed (33%)" — and opens onto the ones that did not, each saying what was
-  planned and what was lived. A fact about the plans, not a score (ADR-039).
+- **The price of yes.** Type an estimate on a task and, before you leave the
+  field, Tessera shows what saying yes would cost: how much free time it
+  claims, which other tasks and goals would finish on a different day and by
+  how many days, and which of them would then be late. It is worked out over
+  your working hours and calendar, earliest due date first, so you can check it
+  on paper. Nothing is saved until you leave the field, and Escape puts the old
+  estimate back. Tessera shows the cost; it never moves anything for you
+  (ADR-034).
 
-- **Envelopes.** A goal can hold a weekly budget — "Hours each week" in Goals.
-  The Mosaic counts what each envelope has spent this week from the tiles on
-  its own tasks ("6h of 4h — 2h over"), marks those tiles with the goal, and
-  says how much open time is promised to no goal. Going over is said, never
-  refused (ADR-038).
+- **Dates with confidence.** Once ten finished tasks have both an estimate and
+  tracked time, a projected date reads as a range drawn from your own estimate
+  error — "likely by Wed 4 Nov; 85% sure by Thu 5 Nov — from 10 finished
+  tasks". Each goal with open estimated work now says when it would be done,
+  and the price of an estimate shows the task's own range. Until there is
+  enough history, no percentage appears; the screen says how many tasks it has
+  and how many it needs (ADR-035).
 
 - **The Mosaic.** A new place in the rail draws your working week as one tile
   per hour — the name's own image, a tessera being one tile of a mosaic. Each
@@ -33,28 +57,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   up from; the grid can be walked with the arrow keys and every tile is named
   in words (ADR-037).
 
+- **Envelopes.** A goal can hold a weekly budget — "Hours each week" in Goals.
+  The Mosaic counts what each envelope has spent this week from the tiles on
+  its own tasks ("6h of 4h — 2h over"), marks those tiles with the goal, and
+  says how much open time is promised to no goal. Going over is said, never
+  refused (ADR-038).
+
+- **The split tile.** In the Mosaic, every past hour you set aside for a task
+  on the calendar shows two halves: what you planned above, what you tracked
+  below. When they match, the tile closes into one. "Plan and life" says how
+  many of the week's planned hours closed — "Of 3 hours set aside for a task,
+  1 closed (33%)" — and opens onto the ones that did not, each saying what was
+  planned and what was lived. A fact about the plans, not a score (ADR-039).
+
 - **Days off.** Settings has a new card for holidays and leave. A day off has
   no working hours anywhere Tessera counts them — the year view reads it as not
   a working day, and the review, the reports and the price of a change all stop
   counting its hours. Days off travel with the workspace in backups and exports
   (ADR-036).
-
-- **Dates with confidence.** Once ten finished tasks have both an estimate and
-  tracked time, a projected date reads as a range drawn from your own estimate
-  error — "likely by Wed 4 Nov; 85% sure by Thu 5 Nov — from 10 finished
-  tasks". Each goal with open estimated work now says when it would be done,
-  and the price of an estimate shows the task's own range. Until there is
-  enough history, no percentage appears; the screen says how many tasks it has
-  and how many it needs (ADR-035).
-
-- **The price of yes.** Type an estimate on a task and, before you leave the
-  field, Tessera shows what saying yes would cost: how much free time it
-  claims, which other tasks and goals would finish on a different day and by
-  how many days, and which of them would then be late. It is worked out over
-  your working hours and calendar, earliest due date first, so you can check it
-  on paper. Nothing is saved until you leave the field, and Escape puts the old
-  estimate back. Tessera shows the cost; it never moves anything for you
-  (ADR-034).
 
 ### Fixed
 
