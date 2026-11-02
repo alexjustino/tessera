@@ -106,14 +106,18 @@ describe('what a screen reader is given', () => {
   it('the arrow keys move system focus tile by tile, and each tile says where it is', async () => {
     const { driver } = session;
     const first = await driver.find('[role="gridcell"][tabindex="0"]');
-    await focusWindow();
-    await driver.execute('arguments[0].focus()', [{ [ELEMENT]: first.id }]);
 
-    // System focus follows the page's a moment later; read it too soon and it is
-    // still on whatever had it, which is what the release binary's first run hit.
+    // System focus follows the page's a moment later, and only in the foreground
+    // window, which another program on the machine can hold. A failure names what
+    // has focus, so it says whether the tile or the window was at fault.
     const atStart = await driver.waitFor('system focus on the first tile', async () => {
+      await focusWindow();
+      await driver.execute('arguments[0].focus()', [{ [ELEMENT]: first.id }]);
       const focused = await focusedElement();
-      return focused.type === 'ControlType.DataItem' ? focused : null;
+      if (focused.type !== 'ControlType.DataItem') {
+        throw new Error(`focus is on ${focused.type} "${focused.name.slice(0, 60)}"`);
+      }
+      return focused;
     });
     expect(atStart.name).toMatch(/^Monday /);
 

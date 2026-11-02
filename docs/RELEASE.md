@@ -41,7 +41,9 @@ can reason about afterwards.
    ```
 
    This step runs on a developer machine: WebDriver does not start on a hosted
-   runner (ADR-016).
+   runner (ADR-016). `screen-reader` reads system focus, which needs the foreground.
+   If it fails naming a control of another program, run that file again by itself;
+   if it names anything of Tessera's, that is a defect.
 
    The **Install proof** workflow runs by itself on a push to `release/**`: a fresh
    machine, the published previous version, this build on top with nothing lost, the
