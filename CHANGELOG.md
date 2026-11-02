@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Today is a place of its own.** It says what it is, what is due today or already
+  late, and beside it what is coming up in the next seven days and how much has no
+  date. A task typed there is due today. Today, Board and Calendar are no longer also
+  tabs inside Tasks, so each has one way in.
+- **Pressing a task opens it.** The name is edited at the top of the task, or in the
+  list with F2. Pressing the name used to start renaming it, and the way to open a task
+  showed only when the pointer was over its row.
+
 ### Fixed
 
 - A maximised window is used. Every screen kept its own narrow column with empty space
