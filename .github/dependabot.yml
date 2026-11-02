@@ -5,6 +5,21 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Packages that require each other at exact or matching versions: bumped
+    # one at a time they cannot resolve, which is a red pull request and nothing else.
+    groups:
+      tiptap:
+        patterns: ['@tiptap/*']
+      vite:
+        patterns: ['vite', '@vitejs/*']
+      vitest:
+        patterns: ['vitest', '@vitest/*']
+    ignore:
+      # typescript-eslint supports TypeScript below 6.1, and ESLint is a gate:
+      # react-hooks/rules-of-hooks is what stops a screen crashing at runtime.
+      # Lift this when typescript-eslint supports 7.
+      - dependency-name: typescript
+        versions: ['>=6.1.0']
 
   - package-ecosystem: cargo
     directory: /src-tauri
