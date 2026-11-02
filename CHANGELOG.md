@@ -64,6 +64,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The calendar shows in a workspace that has no tasks yet. It used to show
   "Nothing here yet" instead, so a calendar that had only imported events — or
   a year with days off — could not be seen until a task existed.
+- Adding to a very long list no longer overflows the stack. Each append lengthens
+  the order key a little, and at 30,000 or so appends to one list the code that
+  computes the next key ran out of stack. It is a loop now, and it mints the same
+  keys as before, so nothing stored changes. `npm run test:coverage` was failing
+  on this and now runs to the end.
 
 ### Documentation
 
