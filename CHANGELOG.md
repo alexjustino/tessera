@@ -102,8 +102,11 @@ nothing was lost, and uses what 1.3 added on its rows.
 - `e2e/screen-reader.e2e.ts` reads what Windows publishes to a screen reader, not
   the page: names, control types and system focus through UI Automation.
 - The Install proof workflow walks the real path on a fresh machine: the published
-  1.2.0, a task in its workspace, this build on top, nothing lost, the suites on the
-  installed program, uninstall keeping the data, and the MSI.
+  1.2.0, a task in its workspace, this build on top, nothing lost, the interface
+  appearing, uninstall keeping the data, and the MSI.
+- The End-to-end workflow's driver path is fixed, but WebDriver does not start on a
+  hosted runner at all, so the suite runs on a developer machine and the workflow has
+  no schedule (ADR-016).
 
 ### Documentation
 

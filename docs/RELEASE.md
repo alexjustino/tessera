@@ -40,11 +40,14 @@ can reason about afterwards.
    npm run e2e:only
    ```
 
+   This step runs on a developer machine: WebDriver does not start on a hosted
+   runner (ADR-016).
+
    The **Install proof** workflow runs by itself on a push to `release/**`: a fresh
    machine, the published previous version, this build on top with nothing lost, the
-   suites on the installed program, uninstall, and the MSI. It must be green. It is
-   Windows Server with tools on it and WebView2 present, so it does not replace the
-   next step.
+   interface appearing, uninstall keeping the data, and the MSI. It must be green. It
+   is Windows Server with tools on it and WebView2 present, so it does not replace
+   the next step.
 
 6. **Install the MSI and use it.** The suite cannot press a global shortcut,
    cannot see a toast beside the clock, and cannot judge how a screen reader
