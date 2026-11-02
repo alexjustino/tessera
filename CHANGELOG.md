@@ -18,8 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   week with their sizes one press away, which is what fills an empty grid. Pressing a
   tile opens its task, and pressing a free hour sets it aside for one.
 
+### Migrations
+
+This line adds migration **019** (`goal.ongoing`, a goal with no finish line).
+Forward-only. A 1.3.0 workspace, schema version 18, is migrated on first start.
+
 ### Changed
 
+- **Goals ask the easy question first.** A goal is either something to reach or an
+  ongoing focus with no number and no end date, which is now a choice of its own. A date
+  is optional. What it counts and its weekly hours are under More details, each goal
+  shows a progress ring, and goals sit side by side when there is room.
 - **The calendar fits the window.** Week and day views open on your working hours, sized
   so the whole working day is seen at once, with the day names kept in view and the rest
   of the day a scroll away. Tasks with a date show on the day they are due, in week and
