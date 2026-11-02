@@ -127,7 +127,12 @@ export function TaskDetail({
           <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Notes</h3>
           {/* Keyed on the item, so opening a different task builds a fresh
               editor rather than pouring one document into another's state. */}
-          <Editor key={task.id} ownerKind="item" ownerId={task.id} />
+          <Editor
+            key={task.id}
+            ownerKind="item"
+            ownerId={task.id}
+            label={`Notes on ${task.title}`}
+          />
         </section>
       )}
 
