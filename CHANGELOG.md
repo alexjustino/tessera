@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   computes the next key ran out of stack. It is a loop now, and it mints the same
   keys as before, so nothing stored changes. `npm run test:coverage` was failing
   on this and now runs to the end.
+- Long lists stay small. Appending used to lengthen the order key by a digit every
+  five rows, which at 50,000 rows in a list meant a 619 MB database and a 2-second
+  read, and now a key stays at 5 digits. The keys of new rows change from the sixth
+  row on (ADR-006). Nothing stored is rewritten: a list that is already long stops
+  growing but keeps its length, and an older build can still read and add to it.
 
 ## [1.3.0] — 2026-11-02
 

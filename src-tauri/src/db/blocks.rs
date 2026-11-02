@@ -218,6 +218,34 @@ mod tests {
     }
 
     #[test]
+    fn accepts_a_counter_key_and_sorts_it_after_the_keys_before_it() {
+        // Appends count after a run of `z` (ADR-006), after keys stored without.
+        let mut conn = workspace();
+        let item = an_item(&mut conn);
+
+        apply_changes(
+            &mut conn,
+            "item",
+            &item,
+            creates(&[
+                ("b4", "zb01", "Fourth"),
+                ("b2", "zV", "Second"),
+                ("b3", "za1", "Third"),
+                ("b1", "z", "First"),
+            ]),
+            "First\nSecond\nThird\nFourth",
+            &[],
+        )
+        .expect("apply");
+
+        let blocks = list_blocks(&conn, "item", &item).expect("list");
+        assert_eq!(
+            blocks.iter().map(|b| b.id.as_str()).collect::<Vec<_>>(),
+            ["b1", "b2", "b3", "b4"]
+        );
+    }
+
+    #[test]
     fn a_new_item_has_no_document() {
         let mut conn = workspace();
         let item = an_item(&mut conn);

@@ -88,9 +88,9 @@ describe('between', () => {
   });
 
   it('appends after a key far longer than the call stack is deep', () => {
-    // Appending adds a digit every five appends and the descent takes a step per
-    // digit. This overflowed the stack while it recursed, and the query benchmark
-    // hit it first, because seeding 50,000 rows reaches a 10,001-digit key.
+    // Appending used to add a digit every five appends and the descent takes a
+    // step per digit. This overflowed the stack while it recursed, and such keys
+    // can still be stored, so a key this long has to keep working.
     const long = `${'z'.repeat(100_000)}V`;
     const later = between(long, null);
     expect(later > long).toBe(true);
@@ -107,11 +107,18 @@ describe('between', () => {
     expect(isValidKey(middle)).toBe(true);
   });
 
-  it('mints exactly the keys it always has', () => {
+  it('mints exactly the keys ADR-006 says it does', () => {
     // Keys are persisted, and a stored key is never rewritten. A change here
     // changes the order new rows take among existing ones, so it is a data
-    // decision and has to be taken as one.
-    expect(sequence(null, null, 8)).toEqual(['V', 'l', 't', 'x', 'z', 'zV', 'zl', 'zt']);
+    // decision and has to be taken as one. The last such decision was the counter,
+    // which took over from zV, zl, zt so that appends stop lengthening keys.
+    expect(sequence(null, null, 8)).toEqual(['V', 'l', 't', 'x', 'z', 'za1', 'za2', 'za3']);
+    expect(between('z', null)).toBe('za1');
+    expect(between('zzz', null)).toBe('zzza1');
+    expect(between('za9', null)).toBe('zaA');
+    expect(between('zaz', null)).toBe('zb01');
+    expect(between('zb0z', null)).toBe('zb11');
+    expect(between('zbzz', null)).toBe('zc001');
     expect(between('V', 'l')).toBe('d');
     expect(between('V', 'W')).toBe('VV');
     expect(between('a', 'a5')).toBe('a3');
@@ -119,6 +126,139 @@ describe('between', () => {
     expect(between(null, 'V')).toBe('G');
     expect(between(null, '1')).toBe('0V');
     expect(between(null, '0V')).toBe('0G');
+  });
+
+  describe('appending', () => {
+    it('stays short however long the list gets', () => {
+      // One digit every five appends took this to 10,001 digits.
+      let tail = firstKey();
+      for (let i = 0; i < 50_000; i += 1) {
+        const later = between(tail, null);
+        expect(later > tail).toBe(true);
+        tail = later;
+      }
+      expect(tail).toHaveLength(5);
+    });
+
+    it('never ends a key in the lowest digit, across every carry', () => {
+      let tail = 'z';
+      for (let i = 0; i < 20_000; i += 1) {
+        tail = between(tail, null);
+        expect(isValidKey(tail)).toBe(true);
+      }
+    });
+
+    it('keeps the keys a list with room in its first digit has always taken', () => {
+      expect(between('V', null)).toBe('l');
+      expect(between('a5', null)).toBe('n');
+      expect(between('y', null)).toBe('z');
+    });
+
+    // ── Keys stored before the counter existed ───────────────────────────
+    // Appending used to go z, zV, zl, zt, zx, zz, zzV. Those keys are in people's
+    // workspaces, and each of them has to be carried on from.
+    const oldAppends = (count: number): string[] => {
+      const keys = ['V', 'l', 't', 'x', 'z'];
+      for (let run = 'z'; keys.length < count; run += 'z') {
+        keys.push(`${run}V`, `${run}l`, `${run}t`, `${run}x`, `${run}z`);
+      }
+      return keys.slice(0, count);
+    };
+
+    it('carries on from every stored tail, in order', () => {
+      for (const tail of oldAppends(60)) {
+        let cursor = tail;
+        for (let i = 0; i < 100; i += 1) {
+          const later = between(cursor, null);
+          expect(later > cursor).toBe(true);
+          expect(isValidKey(later)).toBe(true);
+          cursor = later;
+        }
+      }
+    });
+
+    it('stops a stored list growing, though it cannot make it shorter', () => {
+      // Nothing sorts above a run of the top digit without starting with it, so
+      // a long list keeps its prefix. It gains a few digits and then no more.
+      const tail = oldAppends(5_000).at(-1)!;
+      expect(tail).toHaveLength(1_000);
+
+      let cursor = tail;
+      for (let i = 0; i < 20_000; i += 1) {
+        cursor = between(cursor, null);
+      }
+      expect(cursor.length).toBeLessThanOrEqual(tail.length + 4);
+      expect(cursor.startsWith(tail)).toBe(true);
+    });
+
+    it('stays in order when an older build appends to the same list', () => {
+      // An older build reads a counter key as any other and bisects above it,
+      // which still sorts after its bound. Whichever wrote the last key, the next
+      // one follows it.
+      const list = ['z', 'za1', 'za2', 'zn'];
+      for (let i = 0; i < 10; i += 1) list.push(between(list.at(-1)!, null));
+
+      expect([...list].sort()).toEqual(list);
+      expect(new Set(list).size).toBe(list.length);
+    });
+
+    it('treats a stored key that only looks like a counter as one, harmlessly', () => {
+      expect(between('za5', null)).toBe('za6');
+      expect(between('zl123456789012', null)).toBe('zl123456789013');
+    });
+
+    it('clears what an insert left after the digits', () => {
+      expect(between('zb05V', null)).toBe('zb06');
+    });
+
+    it('does not read a head with too few digits as a counter', () => {
+      expect(between('za', null)).toBe('zn');
+      expect(between('zb1', null)).toBe('zo');
+      expect(between('zV', null)).toBe('zl');
+    });
+
+    it('leaves room between the keys it mints', () => {
+      expect(between('za1', 'za2')).toBe('za1V');
+      expect(between('zb05', 'zb06')).toBe('zb05V');
+      expect(between(null, 'za1') < 'za1').toBe(true);
+    });
+
+    it('moves on rather than giving up when every counter is spent', () => {
+      const spent = `zy${'z'.repeat(25)}`;
+      const later = between(spent, null);
+      expect(later).toBe('zza1');
+      expect(later > spent).toBe(true);
+    });
+
+    it('follows any valid key with a valid key', () => {
+      let seed = 20261102;
+      const random = () => {
+        seed = (seed * 1103515245 + 12345) % 2147483648;
+        return seed / 2147483648;
+      };
+      const ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+      for (let i = 0; i < 20_000; i += 1) {
+        let key = 'z'.repeat(Math.floor(random() * 4));
+        if (random() < 0.5) key += String.fromCharCode(97 + Math.floor(random() * 25));
+        const length = 1 + Math.floor(random() * 12);
+        for (let digit = 0; digit < length; digit += 1) {
+          key += ALPHABET[Math.floor(random() * ALPHABET.length)];
+        }
+        key = key.replace(/0+$/, '');
+        if (!isValidKey(key)) continue;
+
+        const later = between(key, null);
+        expect(later > key).toBe(true);
+        expect(isValidKey(later)).toBe(true);
+      }
+    });
+
+    it('still refuses a malformed last key, counter or not', () => {
+      expect(() => between('zb0', null)).toThrow(OrderingError);
+      expect(() => between('za~', null)).toThrow(OrderingError);
+      expect(() => between('z ', null)).toThrow(OrderingError);
+    });
   });
 
   // ── Negative cases ─────────────────────────────────────────────────────

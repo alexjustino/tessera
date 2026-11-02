@@ -155,11 +155,23 @@ logical order. A new key can always be generated strictly between any two.
 keys, a move is one UPDATE of one row regardless of list length, and sorting is plain
 lexicographic comparison that both SQLite and JavaScript agree on.
 
-**Cost accepted.** Keys grow linearly when every insert lands at the same end or the same point:
-10,000 appends reach 2,001 digits, 10,000 prepends 1,667. Inserting into random gaps stays
-short, at 6 digits after 10,000. Appending is the ordinary way to add a row, so this is not a rare
-pattern, and it is priced at one digit per five appends. The invariant "a key never ends in the
-lowest digit" is enforced. Implementation and its property tests: `src/domain/ordering.ts`.
+**Appends.** A key made only of the top digit `z` has no room above it, so appending to one starts
+a counter instead of descending: after the run of `z`, a head `a`–`y` gives the width, 1 to 25
+digits, followed by that many digits (`z`, `za1`, `za2`, … `zaz`, `zb01`). Appends cost 5 digits up
+to 238,332 rows, where one digit per five appends cost 10,000 digits at 50,000 rows, with a 619 MB
+database and a 2-second list read. The keys are in the same alphabet and sort the same way, so
+`check_position`, SQLite and older builds treat them like any other key. The head is read only to
+choose the next key, never to compare keys.
+
+**Stored keys are never rewritten.** No key sorts above a run of `z` without sharing it, so a list
+that was already long keeps its prefix: growth stops, the length does not fall.
+
+**Cost accepted.** Prepends and repeated inserts into one gap stay linear, about one digit per five
+or six: 10,000 prepends reach 1,667 digits and 10,000 inserts into one gap reach 2,001. Nothing adds
+to a list that way in bulk today: prepending is a drag or typing at the top of a document, and
+`MAX_BLOCKS` caps a document at 10,000 blocks. Inserting into random gaps stays short, at 7 digits
+after 50,000. The invariant "a key never ends in the lowest digit" is enforced. Implementation and
+its property tests: `src/domain/ordering.ts`.
 
 ## ADR-007 — Recurrence is RRULE plus a mode {#adr-007}
 
