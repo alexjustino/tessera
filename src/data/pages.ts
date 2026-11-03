@@ -60,3 +60,22 @@ export async function pageBacklinks(id: string): Promise<Backlink[]> {
     excerpt: '',
   }));
 }
+
+/** A task and a page a person paired. */
+export interface ItemPage {
+  itemId: string;
+  pageId: string;
+}
+
+export async function listItemPages(): Promise<ItemPage[]> {
+  const raw = await invoke<Array<{ item_id: string; page_id: string }>>('item_pages_list');
+  return raw.map((pair) => ({ itemId: pair.item_id, pageId: pair.page_id }));
+}
+
+export async function linkItemPage(pair: ItemPage): Promise<void> {
+  await invoke<void>('item_page_link', { ...pair });
+}
+
+export async function unlinkItemPage(pair: ItemPage): Promise<void> {
+  await invoke<void>('item_page_unlink', { ...pair });
+}

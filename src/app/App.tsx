@@ -212,6 +212,7 @@ export function App() {
                 initialDetailId={focus.itemId}
                 onFocus={setFocused}
                 onOpenSettings={openSettings}
+                onOpenPage={openPage}
               />
             )}
             {destination === 'today' && (
@@ -221,16 +222,24 @@ export function App() {
                 onFocus={setFocused}
                 onShowAll={() => go('tasks')}
                 onOpenSettings={openSettings}
+                onOpenPage={openPage}
               />
             )}
             {destination === 'board' && (
-              <TasksPage key={pageKey} place="board" onFocus={setFocused} />
+              <TasksPage key={pageKey} place="board" onFocus={setFocused} onOpenPage={openPage} />
             )}
             {destination === 'calendar' && (
-              <TasksPage key={pageKey} place="calendar" onFocus={setFocused} />
+              <TasksPage
+                key={pageKey}
+                place="calendar"
+                onFocus={setFocused}
+                onOpenPage={openPage}
+              />
             )}
-            {destination === 'mosaic' && <MosaicPage key={pageKey} />}
-            {destination === 'notes' && <NotesPage key={pageKey} initialPageId={openPageId} />}
+            {destination === 'mosaic' && <MosaicPage key={pageKey} onOpenPage={openPage} />}
+            {destination === 'notes' && (
+              <NotesPage key={pageKey} initialPageId={openPageId} onOpenItem={openItem} />
+            )}
             {destination === 'goals' && <GoalsPage key={pageKey} />}
             {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}
             {destination === 'reports' && <ReportsPage />}

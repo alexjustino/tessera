@@ -887,6 +887,27 @@ export function useBacklinks(id: string | null) {
   });
 }
 
+/** Which tasks and pages belong together, both ways round. */
+export function useItemPages() {
+  return useQuery({ queryKey: ['item-pages'], queryFn: pageApi.listItemPages });
+}
+
+export function useLinkItemPage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: pageApi.linkItemPage,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['item-pages'] }),
+  });
+}
+
+export function useUnlinkItemPage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: pageApi.unlinkItemPage,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['item-pages'] }),
+  });
+}
+
 export function useCreatePage() {
   const client = useQueryClient();
   return useMutation({
@@ -917,6 +938,7 @@ export function useDeletePage() {
   return useMutation({
     mutationFn: (id: string) => pageApi.deletePage(id),
     onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['item-pages'] });
       void client.invalidateQueries({ queryKey: pageKeys.all });
       void client.invalidateQueries({ queryKey: ['backlinks'] });
     },

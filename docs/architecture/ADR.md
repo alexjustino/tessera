@@ -1021,3 +1021,21 @@ event, and the calendar has those.
 **Cost accepted.** A repeating task carries its waiting warnings to the next occurrence by the same
 rule, but one that went off is not armed again, so a repeating task runs out of warnings. A
 warning cannot be labelled, and it fires the same notification as any other.
+
+## ADR-041 — A task and a page are paired by a person, apart from what the text says {#adr-041}
+
+**Context.** The owner's UAT: a task needs notes, and it has to be possible to associate a note with
+it from where the work is. A link inside a document (ADR-029) already says "this mentions that", but
+it is derived from the text: delete the words and the link is gone.
+
+**Decision.** `item_page` (migration 020) holds pairs a person made, from either side. A task lists
+its pages and a page lists its tasks, one press apart. Either side going removes the pair and
+nothing else. Membership is a decision and this product stores decisions, as ADR-030 says of goals.
+
+**Why not write a link into the document.** The pair would then depend on text a person can edit
+away without meaning to, and pairing from the page's side would mean editing the task's document
+from outside its editor.
+
+**Cost accepted.** There are now two ways a page and a task can be connected, a link in the text and
+a pair, shown in two lists on a page (Linked from, and Tasks). They mean different things, and a
+person may reasonably have both.
