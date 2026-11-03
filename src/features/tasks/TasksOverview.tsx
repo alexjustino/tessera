@@ -10,7 +10,6 @@ import {
 } from '@fluentui/react-icons';
 import { useMemo, useState, type ReactNode } from 'react';
 
-import { formatDuration, type Plan } from '@/domain/criticalPath';
 import type { Item } from '@/domain/item';
 import { countSlices, portionsOf, SLICES, type Slice } from '@/domain/overview';
 import type { Property } from '@/domain/property';
@@ -33,12 +32,10 @@ const ICON: Record<Slice, ReactNode> = {
 };
 
 /** A few words on what each count means for the work. */
-function noteFor(slice: Slice, count: number, plan: Plan): string {
+function noteFor(slice: Slice, count: number): string {
   switch (slice) {
     case 'open':
-      return plan.unplanned
-        ? 'Press a figure to see those tasks'
-        : `${formatDuration(plan.durationMinutes)} on the longest route`;
+      return 'Press a figure to see those tasks';
     case 'overdue':
       return count === 0 ? 'Nothing is late' : 'Past their date';
     case 'week':
@@ -70,7 +67,6 @@ export function TasksOverview({
   blocked,
   properties,
   values,
-  plan,
   slice,
   onSlice,
 }: {
@@ -78,7 +74,6 @@ export function TasksOverview({
   blocked: ReadonlySet<string>;
   properties: readonly Property[];
   values: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
-  plan: Plan;
   slice: Slice | null;
   onSlice: (slice: Slice | null) => void;
 }) {
@@ -138,7 +133,7 @@ export function TasksOverview({
                 label={label}
                 icon={ICON[id]}
                 value={counts[id]}
-                note={noteFor(id, counts[id], plan)}
+                note={noteFor(id, counts[id])}
                 tone={toneFor(id, counts[id])}
                 pressed={slice === id}
                 onPress={() => onSlice(slice === id ? null : id)}

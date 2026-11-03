@@ -394,7 +394,7 @@ export function TasksPage({
         </div>
       </header>
 
-      {!planned.unplanned && place === 'board' && (
+      {!planned.unplanned && place !== 'today' && place !== 'calendar' && (
         <p className="-mt-1 text-caption text-fg-tertiary">
           {formatDuration(planned.durationMinutes)} of work on the longest route
           {planned.longestChain.length > 1 && `, through ${planned.longestChain.length} tasks`}
@@ -436,7 +436,6 @@ export function TasksPage({
           blocked={blockedIds}
           properties={properties.data ?? []}
           values={values.data ?? {}}
-          plan={planned}
           slice={slice}
           onSlice={setSlice}
         />

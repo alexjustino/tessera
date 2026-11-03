@@ -117,7 +117,7 @@ export function StatRow({
         'grid gap-2',
         columns === 3
           ? 'grid-cols-2 lg:grid-cols-3'
-          : '[grid-template-columns:repeat(auto-fit,minmax(10.5rem,1fr))]',
+          : '[grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))]',
       ].join(' ')}
     >
       {children}
