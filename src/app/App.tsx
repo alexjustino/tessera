@@ -244,8 +244,8 @@ export function App() {
             {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}
             {destination === 'reports' && <ReportsPage />}
             {destination === 'settings' && <SettingsPage key={pageKey} focusCard={settingsCard} />}
-            {destination === 'diagnostics' && <FoundationPage />}
-            {destination === 'about' && <AboutPage />}
+            {destination === 'diagnostics' && <FoundationPage onBack={() => go('about')} />}
+            {destination === 'about' && <AboutPage onOpenDiagnostics={() => go('diagnostics')} />}
           </main>
         </div>
       )}

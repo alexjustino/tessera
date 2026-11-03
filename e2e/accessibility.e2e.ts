@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { openDiagnostics, startSession, type Session } from './session';
 import { Keys } from './webdriver';
 
 const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
@@ -161,7 +161,8 @@ describe('accessibility', () => {
       'return document.documentElement.getAttribute("data-theme")',
     );
     if (current !== theme) await setTheme(theme);
-    await goTo(screen);
+    if (screen === 'Diagnostics') await openDiagnostics(session);
+    else await goTo(screen);
     await session.driver.waitFor('screen rendered', async () => {
       const h1 = await session.driver.findAll('h1');
       return h1.length > 0 ? true : null;

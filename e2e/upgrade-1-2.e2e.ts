@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { openDiagnostics, startSession, type Session } from './session';
 
 const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
 
@@ -46,7 +46,7 @@ describe('a 1.2 workspace in 1.3', () => {
   });
 
   it('is migrated to the current schema, and Diagnostics says so', async () => {
-    await goTo('Diagnostics');
+    await openDiagnostics(session);
     await session.driver.waitForText('up to date');
   });
 
