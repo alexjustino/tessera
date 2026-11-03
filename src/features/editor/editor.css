@@ -242,3 +242,10 @@
   outline-offset: 1px;
   border-radius: 2px;
 }
+
+.tessera-prose mark {
+  background: color-mix(in srgb, var(--color-caution) 35%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The formatting bar.** Pages and task notes have a bar over them, always in view: text
+  style, bold, italic, underline, strikethrough, highlight, lists, to-do, quote, code,
+  callout, table, link and clear. Links accept only the web.
 - **Warnings before a task is due.** A task can hold as many as its deadline deserves,
   like alarms on a clock: one on Monday, two on Tuesday, three the day before, from a
   preset or at any time you pick. Each is a Windows notification. They move when the due

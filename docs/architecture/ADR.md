@@ -1005,8 +1005,8 @@ reads the reason in the row.
 deadline at 10:00 on the 7th, with one warning on the 4th, two on the 5th, three on the 6th.
 
 **Decision.** A task holds any number of warnings, as rows of kind `warning` in the `reminder`
-table, beside the one `absolute` reminder that `remind_at` keeps in step (ADR-010's single pipeline,
-so the scheduler needed no change). No migration: the table always allowed it, and only
+table, beside the one `absolute` reminder that `remind_at` keeps in step, so the scheduler needed no
+change. No migration: the table always allowed it, and only
 `sync_for_item` assumed one. A warning is an instant. When the due time moves, the waiting ones
 move by the same amount; when it is cleared, they go; one that went off stays as a record. The same
 instant twice is one alarm. The code is `db/reminders.rs` and `src/domain/warnings.ts`.
