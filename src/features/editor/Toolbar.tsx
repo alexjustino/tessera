@@ -2,6 +2,7 @@ import {
   ArrowRedo20Regular,
   ArrowUndo20Regular,
   Code20Regular,
+  Flag20Regular,
   Highlight20Regular,
   Info20Regular,
   Link20Regular,
@@ -26,6 +27,7 @@ import { IconButton } from '@/ui/IconButton';
 import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 
+import { FollowUp } from './FollowUp';
 import { setMarker } from './NoteMarker';
 
 const STYLES = [
@@ -48,7 +50,17 @@ function Divider() {
  * a person looking for bold should not have to know a keyboard shortcut exists.
  * Every button keeps the selection: pressing one must not take the text away.
  */
-export function Toolbar({ editor }: { editor: TipTapEditor }) {
+export function Toolbar({
+  editor,
+  ownerKind,
+  ownerId,
+}: {
+  editor: TipTapEditor;
+  /** What this document belongs to, so a follow-up can be paired with it. */
+  ownerKind: string;
+  ownerId: string;
+}) {
+  const [following, setFollowing] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
   const [address, setAddress] = useState('');
   const [complaint, setComplaint] = useState<string | null>(null);
@@ -236,10 +248,26 @@ export function Toolbar({ editor }: { editor: TipTapEditor }) {
           },
           state.link,
         )}
+        {button('Follow up on this line', <Flag20Regular />, () =>
+          setFollowing(following === null ? editor.state.selection.$from.parent.textContent : null),
+        )}
         {button('Clear formatting', <TextClearFormatting20Regular />, () =>
           chain().unsetAllMarks().clearNodes().run(),
         )}
       </div>
+
+      {following !== null && (
+        <FollowUp
+          title={following}
+          ownerKind={ownerKind}
+          ownerId={ownerId}
+          onDone={(made) => {
+            setFollowing(null);
+            if (made) setMarker(editor, 'followup');
+            editor.commands.focus();
+          }}
+        />
+      )}
 
       {linking && (
         <form
