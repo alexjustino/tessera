@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A follow-up from a line.** One press turns the line you are on into a task, due the next
+  working morning unless you say otherwise. The line is marked Follow up, and when it was
+  written on a page, the task and the page are paired.
 - **Markers on a line.** A line in a page or a task's notes can be marked To do, Important,
   Question, Decision or Follow up, from the bar or with Ctrl+1 to Ctrl+5, and it says so in a
   word. Marked lines, in Notes, gathers them all under their markers, one press from where

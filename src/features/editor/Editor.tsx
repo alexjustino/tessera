@@ -219,7 +219,7 @@ export function Editor({
 
   return (
     <div className="relative">
-      {editor !== null && <Toolbar editor={editor} />}
+      {editor !== null && <Toolbar editor={editor} ownerKind={ownerKind} ownerId={ownerId} />}
       <EditorContent editor={editor} />
       {slash.open && editor !== null && <SlashMenu editor={editor} state={slash} />}
       {links.open && editor !== null && <LinkMenu editor={editor} state={links} />}
