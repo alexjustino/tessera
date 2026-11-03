@@ -34,6 +34,7 @@ import { positionForNewItem } from '@/domain/item';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
 import type { Property, PropertyValue } from '@/domain/property';
 import { EMPTY_QUERY, flatten, run, type Query, type Row } from '@/domain/query';
+import { dueForToday } from '@/domain/today';
 import { CalendarView } from '@/features/calendar/CalendarView';
 import { CaptureLine } from '@/features/capture/CaptureLine';
 import { PropertyManager } from '@/features/properties/PropertyManager';
@@ -42,6 +43,7 @@ import { ListView } from '@/features/views/ListView';
 import { QueryBar } from '@/features/views/QueryBar';
 import { TableView } from '@/features/views/TableView';
 import { TimelineView } from '@/features/views/TimelineView';
+import { ComingUp } from './ComingUp';
 import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
@@ -66,12 +68,33 @@ const INLINE_LIMIT = 2;
 /** The types that fit in a row: one tap, one choice, no typing. */
 const INLINE_TYPES = new Set(['status', 'priority', 'select']);
 
+/** The places in the rail this page serves, and what each one calls itself. */
+export type TasksPlace = 'tasks' | 'today' | 'board' | 'calendar';
+
+const PLACES: Record<TasksPlace, { title: string; viewId: string | null; say: string | null }> = {
+  tasks: { title: 'Tasks', viewId: null, say: null },
+  today: {
+    title: 'Today',
+    viewId: 'view.today',
+    say: 'What is due today or already late. Everything else stays in Tasks.',
+  },
+  board: { title: 'Board', viewId: 'tasks.board', say: null },
+  calendar: { title: 'Calendar', viewId: 'view.calendar', say: null },
+};
+
+/** Views with a place of their own in the rail: a second way in only confused the two. */
+const RAIL_VIEWS = new Set(['view.today', 'tasks.board', 'view.calendar']);
+
 export function TasksPage({
-  initialViewId = null,
+  place = 'tasks',
   initialDetailId = null,
   onFocus,
+  onShowAll,
 }: {
-  initialViewId?: string | null;
+  /** Which place in the rail this is. */
+  place?: TasksPlace;
+  /** Go to the whole list, from a place that shows part of it. */
+  onShowAll?: () => void;
   /** An item to open on mount — how the palette lands on a search hit. */
   initialDetailId?: string | null;
   /** Enter focus mode on a task (P8). Absent where the page has no shell to hand it to. */
@@ -83,7 +106,7 @@ export function TasksPage({
   const [editingQuery, setEditingQuery] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(initialDetailId);
 
-  const [activeViewId, setActiveViewId] = useState<string | null>(initialViewId);
+  const [activeViewId, setActiveViewId] = useState<string | null>(PLACES[place].viewId);
   /** The query as it is being edited. Null means "whatever the view saved". */
   const [draftQuery, setDraftQuery] = useState<Query | null>(null);
   /** The board settings as they are being edited, on the same terms. */
@@ -106,7 +129,11 @@ export function TasksPage({
 
   const view = useMemo(() => {
     const all = views.data ?? [];
-    return all.find((candidate) => candidate.id === activeViewId) ?? all[0] ?? null;
+    return (
+      all.find((candidate) => candidate.id === activeViewId) ??
+      all.find((candidate) => !RAIL_VIEWS.has(candidate.id)) ??
+      null
+    );
   }, [views.data, activeViewId]);
 
   const query = draftQuery ?? view?.query ?? EMPTY_QUERY;
@@ -204,7 +231,15 @@ export function TasksPage({
         {
           collectionId: COLLECTION,
           position: positionForNewItem(items.data ?? []),
-          capture,
+          // Typed on Today, with no date of its own: today is what was meant, and
+          // anything else would vanish from the screen it was just typed on.
+          capture:
+            place === 'today'
+              ? {
+                  ...capture,
+                  dueAt: dueForToday(capture.dueAt, new Date().toISOString(), systemZone()),
+                }
+              : capture,
           priorityPropertyId,
         },
         // Clearing only after the host accepted it means a rejected write does
@@ -217,7 +252,7 @@ export function TasksPage({
         },
       );
     },
-    [create, items.data, priorityPropertyId],
+    [create, items.data, priorityPropertyId, place],
   );
 
   const failure =
@@ -278,11 +313,14 @@ export function TasksPage({
     <Page className="h-full">
       <header className="flex items-baseline justify-between gap-4">
         <div>
-          <h1 className="text-title font-semibold text-fg">Tasks</h1>
+          <h1 className="text-title font-semibold text-fg">{PLACES[place].title}</h1>
+          {PLACES[place].say !== null && (
+            <p className="mt-1 text-body text-fg-secondary">{PLACES[place].say}</p>
+          )}
           {/* Stated only once the list has actually been read. Saying "nothing
               open" when the read failed would be the interface asserting
               something it does not know. */}
-          {items.isSuccess && (
+          {items.isSuccess && (place !== 'today' || result.matched > 0) && (
             <p className="mt-1 text-body text-fg-secondary">
               {result.matched === 0
                 ? 'Nothing to show.'
@@ -301,24 +339,29 @@ export function TasksPage({
           >
             Print
           </Button>
-          <Button
-            appearance="subtle"
-            icon={<CopyAdd20Regular />}
-            onClick={() => setTemplatesOpen(true)}
-          >
-            Templates
-          </Button>
-          <Button
-            appearance="subtle"
-            icon={<Options20Regular />}
-            onClick={() => setManagingProperties(true)}
-          >
-            Properties
-          </Button>
+          {/* Ways to shape the whole list, so they live where the whole list is. */}
+          {place !== 'today' && (
+            <>
+              <Button
+                appearance="subtle"
+                icon={<CopyAdd20Regular />}
+                onClick={() => setTemplatesOpen(true)}
+              >
+                Templates
+              </Button>
+              <Button
+                appearance="subtle"
+                icon={<Options20Regular />}
+                onClick={() => setManagingProperties(true)}
+              >
+                Properties
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
-      {!planned.unplanned && (
+      {!planned.unplanned && place !== 'today' && (
         <p className="-mt-1 text-caption text-fg-tertiary">
           {formatDuration(planned.durationMinutes)} of work on the longest route
           {planned.longestChain.length > 1 && `, through ${planned.longestChain.length} tasks`}
@@ -354,13 +397,15 @@ export function TasksPage({
         </InfoBar>
       )}
 
-      {(views.data ?? []).length > 0 && (
+      {place === 'tasks' && (views.data ?? []).length > 0 && (
         <div className="print-hide">
           <TabStrip
-            tabs={(views.data ?? []).map((candidate) => ({
-              id: candidate.id,
-              label: candidate.name,
-            }))}
+            tabs={(views.data ?? [])
+              .filter((candidate) => !RAIL_VIEWS.has(candidate.id))
+              .map((candidate) => ({
+                id: candidate.id,
+                label: candidate.name,
+              }))}
             active={view?.id ?? ''}
             onSelect={(id) => {
               setActiveViewId(id);
@@ -374,7 +419,7 @@ export function TasksPage({
         </div>
       )}
 
-      {view !== null && (
+      {view !== null && place !== 'today' && (
         <QueryBar
           query={query}
           board={board}
@@ -428,6 +473,11 @@ export function TasksPage({
             icon={<TaskListSquareLtr24Regular />}
             title="Nothing here yet"
             description="Everything you write is stored on this machine, in a file you own. Type above to add the first task."
+          />
+        ) : result.matched === 0 && place === 'today' ? (
+          <EmptyState
+            title="Nothing is due today"
+            description="Type above and it lands here. A task whose date comes round shows up on its own."
           />
         ) : result.matched === 0 ? (
           <EmptyState
@@ -493,6 +543,15 @@ export function TasksPage({
             onOpen={(row) => setDetailId(row.item.id)}
             onSetValue={setRowValue}
           />
+        )}
+        {place === 'today' && items.isSuccess && (
+          <div className="mt-4">
+            <ComingUp
+              items={items.data}
+              onOpen={(item) => setDetailId(item.id)}
+              onShowAll={onShowAll}
+            />
+          </div>
         )}
       </div>
 

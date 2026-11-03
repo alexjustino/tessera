@@ -146,7 +146,7 @@ describe('a Trello board', () => {
 
   it('the board has the Trello columns beside its own, with the cards in them', async () => {
     const { driver } = session;
-    await (await driver.findByXPath('//*[@role="tab"][normalize-space(.)="Board"]')).click();
+    await (await driver.findByXPath('//nav//button[normalize-space(.)="Board"]')).click();
     await driver.waitForText('Ideas');
     await driver.waitForText('Review');
     const headings = await driver.execute<string>('return document.body.innerText');

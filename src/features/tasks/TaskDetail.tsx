@@ -1,8 +1,8 @@
 import { Target20Regular } from '@fluentui/react-icons';
 
-import { useSetPropertyValue, useSetSchedule } from '@/data/hooks';
+import { useRenameItem, useSetPropertyValue, useSetSchedule } from '@/data/hooks';
 import { type Timing } from '@/domain/criticalPath';
-import { type Item } from '@/domain/item';
+import { checkTitle, type Item } from '@/domain/item';
 import { type Schedule } from '@/domain/schedule';
 import { type Property, type PropertyValue } from '@/domain/property';
 import { Editor } from '@/features/editor/Editor';
@@ -16,6 +16,7 @@ import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
 import { Button } from '@/ui/Button';
 import { Drawer } from '@/ui/Drawer';
 import { EmptyState } from '@/ui/EmptyState';
+import { Input } from '@/ui/Input';
 
 /**
  * Everything about one task, editable in place.
@@ -46,6 +47,7 @@ export function TaskDetail({
 }) {
   const setValue = useSetPropertyValue();
   const setSchedule = useSetSchedule();
+  const rename = useRenameItem();
   const now = new Date().toISOString();
 
   const commit = (property: Property, value: PropertyValue) => {
@@ -66,6 +68,31 @@ export function TaskDetail({
 
   return (
     <Drawer open={task !== null} title={task?.title ?? ''} onClose={onClose}>
+      {task !== null && (
+        <div className="mb-4">
+          <Input
+            key={task.id}
+            aria-label="Task name"
+            defaultValue={task.title}
+            className="w-full"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur();
+            }}
+            onBlur={(event) => {
+              const result = checkTitle(event.currentTarget.value);
+              // An emptied name goes back: losing the name because a field was
+              // cleared is never what the person meant.
+              if (result.status !== 'ok') {
+                event.currentTarget.value = task.title;
+                return;
+              }
+              if (result.title !== task.title) {
+                rename.mutate({ id: task.id, title: result.title });
+              }
+            }}
+          />
+        </div>
+      )}
       {task !== null && onFocus !== undefined && task.completedAt === null && (
         <div className="mb-4">
           <Button

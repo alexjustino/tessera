@@ -163,9 +163,14 @@ function TaskRow({
       ) : (
         <button
           type="button"
-          onClick={() => {
-            setDraft(task.title);
-            setEditing(true);
+          // Pressing a task opens it, which is what a person reaches for first.
+          // The name is edited there, or here with F2 as everywhere in Windows.
+          onClick={onOpen}
+          onKeyDown={(event) => {
+            if (event.key === 'F2') {
+              setDraft(task.title);
+              setEditing(true);
+            }
           }}
           className={[
             'min-w-0 flex-1 truncate py-1.5 text-left text-body',
