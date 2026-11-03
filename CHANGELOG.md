@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **An email from your notes.** One press turns a page or a selection into a draft, with a
+  greeting, the topics as you formatted them, markers in words, and the page's follow-ups with
+  their dates. It opens in your own mail program, unsent and addressed to nobody. Tessera
+  never sends anything.
 - **A follow-up from a line.** One press turns the line you are on into a task, due the next
   working morning unless you say otherwise. The line is marked Follow up, and when it was
   written on a page, the task and the page are paired.
