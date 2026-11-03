@@ -87,7 +87,7 @@ describe('warnings before a task is due', () => {
     await driver.waitFor('the second', async () => ((await rows()).length === 2 ? true : null));
 
     await setInput('input[aria-label="A warning at this date and time"]', local(inDays(5)));
-    await press('Add');
+    await press('Add warning');
     await driver.waitFor('the third', async () => ((await rows()).length === 3 ? true : null));
     await session.screenshot('warnings');
   });
@@ -95,7 +95,7 @@ describe('warnings before a task is due', () => {
   it('refuses one after the task is due', async () => {
     const { driver } = session;
     await setInput('input[aria-label="A warning at this date and time"]', local(inDays(20)));
-    await press('Add');
+    await press('Add warning');
     await driver.waitForText('A warning comes before the task is due.');
     expect((await rows()).length).toBe(3);
   });
@@ -129,7 +129,7 @@ describe('warnings before a task is due', () => {
     const { driver } = session;
     const soon = new Date(Date.now() + 70_000);
     await setInput('input[aria-label="A warning at this date and time"]', local(soon));
-    await press('Add');
+    await press('Add warning');
     await driver.waitFor('it is set', async () => ((await rows()).length === 3 ? true : null));
     // The minute is rounded down by the field, so it fires within seventy seconds.
     await driver.chord(Keys.ESCAPE);
