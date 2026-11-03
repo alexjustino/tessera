@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { startTransition, Suspense, useCallback, useEffect, useState } from 'react';
 
 import {
   AboutPage,
@@ -28,6 +28,7 @@ import type { CommandId } from '@/features/palette/commands';
 import { Sidebar, type Destination } from '@/features/shell/Sidebar';
 import { TitleBar } from '@/features/shell/TitleBar';
 import { TasksPage } from '@/features/tasks/TasksPage';
+import { ErrorBoundary } from '@/ui/ErrorBoundary';
 import { Skeleton } from '@/ui/Skeleton';
 
 /**
@@ -124,9 +125,13 @@ export function App() {
   }, []);
 
   const go = useCallback((next: Destination) => {
-    setSettingsCard(null);
-    setDestination(next);
-    setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
+    // A transition, so a screen not yet read keeps the last one up for that moment
+    // rather than flashing an empty shape.
+    startTransition(() => {
+      setSettingsCard(null);
+      setDestination(next);
+      setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
+    });
   }, []);
 
   const openSettings = useCallback((card: SettingsCard) => {
@@ -213,52 +218,61 @@ export function App() {
             asks={settingsQuestion === null ? {} : { settings: settingsQuestion }}
           />
           <main className="min-w-0 flex-1 overflow-y-auto bg-layer">
-            <Suspense fallback={<Skeleton />}>
-              {/* Today is the same page opened on a different saved view — it is
+            <ErrorBoundary key={pageKey}>
+              <Suspense fallback={<Skeleton />}>
+                {/* Today is the same page opened on a different saved view — it is
               a query over the same items, not a second screen. */}
-              {destination === 'tasks' && (
-                <TasksPage
-                  key={pageKey}
-                  initialDetailId={focus.itemId}
-                  onFocus={setFocused}
-                  onOpenSettings={openSettings}
-                  onOpenPage={openPage}
-                />
-              )}
-              {destination === 'today' && (
-                <TasksPage
-                  key={pageKey}
-                  place="today"
-                  onFocus={setFocused}
-                  onShowAll={() => go('tasks')}
-                  onOpenSettings={openSettings}
-                  onOpenPage={openPage}
-                />
-              )}
-              {destination === 'board' && (
-                <TasksPage key={pageKey} place="board" onFocus={setFocused} onOpenPage={openPage} />
-              )}
-              {destination === 'calendar' && (
-                <TasksPage
-                  key={pageKey}
-                  place="calendar"
-                  onFocus={setFocused}
-                  onOpenPage={openPage}
-                />
-              )}
-              {destination === 'mosaic' && <MosaicPage key={pageKey} onOpenPage={openPage} />}
-              {destination === 'notes' && (
-                <NotesPage key={pageKey} initialPageId={openPageId} onOpenItem={openItem} />
-              )}
-              {destination === 'goals' && <GoalsPage key={pageKey} />}
-              {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}
-              {destination === 'reports' && <ReportsPage />}
-              {destination === 'settings' && (
-                <SettingsPage key={pageKey} focusCard={settingsCard} />
-              )}
-              {destination === 'diagnostics' && <FoundationPage onBack={() => go('about')} />}
-              {destination === 'about' && <AboutPage onOpenDiagnostics={() => go('diagnostics')} />}
-            </Suspense>
+                {destination === 'tasks' && (
+                  <TasksPage
+                    key={pageKey}
+                    initialDetailId={focus.itemId}
+                    onFocus={setFocused}
+                    onOpenSettings={openSettings}
+                    onOpenPage={openPage}
+                  />
+                )}
+                {destination === 'today' && (
+                  <TasksPage
+                    key={pageKey}
+                    place="today"
+                    onFocus={setFocused}
+                    onShowAll={() => go('tasks')}
+                    onOpenSettings={openSettings}
+                    onOpenPage={openPage}
+                  />
+                )}
+                {destination === 'board' && (
+                  <TasksPage
+                    key={pageKey}
+                    place="board"
+                    onFocus={setFocused}
+                    onOpenPage={openPage}
+                  />
+                )}
+                {destination === 'calendar' && (
+                  <TasksPage
+                    key={pageKey}
+                    place="calendar"
+                    onFocus={setFocused}
+                    onOpenPage={openPage}
+                  />
+                )}
+                {destination === 'mosaic' && <MosaicPage key={pageKey} onOpenPage={openPage} />}
+                {destination === 'notes' && (
+                  <NotesPage key={pageKey} initialPageId={openPageId} onOpenItem={openItem} />
+                )}
+                {destination === 'goals' && <GoalsPage key={pageKey} />}
+                {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}
+                {destination === 'reports' && <ReportsPage />}
+                {destination === 'settings' && (
+                  <SettingsPage key={pageKey} focusCard={settingsCard} />
+                )}
+                {destination === 'diagnostics' && <FoundationPage onBack={() => go('about')} />}
+                {destination === 'about' && (
+                  <AboutPage onOpenDiagnostics={() => go('diagnostics')} />
+                )}
+              </Suspense>
+            </ErrorBoundary>
           </main>
         </div>
       )}

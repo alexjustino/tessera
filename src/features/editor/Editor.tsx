@@ -260,7 +260,10 @@ export function Editor({
   // from what is on screen. Setting the content of an editor somebody is typing
   // in moves their cursor to the top.
   useEffect(() => {
-    if (editor === null || blocks.data === undefined || pages.data === undefined) return;
+    // An editor rendered inside Suspense can be destroyed before it is mounted, and
+    // the hook gives us a new one on the next render. This one must not be touched.
+    if (editor === null || editor.isDestroyed) return;
+    if (blocks.data === undefined || pages.data === undefined) return;
     if (stored.current.length > 0) return;
 
     stored.current = blocks.data;
