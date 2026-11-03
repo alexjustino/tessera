@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A task and its notes.** A task's notes are now the first thing in it. Start a page from
+  a task, or link one that exists, and the page lists its tasks, each one press from the
+  other. A task named in a page's Linked from opens too. The pair outlives edits to the text,
+  and removing it takes neither away.
 - **The formatting bar.** Pages and task notes have a bar over them, always in view: text
   style, bold, italic, underline, strikethrough, highlight, lists, to-do, quote, code,
   callout, table, link and clear. Links accept only the web.
@@ -30,8 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Migrations
 
-This line adds migration **019** (`goal.ongoing`, a goal with no finish line).
-Forward-only. A 1.3.0 workspace, schema version 18, is migrated on first start.
+This line adds migrations **019** (`goal.ongoing`, a goal with no finish line) and **020**
+(`item_page`, a task and a page paired by a person). Forward-only. A 1.3.0 workspace, schema
+version 18, is migrated on first start.
 
 ### Changed
 
