@@ -33,8 +33,8 @@ describe('the figures on each screen', () => {
     session = await startSession();
     const { driver } = session;
     const input = await driver.waitForElement('input[aria-label="New task"]');
-    await input.sendKeys(`Due tonight today at 11pm${Keys.ENTER}`);
-    await driver.waitForText('Due tonight');
+    await input.sendKeys(`Evening report today at 11pm${Keys.ENTER}`);
+    await driver.waitForText('Evening report');
     await input.sendKeys(`Late one tomorrow${Keys.ENTER}`);
     await driver.waitForText('Late one');
     // Nothing typed can make a date that has gone, so this one is moved back.
@@ -125,7 +125,7 @@ describe('the figures on each screen', () => {
     const card = await driver.waitFor('the card for today', () =>
       driver.find('article[data-today="today"]'),
     );
-    expect(await card.text()).toContain('Due tonight');
+    expect(await card.text()).toContain('Evening report');
     const strip = await driver.find('[data-testid="board-today"]');
     expect(await strip.text()).toContain('card');
 

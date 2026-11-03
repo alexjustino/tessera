@@ -95,6 +95,11 @@ describe('accessibility', () => {
 
   const audit = async (screen: string, theme: string): Promise<Violation[]> => {
     const { driver } = session;
+    // The opening fades over the first screen: a contrast read mid-fade is a read of
+    // no colour the product has, and it is hidden from a screen reader anyway.
+    await driver.waitFor('the opening to go', async () =>
+      (await driver.findAll('#opening')).length === 0 ? true : null,
+    );
     await injectAxe();
     await driver.execute('document.documentElement.style.backgroundColor = arguments[0]', [
       MICA[theme === 'dark' ? 'dark' : 'light'],
