@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-11-03
+
+The notebook, and the first round of what using it taught. 1.3 could count a week; the
+person testing it could not tell where to start, what Today had to do with Tasks, or why
+the Mosaic was empty. So 1.4 opens with a welcome, asks for your working hours, fills the
+window, opens a task when you press it, and lets the week be used and not only read. And
+notes became the place work starts: a formatting bar, markers on a line, a task from a
+line, a task and its pages one press apart, warnings counting down to a deadline, and an
+email draft from what you wrote. Still entirely on your machine, and Tessera still sends
+nothing.
+
+### Migrations
+
+This release adds migrations **019** (`goal.ongoing`, a goal with no finish line) and **020**
+(`item_page`, a task and a page paired by a person). Forward-only. A 1.3.0 workspace, schema
+version 18, is migrated on first start.
+
 ### Added
 
 - **An email from your notes.** One press turns a page or a selection into a draft, with a
@@ -45,12 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   week with their sizes one press away, which is what fills an empty grid. Pressing a
   tile opens its task, and pressing a free hour sets it aside for one.
 
-### Migrations
-
-This line adds migrations **019** (`goal.ongoing`, a goal with no finish line) and **020**
-(`item_page`, a task and a page paired by a person). Forward-only. A 1.3.0 workspace, schema
-version 18, is migrated on first start.
-
 ### Changed
 
 - **Diagnostics moved into About.** It serves someone looking into a problem, not the day's
@@ -74,6 +85,7 @@ version 18, is migrated on first start.
 
 ### Fixed
 
+- A finished task no longer shows its past date in red, as if it were late.
 - An all-day event shows on its own day. It used to show on every day after it too.
 - Work no longer sticks to a day that has gone. The price of a change and the Mosaic
   gave today its full day of hours whatever the time was, so in the evening work stayed

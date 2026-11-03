@@ -46,6 +46,11 @@ that a later one narrows says so and points at it.
 | [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted |
 | [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted |
 | [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan        | Accepted |
+| [040](#adr-040) | Warnings count back from the due time, and move with it                      | Accepted |
+| [041](#adr-041) | A task and a page are paired by a person, apart from the text                | Accepted |
+| [042](#adr-042) | An email leaves as a draft file, and Tessera never sends one                 | Accepted |
+| [043](#adr-043) | A goal may have no finish line                                               | Accepted |
+| [044](#adr-044) | The week starts from now, and a tile can be pressed                          | Accepted |
 
 ---
 
@@ -933,8 +938,8 @@ due, the time left, the shortfall — four figures that carry their rows (ADR-02
 drawing of up to sixty of those minutes and takes the state that holds most of them; a day that
 does not end on the hour has a shorter last tile, and the screen says it rounded. The shortfall
 is minutes too, drawn as whole tiles rounded up. Today's hours already gone are drawn as gone,
-not free: the projection's share of today that does not fit what is left is said in words
-rather than painted on the past. The code is `src/domain/mosaic.ts`; the surface is the
+not free. The projection used to give today a whole day and say the difference in words; since
+ADR-044 it starts from now, so there is rarely any. The code is `src/domain/mosaic.ts`; the surface is the
 `TileGrid` primitive.
 
 **Why.** The mosaic exists to be believed at a glance. If a person counts the tiles and the
@@ -1055,3 +1060,32 @@ by the program that receives it. Formatting is the point of the feature.
 **Cost accepted.** A draft is a copy of somebody's notes in a temporary folder until the next draft
 clears anything over a day old. What a `.eml` opens as depends on the person's mail program: Outlook
 honours `X-Unsent`, and others may show it read-only or not open it at all.
+
+## ADR-043 — A goal may have no finish line {#adr-043}
+
+**Context.** The owner's UAT: a goal may be a constant focus, with no period that can be fixed.
+A target and a date demanded of everything get made-up answers.
+
+**Decision.** `goal.ongoing` (migration 019). An ongoing goal shows what has added up, is never
+achieved and never late, and offers no target or date. A date is optional on any goal. The stored
+`target` stays, so going back to a finish line loses nothing. `isAchieved` and `stateOf` in
+`src/domain/goal.ts` are the only places that decide this.
+
+**Cost accepted.** `target` is required by the schema, so an ongoing goal carries a number nobody
+reads. Rebuilding the table to relax that was not worth a migration of its own.
+
+## ADR-044 — The week starts from now, and a tile can be pressed {#adr-044}
+
+**Context.** The owner's UAT found the Mosaic empty, with no way to see why: their tasks had no
+estimates. Separately, in the evening, work stayed on a day whose hours had gone.
+
+**Decision.** `project` takes the minute it is now, and gives today only what is left of it, so
+the receipt's dates and the tiles both move through the day. The Review counts through the same
+function. Tasks with no estimate are listed above the week with sizes one press away; a tile opens
+its task; a free hour can be set aside for one.
+
+**Why this does not break ADR-034.** The ledger still decides nothing and moves nothing by itself.
+Pressing is the person acting, with the same effect as typing an estimate or dragging a block.
+
+**Cost accepted.** A date on the receipt can change during the day with nothing else changing, which
+is correct and may surprise. ADR-037's tile is still a drawing of minutes, now one that responds.

@@ -35,11 +35,12 @@ calls a board and what Notion calls a database.
 | `tag`, `item_tag`     | global labels                                           |
 | `block`               | the document, for an item, an event or a page           |
 | `view`                | a saved query: filters, sorts, grouping, visible fields |
-| `reminder`            | a pending alert for an item or an event                 |
+| `reminder`            | a pending alert for an item or an event; kind `warning` |
 | `activity`            | the history and undo trail                              |
 | `search_fts`          | FTS5 over titles and flattened block text               |
 | `item_dependency`     | one edge of the graph: this task waits for that one     |
 | `time_entry`          | an interval on a task; a null end is a running timer    |
+| `item_page`           | a task and a page a person paired (ADR-041)             |
 
 Arriving with the calendar slice: `calendar`, `event`, `event_exception`, `time_block`,
 `work_hours`. Arriving later: `page`.
