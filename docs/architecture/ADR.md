@@ -1039,3 +1039,19 @@ from outside its editor.
 **Cost accepted.** There are now two ways a page and a task can be connected, a link in the text and
 a pair, shown in two lists on a page (Linked from, and Tasks). They mean different things, and a
 person may reasonably have both.
+
+## ADR-042 — An email leaves as a draft file, and Tessera never sends one {#adr-042}
+
+**Context.** The owner asked for a formatted email from a set of topics. ADR-012 says no network.
+
+**Decision.** Tessera writes a `.eml` with `X-Unsent: 1`, no sender and no recipient, and asks
+Windows to open it. Everything after that is the person's own mail program. A subject cannot add a
+header, because control characters are taken out. The code is `os/email.rs` and
+`src/domain/emailDraft.ts`.
+
+**Why a file and not `mailto:`.** A `mailto:` link carries plain text only, and a long one is cut off
+by the program that receives it. Formatting is the point of the feature.
+
+**Cost accepted.** A draft is a copy of somebody's notes in a temporary folder until the next draft
+clears anything over a day old. What a `.eml` opens as depends on the person's mail program: Outlook
+honours `X-Unsent`, and others may show it read-only or not open it at all.

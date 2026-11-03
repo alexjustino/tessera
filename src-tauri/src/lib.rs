@@ -125,6 +125,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::system_info,
+            commands::system::email_draft,
             commands::system::accent_ramp,
             commands::reminders::probe_notification,
             commands::reminders::reminders_status,

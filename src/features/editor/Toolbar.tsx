@@ -27,6 +27,7 @@ import { IconButton } from '@/ui/IconButton';
 import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
 
+import { EmailButton } from './EmailButton';
 import { FollowUp } from './FollowUp';
 import { setMarker } from './NoteMarker';
 
@@ -54,8 +55,11 @@ export function Toolbar({
   editor,
   ownerKind,
   ownerId,
+  subject,
 }: {
   editor: TipTapEditor;
+  /** What an email from this document is called. */
+  subject: string;
   /** What this document belongs to, so a follow-up can be paired with it. */
   ownerKind: string;
   ownerId: string;
@@ -251,6 +255,7 @@ export function Toolbar({
         {button('Follow up on this line', <Flag20Regular />, () =>
           setFollowing(following === null ? editor.state.selection.$from.parent.textContent : null),
         )}
+        <EmailButton editor={editor} ownerKind={ownerKind} ownerId={ownerId} subject={subject} />
         {button('Clear formatting', <TextClearFormatting20Regular />, () =>
           chain().unsetAllMarks().clearNodes().run(),
         )}

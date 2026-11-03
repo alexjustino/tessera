@@ -246,6 +246,7 @@ export function NotesPage({
               ownerKind="page"
               ownerId={open.id}
               label={`Text of ${open.title}`}
+              subject={open.title}
             />
 
             <LinkedTasks key={`tasks-${open.id}`} pageId={open.id} onOpenItem={onOpenItem} />
