@@ -2,6 +2,7 @@ import {
   ArrowRedo20Regular,
   ArrowUndo20Regular,
   Code20Regular,
+  DocumentLink20Regular,
   Flag20Regular,
   Highlight20Regular,
   Info20Regular,
@@ -251,6 +252,9 @@ export function Toolbar({
             setComplaint(null);
           },
           state.link,
+        )}
+        {button('Link a page or a task', <DocumentLink20Regular />, () =>
+          editor.chain().focus().insertContent('[[').run(),
         )}
         {button('Follow up on this line', <Flag20Regular />, () =>
           setFollowing(following === null ? editor.state.selection.$from.parent.textContent : null),

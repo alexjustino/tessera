@@ -99,7 +99,7 @@ describe('the notes space', () => {
     const prose = await session.driver.find('.tessera-prose');
     await prose.sendKeys('[[Weekly');
     const menu = await session.driver.waitFor('the link menu', () =>
-      session.driver.find('[role="listbox"][aria-label="Link to a page"]'),
+      session.driver.find('[role="listbox"][aria-label="Link to a page or a task"]'),
     );
     expect(await menu.text()).toContain('Weekly Review');
     await prose.sendKeys(Keys.ENTER);
@@ -112,6 +112,53 @@ describe('the notes space', () => {
     // It points at the page, not at the word: an id was written beside it.
     expect(await written[0]!.attribute('data-page-id')).toBeTruthy();
     await session.screenshot('notes-link');
+  });
+
+  it('the menu says what a choice will do before it is chosen', async () => {
+    const prose = await session.driver.find('.tessera-prose');
+    await prose.sendKeys(' and [[Weekly');
+    const preview = await session.driver.waitForElement('[data-testid="link-menu-preview"]');
+    await session.driver.waitFor('the page found', async () =>
+      (await preview.text()).includes('Page found') ? true : null,
+    );
+    expect(await preview.text()).toContain('Everything that happened');
+    await session.screenshot('notes-link-menu');
+    await prose.sendKeys(`${Keys.BACKSPACE.repeat(6)}Nowhere yet`);
+    await session.driver.waitFor('the name with no page', async () =>
+      (await preview.text()).includes('No page with this name') ? true : null,
+    );
+    await session.driver.chord(Keys.ESCAPE);
+    await prose.sendKeys(Keys.BACKSPACE.repeat(' and [[Nowhere yet'.length));
+  });
+
+  it('a link in the text can be pointed at, and pressing it goes there', async () => {
+    const { driver } = session;
+    const [link] = await links();
+    await driver.execute(
+      "arguments[0].dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))",
+      [{ [ELEMENT]: link!.id }],
+    );
+    const preview = await driver.waitForElement('[data-testid="link-preview"]');
+    await driver.waitFor('the preview', async () =>
+      (await preview.text()).includes('Everything that happened') ? true : null,
+    );
+    await session.screenshot('notes-link-preview');
+
+    await driver.waitFor('the link saved and checked', async () =>
+      (await driver.findAll('[data-link-check="found"]')).length === 1 ? true : null,
+    );
+    expect(await (await driver.find('[data-testid="links-check"]')).text()).toBe(
+      'The link finds its page',
+    );
+
+    await link!.click();
+    await driver.waitFor('Weekly Review open', async () =>
+      (await openName()) === 'Weekly Review' ? true : null,
+    );
+    await click('button[aria-label="Open Onboarding"]');
+    await driver.waitFor('Onboarding open', async () =>
+      (await openName()) === 'Onboarding' ? true : null,
+    );
   });
 
   it('the page that was linked to says who points at it', async () => {
@@ -181,7 +228,7 @@ describe('the notes space', () => {
 
     // The menu offers to make it; Escape declines, and the brackets stay text.
     const menu = await session.driver.waitFor('the offer to create', () =>
-      session.driver.find('[role="listbox"][aria-label="Link to a page"]'),
+      session.driver.find('[role="listbox"][aria-label="Link to a page or a task"]'),
     );
     expect(await menu.text()).toContain('New page');
     await prose.sendKeys(Keys.ENTER);

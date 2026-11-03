@@ -31,11 +31,7 @@ export function LinkedTasks({
   );
 
   return (
-    <section
-      aria-label="Tasks about this page"
-      className="mt-4 border-t border-stroke-subtle pt-3"
-      data-testid="linked-tasks"
-    >
+    <section aria-label="Tasks about this page" data-testid="linked-tasks">
       <h2 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Tasks</h2>
       {mine.length > 0 && (
         <ul className="mb-2 flex flex-col gap-0.5">

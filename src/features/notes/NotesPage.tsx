@@ -1,18 +1,17 @@
 import {
   Add20Regular,
   Delete20Regular,
-  Link20Regular,
   Rename20Regular,
   TagMultiple20Regular,
 } from '@fluentui/react-icons';
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
-import { useBacklinks, useCreatePage, useDeletePage, usePages, useRenamePage } from '@/data/hooks';
+import { useCreatePage, useDeletePage, usePages, useRenamePage } from '@/data/hooks';
 import { between } from '@/domain/ordering';
 import { checkTitle, titleKey, UNTITLED, type Page } from '@/domain/page';
-import { Editor } from '@/features/editor/Editor';
-import { LinkedTasks } from './LinkedTasks';
+import { Editor } from '@/app/lazyPages';
+import { Connections } from './Connections';
 import { MarkedLines } from './MarkedLines';
 import { Button } from '@/ui/Button';
 import { ConfirmDialog } from '@/ui/ConfirmDialog';
@@ -20,6 +19,7 @@ import { EmptyState } from '@/ui/EmptyState';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { Input } from '@/ui/Input';
+import { Skeleton } from '@/ui/Skeleton';
 import { announce } from '@/ui/announce';
 
 /**
@@ -56,7 +56,12 @@ export function NotesPage({
   // a page deleted from under them, falls back to the first one — without an
   // effect that would render once against a page that is gone.
   const open = all.find((page) => page.id === openId) ?? all[0] ?? null;
-  const backlinks = useBacklinks(open?.id ?? null);
+
+  const openPage = (pageId: string) => {
+    setOpenId(pageId);
+    setDraftTitle(null);
+    setShowMarked(false);
+  };
 
   const shown = useMemo(() => {
     const key = titleKey(filter);
@@ -161,7 +166,7 @@ export function NotesPage({
         </ul>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
+      <div className="flex min-w-0 flex-1 flex-col overflow-y-auto xl:overflow-hidden">
         {failure !== null && (
           <div className="p-6 pb-0">
             <InfoBar severity="danger" title="That did not work">
@@ -199,101 +204,69 @@ export function NotesPage({
             />
           </div>
         ) : (
-          <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 p-6">
-            <div className="flex items-start gap-2">
-              <div className="min-w-0 flex-1">
-                {draftTitle === null ? (
-                  <h1 className="truncate text-title font-semibold text-fg">{open.title}</h1>
-                ) : (
-                  <Input
-                    autoFocus
-                    aria-label="Page name"
-                    value={draftTitle}
-                    onChange={(event) => setDraftTitle(event.target.value)}
-                    onBlur={commitTitle}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        commitTitle();
-                      } else if (event.key === 'Escape') {
-                        setDraftTitle(null);
-                      }
-                    }}
-                  />
-                )}
-                {complaint !== null && (
-                  <p role="alert" className="mt-1 text-caption text-danger">
-                    {complaint}
-                  </p>
-                )}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-row">
+            <div className="flex min-w-0 flex-1 flex-col gap-4 p-6 xl:overflow-y-auto">
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  {draftTitle === null ? (
+                    <h1 className="truncate text-title font-semibold text-fg">{open.title}</h1>
+                  ) : (
+                    <Input
+                      autoFocus
+                      aria-label="Page name"
+                      value={draftTitle}
+                      onChange={(event) => setDraftTitle(event.target.value)}
+                      onBlur={commitTitle}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          commitTitle();
+                        } else if (event.key === 'Escape') {
+                          setDraftTitle(null);
+                        }
+                      }}
+                    />
+                  )}
+                  {complaint !== null && (
+                    <p role="alert" className="mt-1 text-caption text-danger">
+                      {complaint}
+                    </p>
+                  )}
+                </div>
+                <IconButton
+                  label={`Rename ${open.title}`}
+                  icon={<Rename20Regular />}
+                  onClick={() => setDraftTitle(open.title)}
+                />
+                <IconButton
+                  label={`Delete ${open.title}`}
+                  icon={<Delete20Regular />}
+                  onClick={() => setConfirming(true)}
+                />
               </div>
-              <IconButton
-                label={`Rename ${open.title}`}
-                icon={<Rename20Regular />}
-                onClick={() => setDraftTitle(open.title)}
-              />
-              <IconButton
-                label={`Delete ${open.title}`}
-                icon={<Delete20Regular />}
-                onClick={() => setConfirming(true)}
-              />
+
+              {/* Keyed on the page: opening another one is a different document,
+                and an editor that kept its content would show the last one. */}
+              <Suspense fallback={<Skeleton />}>
+                <Editor
+                  key={open.id}
+                  ownerKind="page"
+                  ownerId={open.id}
+                  label={`Text of ${open.title}`}
+                  subject={open.title}
+                  fill
+                  onOpenPage={openPage}
+                  onOpenItem={onOpenItem}
+                />
+              </Suspense>
             </div>
 
-            {/* Keyed on the page: opening another one is a different document,
-                and an editor that kept its content would show the last one. */}
-            <Editor
-              key={open.id}
-              ownerKind="page"
-              ownerId={open.id}
-              label={`Text of ${open.title}`}
-              subject={open.title}
-            />
-
-            <LinkedTasks key={`tasks-${open.id}`} pageId={open.id} onOpenItem={onOpenItem} />
-
-            <section aria-label="Linked from" className="mt-4 border-t border-stroke-subtle pt-4">
-              <h2 className="mb-2 flex items-center gap-2 text-caption font-semibold text-fg-tertiary uppercase">
-                <Link20Regular aria-hidden="true" />
-                Linked from
-              </h2>
-              {(backlinks.data ?? []).length === 0 ? (
-                <p className="text-body text-fg-tertiary">
-                  Nothing points here yet. Type <code>[[{open.title}]]</code> in another page.
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-0.5">
-                  {(backlinks.data ?? []).map((entry) => (
-                    <li key={`${entry.ownerKind}:${entry.ownerId}`}>
-                      {entry.ownerKind === 'page' ? (
-                        <button
-                          type="button"
-                          aria-label={`Open ${entry.title}`}
-                          onClick={() => {
-                            setOpenId(entry.ownerId);
-                            setDraftTitle(null);
-                          }}
-                          className="w-full truncate rounded-md px-2 py-1 text-left text-body text-accent hover:bg-card-hover"
-                        >
-                          {entry.title}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={entry.ownerKind !== 'item'}
-                          onClick={() => onOpenItem?.(entry.ownerId)}
-                          className="flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-left enabled:hover:bg-card-hover"
-                        >
-                          <span className="text-caption text-fg-tertiary">
-                            {entry.ownerKind === 'item' ? 'Task' : 'Event'}
-                          </span>
-                          <span className="truncate text-body text-fg">{entry.title}</span>
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            <aside
+              aria-label="What this page is connected to"
+              className="shrink-0 border-t border-stroke-subtle p-4 xl:w-80 xl:overflow-y-auto xl:border-t-0 xl:border-l"
+            >
+              <Connections page={open} onOpenPage={openPage} onOpenItem={onOpenItem} />
+            </aside>
           </div>
         )}
       </div>

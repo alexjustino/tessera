@@ -223,19 +223,34 @@
    break the line it is written on. A link whose page does not exist yet is
    dotted and dimmer — a wiki where a broken link looks like a good one is a
    wiki that lies about what it holds. */
-.tessera-prose a[data-page-link] {
+.tessera-prose a[data-page-link],
+.tessera-prose a[data-task-link] {
+  padding: 0 0.3em;
+  border-radius: var(--radius-sm);
   color: var(--accent-base);
+  background: var(--accent-subtle);
   text-decoration: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-base) 40%, transparent);
+  border-bottom: 1px solid var(--accent-base);
   cursor: pointer;
   white-space: nowrap;
 }
-.tessera-prose a[data-page-link]:hover {
-  border-bottom-color: var(--accent-base);
+.tessera-prose a[data-page-link]:hover,
+.tessera-prose a[data-task-link]:hover {
+  background: color-mix(in srgb, var(--accent-base) 22%, transparent);
+}
+.tessera-prose a[data-task-link] {
+  color: var(--fg-primary);
+  background: var(--surface-card-hover);
+  border-bottom-color: var(--stroke-strong);
 }
 .tessera-prose a[data-page-link][data-missing] {
   color: var(--fg-tertiary);
-  border-bottom-style: dotted;
+  background: transparent;
+  border-bottom: 1px dotted var(--stroke-strong);
+}
+/* A page's text fills the height there is, so the whole of it takes a click. */
+.tessera-fill .tessera-prose {
+  min-height: 55vh;
 }
 .tessera-prose a[data-page-link].ProseMirror-selectednode {
   outline: 2px solid var(--accent-base);
