@@ -998,3 +998,26 @@ onto the hours so the reason is always one click away from the number.
 first hour and unplanned in the second — the tile knows its hour, not the intention behind it.
 Tracking a different task than the block, for good reason, still splits the tile; the person
 reads the reason in the row.
+
+## ADR-040 — Warnings count back from the due time, and move with it {#adr-040}
+
+**Context.** One reminder says "do not forget". The owner asked for what a clock's alarms do: a
+deadline at 10:00 on the 7th, with one warning on the 4th, two on the 5th, three on the 6th.
+
+**Decision.** A task holds any number of warnings, as rows of kind `warning` in the `reminder`
+table, beside the one `absolute` reminder that `remind_at` keeps in step (ADR-010's single pipeline,
+so the scheduler needed no change). No migration: the table always allowed it, and only
+`sync_for_item` assumed one. A warning is an instant. When the due time moves, the waiting ones
+move by the same amount; when it is cleared, they go; one that went off stays as a record. The same
+instant twice is one alarm. The code is `db/reminders.rs` and `src/domain/warnings.ts`.
+
+**Why they move.** A warning is meant as "this long before", even when picked as a date. Left
+behind, every one would be wrong the moment the plan changed, and a person would have to redo the
+whole set. The screen says so.
+
+**Why a warning needs a due time.** It precedes something. A free-standing alarm is a calendar
+event, and the calendar has those.
+
+**Cost accepted.** A repeating task carries its waiting warnings to the next occurrence by the same
+rule, but one that went off is not armed again, so a repeating task runs out of warnings. A
+warning cannot be labelled, and it fires the same notification as any other.
