@@ -392,10 +392,6 @@ export function TasksPage({
         </CaptureLine>
       </div>
 
-      {(place === 'tasks' || place === 'today') && items.isSuccess && (
-        <GettingStarted items={items.data} onOpenSettings={onOpenSettings} />
-      )}
-
       {failure && (
         <InfoBar
           severity="danger"
@@ -456,6 +452,12 @@ export function TasksPage({
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
+        {/* Inside what scrolls: above it, the guide would squeeze the list to nothing. */}
+        {(place === 'tasks' || place === 'today') && items.isSuccess && (
+          <div className="mb-3">
+            <GettingStarted items={items.data} onOpenSettings={onOpenSettings} />
+          </div>
+        )}
         {readFailed ? null : items.isPending ? (
           <div className="flex flex-col gap-1" aria-hidden="true">
             {[0, 1, 2].map((skeleton) => (
