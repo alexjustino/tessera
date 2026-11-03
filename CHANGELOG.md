@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Markers on a line.** A line in a page or a task's notes can be marked To do, Important,
+  Question, Decision or Follow up, from the bar or with Ctrl+1 to Ctrl+5, and it says so in a
+  word. Marked lines, in Notes, gathers them all under their markers, one press from where
+  each was written.
 - **A task and its notes.** A task's notes are now the first thing in it. Start a page from
   a task, or link one that exists, and the page lists its tasks, each one press from the
   other. A task named in a page's Linked from opens too. The pair outlives edits to the text,
