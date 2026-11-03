@@ -11,14 +11,14 @@ import {
 import { describeError } from '@/data/errors';
 import { useExport, useImportJson } from '@/data/hooks';
 import { Button } from '@/ui/Button';
-import { Card } from '@/ui/Card';
 import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { InfoBar } from '@/ui/InfoBar';
+import { SettingGroup, SettingRow } from '@/ui/Setting';
 
 const KINDS: ReadonlyArray<{ kind: ExportKind; label: string; note: string }> = [
-  { kind: 'json', label: 'JSON', note: 'everything, and the only form that imports' },
-  { kind: 'markdown', label: 'Markdown', note: 'tasks and notes, readable anywhere' },
-  { kind: 'ics', label: 'iCalendar', note: 'events and dated tasks, for Outlook and others' },
+  { kind: 'json', label: 'JSON', note: 'Everything, and the only form that imports.' },
+  { kind: 'markdown', label: 'Markdown', note: 'Tasks and notes, readable anywhere.' },
+  { kind: 'ics', label: 'iCalendar', note: 'Events and dated tasks, for Outlook and others.' },
 ];
 
 /**
@@ -68,64 +68,61 @@ export function ExportImportCard() {
   const failure = doExport.error ?? doImport.error;
 
   return (
-    <Card
-      title="Export and import"
-      description="Your data as files you own. Import here replaces the workspace; to add to it instead, use the card below."
-    >
-      <div className="flex flex-col gap-3">
-        {failure && (
-          <InfoBar severity="danger" title="That did not complete">
-            {describeError(failure)}
-          </InfoBar>
-        )}
-        {inspectError && (
-          <InfoBar severity="caution" title="That file cannot be imported">
-            {inspectError}
-          </InfoBar>
-        )}
-        {exported && (
-          <InfoBar severity="success" title="Exported">
-            <span data-selectable className="font-mono text-caption">
-              {exported}
-            </span>
-          </InfoBar>
-        )}
-        {imported && (
-          <InfoBar severity="success" title="The workspace was replaced">
-            {imported} The state before the import was backed up first.
-          </InfoBar>
-        )}
+    <>
+      {failure && (
+        <InfoBar severity="danger" title="That did not complete">
+          {describeError(failure)}
+        </InfoBar>
+      )}
+      {inspectError && (
+        <InfoBar severity="caution" title="That file cannot be imported">
+          {inspectError}
+        </InfoBar>
+      )}
+      {exported && (
+        <InfoBar severity="success" title="Exported">
+          <span data-selectable className="font-mono text-caption">
+            {exported}
+          </span>
+        </InfoBar>
+      )}
+      {imported && (
+        <InfoBar severity="success" title="The workspace was replaced">
+          {imported} The state before the import was backed up first.
+        </InfoBar>
+      )}
 
-        <ul className="flex flex-col gap-2">
-          {KINDS.map(({ kind, label, note }) => (
-            <li key={kind} className="flex items-center gap-3">
-              <Button
-                icon={<ArrowDownload20Regular />}
-                onClick={() => void startExport(kind)}
-                disabled={doExport.isPending}
-                className="w-44 justify-start"
-              >
-                Export {label}
-              </Button>
-              <span className="text-caption text-fg-tertiary">{note}</span>
-            </li>
-          ))}
-        </ul>
+      <SettingGroup title="Export" description="Your data as files you own.">
+        {KINDS.map(({ kind, label, note }) => (
+          <SettingRow key={kind} title={label} description={note}>
+            <Button
+              icon={<ArrowDownload20Regular />}
+              onClick={() => void startExport(kind)}
+              disabled={doExport.isPending}
+            >
+              Export {label}
+            </Button>
+          </SettingRow>
+        ))}
+      </SettingGroup>
 
-        <div className="flex items-center gap-3 border-t border-stroke-subtle pt-3">
+      <SettingGroup
+        title="Replace this workspace"
+        description="To add to it instead, use Add from another product."
+      >
+        <SettingRow
+          title="From a Tessera export"
+          description="The file is inspected and you are asked before anything changes."
+        >
           <Button
             icon={<ArrowUpload20Regular />}
             onClick={() => void startImport()}
             disabled={doImport.isPending}
-            className="w-44 justify-start"
           >
             Import JSON…
           </Button>
-          <span className="text-caption text-fg-tertiary">
-            a Tessera export from this version; the file is inspected before anything changes
-          </span>
-        </div>
-      </div>
+        </SettingRow>
+      </SettingGroup>
 
       <ConfirmDialog
         open={candidate !== null}
@@ -140,6 +137,6 @@ export function ExportImportCard() {
         {candidate?.counts.blocks} blocks. Everything in the workspace now will be replaced by them.
         A backup of the current state is taken first.
       </ConfirmDialog>
-    </Card>
+    </>
   );
 }

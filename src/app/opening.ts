@@ -3,15 +3,17 @@
  *
  * It is drawn by `index.html`, before any of this code has loaded, because that
  * is the moment it exists for. All this does is take it away once there is
- * something to show. It never holds the window longer than its own short
- * animation, and it never takes a press: the window underneath is already live.
+ * something to show. It holds the window only for its own moment, and it never takes a press: the window underneath is already live.
  */
 
-/** Long enough for the tiles to land, so it reads as an arrival and not a flicker. */
-const SHOWN_AT_LEAST_MS = 1100;
+/**
+ * Long enough for the tiles to land and the name to be read: the owner's review
+ * of 1.4 found the shorter one over before it had been seen.
+ */
+const SHOWN_AT_LEAST_MS = 2400;
 
-/** The fade out. Matches the transition in `index.html`. */
-const FADE_MS = 300;
+/** The fade out. Matches the transition in `opening.css`. */
+const FADE_MS = 500;
 
 /** How long the opening should stay, given how long it has been up. */
 export function remainingMs(elapsedMs: number, shownAtLeastMs = SHOWN_AT_LEAST_MS): number {

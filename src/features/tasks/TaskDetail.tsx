@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+
 import { Target20Regular } from '@fluentui/react-icons';
 
 import { useRenameItem, useSetPropertyValue, useSetSchedule } from '@/data/hooks';
@@ -5,7 +7,8 @@ import { type Timing } from '@/domain/criticalPath';
 import { checkTitle, type Item } from '@/domain/item';
 import { type Schedule } from '@/domain/schedule';
 import { type Property, type PropertyValue } from '@/domain/property';
-import { Editor } from '@/features/editor/Editor';
+import { Editor } from '@/app/lazyPages';
+import { Skeleton } from '@/ui/Skeleton';
 
 import { Dependencies } from './Dependencies';
 import { LinkedNotes } from './LinkedNotes';
@@ -36,6 +39,7 @@ export function TaskDetail({
   onClose,
   onFocus,
   onOpenPage,
+  onOpenItem,
 }: {
   task: Item | null;
   /** Every task in the collection — what the dependency picker offers. */
@@ -49,6 +53,8 @@ export function TaskDetail({
   onFocus?: ((id: string) => void) | undefined;
   /** Go to a page about this task. */
   onOpenPage?: ((pageId: string) => void) | undefined;
+  /** Go to another task, from a link in this one's notes. */
+  onOpenItem?: ((itemId: string) => void) | undefined;
 }) {
   const setValue = useSetPropertyValue();
   const setSchedule = useSetSchedule();
@@ -118,13 +124,17 @@ export function TaskDetail({
           <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Notes</h3>
           {/* Keyed on the item, so opening a different task builds a fresh
               editor rather than pouring one document into another's state. */}
-          <Editor
-            key={task.id}
-            ownerKind="item"
-            ownerId={task.id}
-            label={`Notes on ${task.title}`}
-            subject={task.title}
-          />
+          <Suspense fallback={<Skeleton />}>
+            <Editor
+              key={task.id}
+              ownerKind="item"
+              ownerId={task.id}
+              label={`Notes on ${task.title}`}
+              subject={task.title}
+              onOpenPage={onOpenPage}
+              onOpenItem={onOpenItem}
+            />
+          </Suspense>
         </section>
       )}
 
