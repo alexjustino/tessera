@@ -34,7 +34,7 @@
  */
 
 import { addLocalDays, type Occurrence, type WorkHours } from './calendar';
-import { capacityOf, plannedByDay } from './capacity';
+import { capacityOf, workingMinutesLeft, plannedByDay } from './capacity';
 import type { Goal, GoalLink } from './goal';
 import type { Edge } from './graph';
 import type { Item } from './item';
@@ -68,6 +68,11 @@ export interface LedgerInput {
    * prices the estimates as typed.
    */
   scale?: number;
+  /**
+   * The minute of `today` it is now. What has gone of today cannot hold work,
+   * so without it, work given to this morning simply vanishes in the afternoon.
+   */
+  minuteNow?: number;
 }
 
 /** A change being considered. Nothing is saved by considering it. */
@@ -161,7 +166,12 @@ export function project(input: LedgerInput): Projection {
   const future = input.occurrences.filter((o) => localDay(o.endsAt, input.zone) >= input.today);
   const reserved = plannedByDay(future, input.zone);
   const free = days.map((day) =>
-    Math.max(0, capacityOf(day, input.hours, input.daysOff) - (reserved.get(day) ?? 0)),
+    Math.max(
+      0,
+      (day === input.today && input.minuteNow !== undefined
+        ? workingMinutesLeft(day, input.hours, input.daysOff, input.minuteNow)
+        : capacityOf(day, input.hours, input.daysOff)) - (reserved.get(day) ?? 0),
+    ),
   );
 
   // Time already reserved for a task, and the last day it is reserved on.

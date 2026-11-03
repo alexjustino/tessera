@@ -185,3 +185,16 @@ export function weekOf(day: string, startsOn = 1): string[] {
   const first = addLocalDays(day, -offset);
   return Array.from({ length: 7 }, (_, index) => addLocalDays(first, index));
 }
+
+/** Working minutes left in a day at a given minute of it: none before it has gone. */
+export function workingMinutesLeft(
+  day: string,
+  hours: readonly WorkHours[],
+  daysOff: ReadonlySet<string> | undefined,
+  minuteNow: number,
+): number {
+  const whole = capacityOf(day, hours, daysOff ?? NONE);
+  const span = workingSpan(day, hours);
+  if (span === null) return whole;
+  return Math.max(0, whole - Math.max(0, minuteNow - span.startsMinute));
+}
