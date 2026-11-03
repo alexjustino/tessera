@@ -4,9 +4,178 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tessera</title>
+    <!--
+      The opening. Here and not in a stylesheet or a component, because it exists
+      for the moment before any of those have loaded. src/app/opening.ts takes it
+      away. It draws the mark from src-tauri/icons/tessera.svg, tile by tile.
+    -->
+    <style>
+      #opening {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        pointer-events: none;
+        background: #f3f3f3;
+        color: #1b1b1b;
+        font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+        transition: opacity 300ms cubic-bezier(0.1, 0.9, 0.2, 1);
+      }
+      #opening.opening-dark {
+        background: #202020;
+        color: #ffffff;
+      }
+      #opening.opening-leaving {
+        opacity: 0;
+      }
+      #opening svg {
+        width: 112px;
+        height: 112px;
+        overflow: visible;
+      }
+      #opening rect {
+        transform-box: fill-box;
+        transform-origin: center;
+        opacity: 0;
+        animation: opening-tile 520ms cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+      }
+      #opening rect:nth-of-type(1) {
+        --from: 0, 0;
+        animation-delay: 0ms;
+      }
+      #opening rect:nth-of-type(2) {
+        --from: -16px, -16px;
+        animation-delay: 140ms;
+      }
+      #opening rect:nth-of-type(3) {
+        --from: 16px, -16px;
+        animation-delay: 230ms;
+      }
+      #opening rect:nth-of-type(4) {
+        --from: -16px, 16px;
+        animation-delay: 320ms;
+      }
+      /* The lighter tile, set last: the piece being placed. */
+      #opening rect:nth-of-type(5) {
+        --from: 28px, 28px;
+        animation-delay: 460ms;
+      }
+      #opening p {
+        margin: 0;
+        opacity: 0;
+        animation: opening-words 420ms ease-out 620ms forwards;
+      }
+      #opening .opening-name {
+        font-size: 28px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      #opening .opening-greeting {
+        margin-top: -12px;
+        font-size: 14px;
+        opacity: 0;
+      }
+      @keyframes opening-tile {
+        from {
+          opacity: 0;
+          transform: translate(var(--from)) scale(0.82);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      @keyframes opening-words {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 0.85;
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #opening rect,
+        #opening p {
+          animation: none;
+          opacity: 1;
+        }
+      }
+    </style>
   </head>
   <body>
+    <div id="opening" aria-hidden="true" hidden>
+      <svg viewBox="0 0 256 256">
+        <defs>
+          <linearGradient id="opening-ground" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1a8ae0" />
+            <stop offset="1" stop-color="#0060b0" />
+          </linearGradient>
+        </defs>
+        <rect width="256" height="256" rx="56" fill="url(#opening-ground)" />
+        <rect x="56" y="56" width="64" height="64" rx="14" fill="#ffffff" />
+        <rect x="136" y="56" width="64" height="64" rx="14" fill="#ffffff" />
+        <rect x="56" y="136" width="64" height="64" rx="14" fill="#ffffff" />
+        <rect x="142" y="142" width="64" height="64" rx="14" fill="#a6dcff" />
+      </svg>
+      <p class="opening-name">Tessera</p>
+      <p class="opening-greeting" id="opening-greeting"></p>
+    </div>
     <div id="root"></div>
+    <script>
+      // Only the main window opens this way: quick capture has to appear at once.
+      (function () {
+        var element = document.getElementById('opening');
+        var label = '';
+        try {
+          label = window.__TAURI_INTERNALS__.metadata.currentWindow.label;
+        } catch (error) {
+          label = 'main';
+        }
+        if (label !== 'main') {
+          element.remove();
+          return;
+        }
+
+        // Remembered by the application, because the setting itself is still on disk.
+        var stored = null;
+        var opened = null;
+        try {
+          stored = localStorage.getItem('tessera.theme');
+          opened = localStorage.getItem('tessera.opened');
+          localStorage.setItem('tessera.opened', '1');
+        } catch (error) {
+          // A profile that refuses storage opens as it would on a first run.
+        }
+        var dark =
+          stored === 'dark' ||
+          (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) element.classList.add('opening-dark');
+
+        var hour = new Date().getHours();
+        document.getElementById('opening-greeting').textContent =
+          opened === null
+            ? 'Welcome'
+            : hour < 5
+              ? 'Working late'
+              : hour < 12
+                ? 'Good morning'
+                : hour < 18
+                  ? 'Good afternoon'
+                  : 'Good evening';
+        element.hidden = false;
+
+        // If the application never starts, the opening must not sit over the window.
+        setTimeout(function () {
+          element.remove();
+        }, 8000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
