@@ -12,6 +12,7 @@ pub mod dependencies;
 pub mod export;
 pub mod goals;
 pub mod importing;
+pub mod item_pages;
 pub mod items;
 pub mod migrations;
 pub mod models;

@@ -45,6 +45,7 @@ pub const TABLES: &[&str] = &[
     "page_link",
     "goal",
     "goal_item",
+    "item_page",
     "view",
     "reminder",
     "activity",

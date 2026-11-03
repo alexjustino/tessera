@@ -12,6 +12,7 @@ pub mod days_off;
 pub mod dependencies;
 pub mod goals;
 pub mod importing;
+pub mod item_pages;
 pub mod items;
 pub mod pages;
 pub mod properties;
