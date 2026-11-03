@@ -229,6 +229,17 @@ Identity is `--series-1` to `--series-6`, in that order, for telling goals apart
 the palette validator in both themes and is never used for state: late, done and at risk keep the
 `--state-*` tokens.
 
+### A screen fails on its own
+
+Each screen sits in an `ErrorBoundary`. A render that throws says so and that the work is safe, and the
+rail stays, so going elsewhere is the way out. A blank window with no way out is the one failure a person
+cannot read (ADR-048).
+
+### A suggestion is dashed
+
+Time the plan proposes is drawn with a dashed border and says so, because it is not there yet. A dashed
+block is never counted as reserved, and pressing or moving it is what makes it solid (ADR-046).
+
 ### Settings
 
 One section at a time, chosen from a list on the left. A section is `SettingGroup`s of `SettingRow`s:

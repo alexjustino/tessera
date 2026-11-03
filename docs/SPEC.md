@@ -53,14 +53,14 @@ Gantt · arbitrary attachments · auto-update · AI.
 
 ### The release train
 
-| Release   | Theme               | Contents                                                                                                                                                                                             |
-| --------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1.0.0** | The workspace       | the list above                                                                                                                                                                                       |
-| 1.1.0     | The project manager | year view · timeline and Gantt · dependencies with critical path · milestones · time tracking · focus mode · reports · templates · daily capacity                                                    |
-| 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                                                                         |
-| 1.3.0     | The ledger          | the price of yes · dates with confidence · days off · the week mosaic · envelopes · the split tile                                                                                                   |
-| 1.4.0     | The notebook        | a first run that asks · Today as a place · the week to use, not only read · warnings before a deadline · the formatting bar · markers · follow-ups from a line · a task and its pages · email drafts |
-| 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                                                                   |
+| Release   | Theme               | Contents                                                                                                                                                                                                                                                        |
+| --------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1.0.0** | The workspace       | the list above                                                                                                                                                                                                                                                  |
+| 1.1.0     | The project manager | year view · timeline and Gantt · dependencies with critical path · milestones · time tracking · focus mode · reports · templates · daily capacity                                                                                                               |
+| 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                                                                                                                                    |
+| 1.3.0     | The ledger          | the price of yes · dates with confidence · days off · the week mosaic · envelopes · the split tile                                                                                                                                                              |
+| 1.4.0     | The notebook        | a first run that asks · Today as a place · a score for the day · a suggested plan · the week to use, not only read · warnings before a deadline · the formatting bar · markers · follow-ups from a line · a task and its pages · links that open · email drafts |
+| 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                                                                                                                              |
 
 ### 1.1.0 — the project manager
 
@@ -216,6 +216,13 @@ window; a goal can have no finish line (ADR-043); an opening; warnings before a 
 (ADR-040); and Diagnostics moves to About. The notes: the formatting bar, markers and Marked lines,
 follow-ups, a task and its pages (ADR-041), and email drafts (ADR-042).
 
+The second round, from the owner's UAT of that candidate: Today, Tasks, Review and Reports lead with
+figures, with a score for the day that shows its sum (ADR-045); the Board marks what is for today; the
+calendar suggests a plan that nothing is written from until the person takes or moves it (ADR-046); the
+Mosaic becomes a wall of goals with a queue, an inspector and a history; links in the text open and say
+what they point at, and `[[` reaches tasks (ADR-047); goals are cards; Settings shows one section at a
+time; and screens are read on demand, each failing on its own (ADR-048).
+
 Rules for this line: **no network, still** (ADR-012), so an email is a draft file in the person's
 own mail program. **A marker is meaning, not style**, stored on the line and never a colour alone.
 **A follow-up is a task**, with the same dates and reminders as any other.
@@ -223,7 +230,9 @@ own mail program. **A marker is meaning, not style**, stored on the line and nev
 What 1.4 deliberately does not add: handwriting and ink, audio recording, sections beyond pages,
 shared notebooks, sending mail. Left for a later line: a person's own markers, a checkbox on the To
 do marker, going to the exact line from Marked lines, a follow-up's completion marking its line, and
-meeting notes started from an event.
+meeting notes started from an event. From the second round: keeping a task left out of the plan
+across a restart, resizing a block from its top edge, moving a whole week's plan at once, and a
+history of the day's score.
 
 ## 3. Architecture
 

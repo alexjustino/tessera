@@ -51,6 +51,10 @@ that a later one narrows says so and points at it.
 | [042](#adr-042) | An email leaves as a draft file, and Tessera never sends one                 | Accepted |
 | [043](#adr-043) | A goal may have no finish line                                               | Accepted |
 | [044](#adr-044) | The week starts from now, and a tile can be pressed                          | Accepted |
+| [045](#adr-045) | A day's score is arithmetic a person can check                               | Accepted |
+| [046](#adr-046) | A suggested plan is computed and never stored                                | Accepted |
+| [047](#adr-047) | A link in the text opens, and says what it points at first                   | Accepted |
+| [048](#adr-048) | Screens are read on demand, and one failing does not take the window         | Accepted |
 
 ---
 
@@ -1089,3 +1093,76 @@ Pressing is the person acting, with the same effect as typing an estimate or dra
 
 **Cost accepted.** A date on the receipt can change during the day with nothing else changing, which
 is correct and may surprise. ADR-037's tile is still a drawing of minutes, now one that responds.
+
+## ADR-045 — A day's score is arithmetic a person can check {#adr-045}
+
+**Context.** The owner's second UAT asked Today for a score: how you are doing today, at a glance. A
+score nobody can take apart is a mood, and it would be the first number in this product that does not
+open onto what made it (ADR-024).
+
+**Decision.** Three parts, out of 100, with the sum written beside each (`src/domain/pulse.ts`).
+Delivered is worth 50: of the work that is yours today, the share finished. Focus is worth 25: of the
+working time gone so far, the share with a clock running. Planned is worth 25: of the work due within
+seven days, the share with time set aside. A part with nothing to measure takes no points either way,
+and the total is scaled to what was measured, so a quiet morning does not read as a bad one. Nothing
+measured means no score, said in words. The bands have names (Behind, Steady, On track, Ahead), so the
+reading is never a colour alone.
+
+**Why these weights.** Delivering is what the day is for, so it holds half; the other two are means to
+it. They are a judgement, and they are written on the screen.
+
+**Cost accepted.** Someone who works without the clock is never scored on focus, and a person can raise
+the score by reserving time they will not use. It reports; it does not police. It is not stored, so
+there is no history of scores, only of what they were made from.
+
+## ADR-046 — A suggested plan is computed and never stored {#adr-046}
+
+**Context.** The owner: tasks do not reach the calendar without a dedicated step, when the system could
+model the work and suggest it, and the person moves what they need to. SPEC 1.3 and ADR-034 say to show
+the cost and never decide.
+
+**Decision.** `suggestPlan` (`src/domain/autoPlan.ts`) lays open work into the free working time, from
+now, for three weeks: earliest date first, then priority, never over an event, never on a day off, never
+before what blocks it or its own start. The calendar draws it dashed, by itself, with nobody asking. Nothing
+is written. Accepting a block, accepting them all, or dragging one is what makes a reservation, and the rest
+flow around it because they are only arithmetic.
+
+**How this keeps ADR-034.** The ledger still moves nothing. A suggestion is a reading of the workspace, like
+a committed tile, and the person's press is what changes it. A task with no estimate is planned at an hour and
+marked as assumed (ADR-020). What lands after its date is marked; what does not fit is listed, not dropped.
+
+**Cost accepted.** Moving one suggestion moves others, which can surprise. Leaving a task out of the plan lasts
+for the session only, since keeping it would need a store for something that is meant to be disposable.
+Committed tiles (ADR-037) and suggestions read the same work in two ways: the first says how many hours a day
+is holding, the second at what hour. They can differ on an individual tile.
+
+## ADR-047 — A link in the text opens, and says what it points at first {#adr-047}
+
+**Context.** The owner could not tell that a page link was a link. They were right: pressing one did nothing,
+and it looked like a word with a line under it. Nothing said whether a name found a page until the page had
+been opened.
+
+**Decision.** A link is drawn as a chip and pressing it goes there; pressing a name with no page makes that page.
+The pointer or the focus shows what it points at, and the `[[` menu shows the same thing before a choice is made,
+so the check comes before the link exists. Beside the page, Connections lists every link in it and whether it
+finds its page, with the press that fixes one that does not. `[[` offers tasks too, as a `taskLink` node of the
+same shape as `pageLink` (ADR-029): an identity beside the words it shows, refreshed on opening. Naming a task on
+a page also pairs the two (ADR-041).
+
+**Cost accepted.** A press on a link is no longer a way to put the caret next to it: the arrow keys are. Removing a
+task link from the text leaves the pair, because the pair is the person's own and outlives edits (ADR-041).
+
+## ADR-048 — Screens are read on demand, and one failing does not take the window {#adr-048}
+
+**Context.** Everything was one 1.4 MB script, parsed on every start, including a code highlighter for a notes page
+nobody had opened. And a render that threw left a blank window with no way out, which the suite found the moment the
+first change here broke one.
+
+**Decision.** Every screen but Tasks, and the editor, load on demand (`src/app/lazyPages.ts`), and all of them are read
+in the background once the window has settled. A navigation is a transition, so a screen not yet read keeps the last one up
+rather than flashing a shape. Each screen sits in an `ErrorBoundary` keyed on it: a failure says so, says the work is safe,
+and the rail stays. The editor guards against `useEditor` destroying an instance rendered inside Suspense before it mounted.
+
+**Cost accepted.** Many small files instead of one. The result on start was measured release against release; see the
+release notes for the figures. E2E lookups now give a screen a moment to arrive, except `findAll`, which is what asks whether
+something is absent.
