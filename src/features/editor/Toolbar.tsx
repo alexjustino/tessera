@@ -127,18 +127,19 @@ export function Toolbar({ editor }: { editor: TipTapEditor }) {
         {button('Undo', <ArrowUndo20Regular />, () => chain().undo().run(), false, !state.canUndo)}
         {button('Redo', <ArrowRedo20Regular />, () => chain().redo().run(), false, !state.canRedo)}
         <Divider />
-        <Select
-          aria-label="Text style"
-          value={state.style}
-          className="w-32"
-          onChange={(event) => setStyle(event.target.value as StyleId)}
-        >
-          {STYLES.map((style) => (
-            <option key={style.id} value={style.id}>
-              {style.label}
-            </option>
-          ))}
-        </Select>
+        <div className="w-36 shrink-0">
+          <Select
+            aria-label="Text style"
+            value={state.style}
+            onChange={(event) => setStyle(event.target.value as StyleId)}
+          >
+            {STYLES.map((style) => (
+              <option key={style.id} value={style.id}>
+                {style.label}
+              </option>
+            ))}
+          </Select>
+        </div>
         <Divider />
         {button('Bold', <TextBold20Regular />, () => chain().toggleBold().run(), state.bold)}
         {button(
