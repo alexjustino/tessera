@@ -448,6 +448,11 @@ export function useCreateTimeBlock() {
   return useMutation({ mutationFn: calendarApi.createTimeBlock, onSuccess: invalidate });
 }
 
+export function useCreateEvent() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: calendarApi.createEvent, onSuccess: invalidate });
+}
+
 // ── Reminders ───────────────────────────────────────────────────────────────
 
 export const reminderKeys = {
