@@ -144,15 +144,20 @@ describe('accessibility', () => {
     ['light', 'Calendar'],
     ['light', 'Mosaic'],
     ['light', 'Notes'],
+    ['light', 'Goals'],
+    ['light', 'Review'],
     ['light', 'Reports'],
     ['light', 'Settings'],
     ['light', 'Diagnostics'],
     ['light', 'About'],
     ['dark', 'Tasks'],
+    ['dark', 'Today'],
     ['dark', 'Board'],
     ['dark', 'Calendar'],
     ['dark', 'Mosaic'],
     ['dark', 'Notes'],
+    ['dark', 'Goals'],
+    ['dark', 'Review'],
     ['dark', 'Reports'],
     ['dark', 'Settings'],
     ['dark', 'About'],
@@ -174,6 +179,41 @@ describe('accessibility', () => {
       ),
     ).toEqual([]);
   });
+
+  // Settings shows one section at a time, so each one is its own screen to audit.
+  it.each([
+    ['light', 'Working time'],
+    ['light', 'Backups'],
+    ['light', 'Export and import'],
+    ['light', 'Add from another product'],
+    ['dark', 'Working time'],
+    ['dark', 'Backups'],
+    ['dark', 'Export and import'],
+    ['dark', 'Add from another product'],
+  ] as const)(
+    '%s theme: Settings, %s has no serious or critical violation',
+    async (theme, section) => {
+      const { driver } = session;
+      const current = await driver.execute<string | null>(
+        'return document.documentElement.getAttribute("data-theme")',
+      );
+      if (current !== theme) await setTheme(theme);
+      await goTo('Settings');
+      await (
+        await driver.waitFor('the section', () =>
+          driver.findByXPath(
+            `//nav[@aria-label="Settings sections"]//button[normalize-space(.)="${section}"]`,
+          ),
+        )
+      ).click();
+      const serious = await audit(`Settings ${section}`, theme);
+      expect(
+        serious.map(
+          (v) => `${v.id}: ${v.help} → ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`,
+        ),
+      ).toEqual([]);
+    },
+  );
 
   it('the open palette and the task detail drawer pass too', async () => {
     const { driver } = session;
