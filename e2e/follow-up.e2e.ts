@@ -51,7 +51,9 @@ describe('a follow-up from a line', () => {
     const { driver } = session;
     await (await driver.findByXPath('//nav//button[normalize-space(.)="Tasks"]')).click();
     await driver.waitForText('Send Dragos the quote');
-    await driver.waitForElement('input[aria-label="Complete Send Dragos the quote"]');
+    await driver.waitFor('the row', () =>
+      driver.find('input[aria-label="Complete Send Dragos the quote"]'),
+    );
   });
 
   // ── Negative case ──────────────────────────────────────────────────────
