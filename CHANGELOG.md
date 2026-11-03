@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   like alarms on a clock: one on Monday, two on Tuesday, three the day before, from a
   preset or at any time you pick. Each is a Windows notification. They move when the due
   time moves, stop when the task is done, and the ones that went off stay listed.
+- **The installers carry the mark.** Both show it in their top band and on their first and
+  last pages, instead of the generated pictures.
 - **The opening.** Tessera opens with its mark set tile by tile and a welcome, then the
   mark fades as the workspace appears. It plays once, follows your theme, and is still if
   Windows is asked for less motion.
