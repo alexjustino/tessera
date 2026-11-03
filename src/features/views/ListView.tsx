@@ -281,7 +281,16 @@ function DueChip({ task }: { task: Item }) {
   return (
     <span className="hidden shrink-0 sm:block">
       <Chip
-        tone={bucket === 'overdue' ? 'danger' : bucket === 'today' ? 'caution' : 'neutral'}
+        // Finished is finished: a date in the past is no longer a problem to flag.
+        tone={
+          task.completedAt !== null
+            ? 'neutral'
+            : bucket === 'overdue'
+              ? 'danger'
+              : bucket === 'today'
+                ? 'caution'
+                : 'neutral'
+        }
         title={new Date(task.dueAt).toLocaleString()}
       >
         {repeats && <ArrowRepeatAll16Regular aria-hidden="true" />}
