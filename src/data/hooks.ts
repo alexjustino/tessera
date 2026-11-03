@@ -320,6 +320,11 @@ export const blockKeys = {
   blocks: (ownerKind: string, ownerId: string) => ['blocks', ownerKind, ownerId] as const,
 };
 
+/** Every block with a marker in it. Refetched whenever any document is saved. */
+export function useMarkedBlocks() {
+  return useQuery({ queryKey: ['marked-blocks'], queryFn: blockApi.listMarkedBlocks });
+}
+
 export function useBlocks(ownerKind: string, ownerId: string | null) {
   return useQuery({
     queryKey: blockKeys.blocks(ownerKind, ownerId ?? ''),
@@ -356,6 +361,7 @@ export function useApplyBlocks() {
       client.setQueryData(blockKeys.blocks(variables.ownerKind, variables.ownerId), blocks);
       // A save changes what points where, so every backlink list is stale.
       void client.invalidateQueries({ queryKey: ['backlinks'] });
+      void client.invalidateQueries({ queryKey: ['marked-blocks'] });
     },
   });
 }

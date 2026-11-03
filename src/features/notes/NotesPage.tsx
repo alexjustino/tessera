@@ -3,6 +3,7 @@ import {
   Delete20Regular,
   Link20Regular,
   Rename20Regular,
+  TagMultiple20Regular,
 } from '@fluentui/react-icons';
 import { useMemo, useState } from 'react';
 
@@ -12,6 +13,7 @@ import { between } from '@/domain/ordering';
 import { checkTitle, titleKey, UNTITLED, type Page } from '@/domain/page';
 import { Editor } from '@/features/editor/Editor';
 import { LinkedTasks } from './LinkedTasks';
+import { MarkedLines } from './MarkedLines';
 import { Button } from '@/ui/Button';
 import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { EmptyState } from '@/ui/EmptyState';
@@ -46,6 +48,7 @@ export function NotesPage({
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [filter, setFilter] = useState('');
+  const [showMarked, setShowMarked] = useState(false);
 
   const all = useMemo(() => pages.data ?? [], [pages.data]);
   // Which page is open is derived, not synchronised: the state holds what the
@@ -76,6 +79,7 @@ export function NotesPage({
         onSuccess: (page) => {
           setOpenId(page.id);
           setDraftTitle(page.title);
+          setShowMarked(false);
           announce(`${page.title} created`);
         },
       },
@@ -118,20 +122,36 @@ export function NotesPage({
           <IconButton label="New page" icon={<Add20Regular />} onClick={add} />
         </div>
 
+        <button
+          type="button"
+          aria-current={showMarked ? 'true' : undefined}
+          onClick={() => setShowMarked(true)}
+          className={[
+            'flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-body',
+            showMarked ? 'bg-card-hover text-fg' : 'text-fg-secondary hover:bg-card-hover',
+          ].join(' ')}
+        >
+          <TagMultiple20Regular aria-hidden="true" />
+          Marked lines
+        </button>
+
         <ul className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
           {shown.map((page) => (
             <li key={page.id}>
               <button
                 type="button"
                 aria-label={`Open ${page.title}`}
-                aria-current={page.id === open?.id ? 'true' : undefined}
+                aria-current={!showMarked && page.id === open?.id ? 'true' : undefined}
                 onClick={() => {
                   setOpenId(page.id);
                   setDraftTitle(null);
+                  setShowMarked(false);
                 }}
                 className={[
                   'w-full truncate rounded-md px-2 py-1.5 text-left text-body',
-                  page.id === open?.id ? 'bg-card-hover text-fg' : 'text-fg-secondary',
+                  !showMarked && page.id === open?.id
+                    ? 'bg-card-hover text-fg'
+                    : 'text-fg-secondary',
                 ].join(' ')}
               >
                 {page.title}
@@ -150,7 +170,19 @@ export function NotesPage({
           </div>
         )}
 
-        {open === null ? (
+        {showMarked ? (
+          <MarkedLines
+            onOpen={(line) => {
+              if (line.ownerKind === 'item') {
+                onOpenItem?.(line.ownerId);
+                return;
+              }
+              setOpenId(line.ownerId);
+              setDraftTitle(null);
+              setShowMarked(false);
+            }}
+          />
+        ) : open === null ? (
           <div className="flex flex-col gap-4 p-6">
             {/* The screen keeps a heading even with nothing in it: every other
                 destination has one, and a page that loses its outline when it

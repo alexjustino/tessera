@@ -20,10 +20,13 @@ import { useEditorState, type Editor as TipTapEditor } from '@tiptap/react';
 import { useState, type ReactNode } from 'react';
 
 import { checkLink } from '@/domain/document';
+import { MARKER_ATTR, MARKERS, type MarkerId } from '@/domain/markers';
 import { Button } from '@/ui/Button';
 import { IconButton } from '@/ui/IconButton';
 import { Input } from '@/ui/Input';
 import { Select } from '@/ui/Select';
+
+import { setMarker } from './NoteMarker';
 
 const STYLES = [
   { id: 'paragraph', label: 'Text' },
@@ -60,6 +63,9 @@ export function Toolbar({ editor }: { editor: TipTapEditor }) {
           : current.isActive('heading', { level: 3 })
             ? 'h3'
             : 'paragraph') as StyleId,
+      marker: (current.getAttributes('paragraph')[MARKER_ATTR] ??
+        current.getAttributes('heading')[MARKER_ATTR] ??
+        '') as string,
       bold: current.isActive('bold'),
       italic: current.isActive('italic'),
       underline: current.isActive('underline'),
@@ -136,6 +142,24 @@ export function Toolbar({ editor }: { editor: TipTapEditor }) {
             {STYLES.map((style) => (
               <option key={style.id} value={style.id}>
                 {style.label}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="w-32 shrink-0">
+          <Select
+            aria-label="Marker"
+            title="Mark this line. Ctrl+1 to Ctrl+5."
+            value={state.marker}
+            onChange={(event) => {
+              setMarker(editor, (event.target.value || null) as MarkerId | null);
+              editor.commands.focus();
+            }}
+          >
+            <option value="">No marker</option>
+            {MARKERS.map((marker) => (
+              <option key={marker.id} value={marker.id}>
+                {marker.label}
               </option>
             ))}
           </Select>

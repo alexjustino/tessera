@@ -24,6 +24,7 @@ import { refresh, targetsOf, type Page as PageRow } from '@/domain/page';
 
 import { BlockId, newId } from './BlockId';
 import { Callout } from './Callout';
+import { NoteMarker } from './NoteMarker';
 import { Toolbar } from './Toolbar';
 import { LinkMenu } from './LinkMenu';
 import { PageLink } from './PageLink';
@@ -157,6 +158,7 @@ export function Editor({
       CodeBlockLowlight.configure({ lowlight }),
       TableKit.configure({ table: { resizable: true } }),
       Highlight,
+      NoteMarker,
       Image.configure({ inline: false }),
       Link.configure({
         openOnClick: false,

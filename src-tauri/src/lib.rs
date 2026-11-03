@@ -175,6 +175,7 @@ pub fn run() {
             commands::views::view_update,
             commands::views::view_delete,
             commands::blocks::blocks_list,
+            commands::blocks::blocks_marked,
             commands::blocks::blocks_apply,
             commands::calendar::calendars_list,
             commands::calendar::work_hours_list,
