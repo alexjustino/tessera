@@ -34,6 +34,8 @@ import { positionForNewItem } from '@/domain/item';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
 import type { Property, PropertyValue } from '@/domain/property';
 import { EMPTY_QUERY, flatten, run, type Query, type Row } from '@/domain/query';
+import { inSlice, type Slice } from '@/domain/overview';
+import { todayMarkOf, type TodayMark } from '@/domain/pulse';
 import { dueForToday } from '@/domain/today';
 import { CalendarView } from '@/features/calendar/CalendarView';
 import { CaptureLine } from '@/features/capture/CaptureLine';
@@ -45,12 +47,15 @@ import { QueryBar } from '@/features/views/QueryBar';
 import { TableView } from '@/features/views/TableView';
 import { TimelineView } from '@/features/views/TimelineView';
 import { ComingUp } from './ComingUp';
+import { TasksOverview } from './TasksOverview';
+import { FinishedToday, TodayAgenda, TodayOverview, usePulse } from './TodayOverview';
 import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
 import { Page } from '@/ui/Page';
 import { TabStrip } from '@/ui/TabStrip';
 import { announce } from '@/ui/announce';
+import { useNow } from '@/ui/useNow';
 
 import { TaskDetail } from './TaskDetail';
 import { TemplatesDialog } from './TemplatesDialog';
@@ -118,6 +123,8 @@ export function TasksPage({
   const [draftQuery, setDraftQuery] = useState<Query | null>(null);
   /** The board settings as they are being edited, on the same terms. */
   const [draftBoard, setDraftBoard] = useState<BoardConfig | null>(null);
+  /** The part of the list a figure in the overview was pressed for. */
+  const [slice, setSlice] = useState<Slice | null>(null);
 
   const items = useItems(COLLECTION, true);
   const properties = useProperties(COLLECTION);
@@ -147,14 +154,30 @@ export function TasksPage({
   const board = draftBoard ?? view?.board ?? EMPTY_BOARD_CONFIG;
   const dirty = (draftQuery !== null || draftBoard !== null) && view !== null;
 
-  const rows: Row[] = useMemo(
-    () =>
-      (items.data ?? []).map((item) => ({
+  const dependencies = useDependencies();
+  const timeEntries = useTimeEntries();
+  const now = useNow(60_000);
+
+  // What is waiting on something unfinished. Computed once here, from the
+  // whole graph, rather than asked per row.
+  const blockedIds = useMemo(() => {
+    const edges = dependencies.data ?? [];
+    const all = items.data ?? [];
+    const done = new Set(all.filter((item) => item.completedAt !== null).map((item) => item.id));
+    return new Set(
+      all.filter((item) => isBlocked(edges, item.id, (id) => done.has(id))).map((item) => item.id),
+    );
+  }, [dependencies.data, items.data]);
+
+  const rows: Row[] = useMemo(() => {
+    const zone = systemZone();
+    return (items.data ?? [])
+      .filter((item) => slice === null || inSlice(item, slice, blockedIds, now, zone))
+      .map((item) => ({
         item,
         values: values.data?.[item.id] ?? {},
-      })),
-    [items.data, values.data],
-  );
+      }));
+  }, [items.data, values.data, slice, blockedIds, now]);
 
   const result = useMemo(
     () => run({ rows, properties: properties.data ?? [], query }),
@@ -170,9 +193,6 @@ export function TasksPage({
     () => (items.data ?? []).find((item) => item.id === detailId) ?? null,
     [items.data, detailId],
   );
-
-  const dependencies = useDependencies();
-  const timeEntries = useTimeEntries();
 
   /**
    * The plan over this collection: how long it takes, what decides the end.
@@ -210,17 +230,6 @@ export function TasksPage({
     () => new Set((items.data ?? []).filter((item) => item.isMilestone).map((item) => item.id)),
     [items.data],
   );
-
-  // What is waiting on something unfinished. Computed once here, from the
-  // whole graph, rather than asked per row.
-  const blockedIds = useMemo(() => {
-    const edges = dependencies.data ?? [];
-    const all = items.data ?? [];
-    const done = new Set(all.filter((item) => item.completedAt !== null).map((item) => item.id));
-    return new Set(
-      all.filter((item) => isBlocked(edges, item.id, (id) => done.has(id))).map((item) => item.id),
-    );
-  }, [dependencies.data, items.data]);
 
   // The one running clock, if any. The row only needs to know which task it is
   // on; how long it has been going is the detail panel's business, and only it
@@ -261,6 +270,24 @@ export function TasksPage({
     },
     [create, items.data, priorityPropertyId, place],
   );
+
+  const pulse = usePulse(items.data ?? []);
+
+  // Why each card on the board matters today, for the ones where it does.
+  const marks = useMemo(() => {
+    const zone = systemZone();
+    const reservedToday = new Set(
+      pulse.agenda.flatMap((occurrence) =>
+        occurrence.event.itemId === null ? [] : [occurrence.event.itemId],
+      ),
+    );
+    const found = new Map<string, TodayMark>();
+    for (const item of items.data ?? []) {
+      const mark = todayMarkOf(item, reservedToday, timingId, now, zone);
+      if (mark !== null) found.set(item.id, mark);
+    }
+    return found;
+  }, [items.data, pulse.agenda, timingId, now]);
 
   const failure =
     items.error ??
@@ -368,7 +395,7 @@ export function TasksPage({
         </div>
       </header>
 
-      {!planned.unplanned && place !== 'today' && place !== 'calendar' && (
+      {!planned.unplanned && place === 'board' && (
         <p className="-mt-1 text-caption text-fg-tertiary">
           {formatDuration(planned.durationMinutes)} of work on the longest route
           {planned.longestChain.length > 1 && `, through ${planned.longestChain.length} tasks`}
@@ -402,6 +429,18 @@ export function TasksPage({
         >
           {describeError(failure)}
         </InfoBar>
+      )}
+
+      {place === 'tasks' && items.isSuccess && (
+        <TasksOverview
+          items={items.data}
+          blocked={blockedIds}
+          properties={properties.data ?? []}
+          values={values.data ?? {}}
+          plan={planned}
+          slice={slice}
+          onSlice={setSlice}
+        />
       )}
 
       {place === 'tasks' && (views.data ?? []).length > 0 && (
@@ -461,111 +500,135 @@ export function TasksPage({
             <GettingStarted items={items.data} onOpenSettings={onOpenSettings} />
           </div>
         )}
-        {readFailed ? null : items.isPending ? (
-          <div className="flex flex-col gap-1" aria-hidden="true">
-            {[0, 1, 2].map((skeleton) => (
-              <div
-                key={skeleton}
-                className="h-(--density-row) animate-pulse rounded-md bg-card-hover"
-              />
-            ))}
-          </div>
-        ) : view?.kind === 'calendar' ? (
-          // Before the empty states: the calendar is events, working hours,
-          // days off and the year, none of which needs a task to exist. An
-          // empty workspace — or one with only an imported calendar — showed
-          // "Nothing here yet" instead of its calendar until 1.3.
-          <CalendarView
-            // Work with no time reserved for it. The panel exists so a person
-            // can drag it onto the grid, which is the whole point of the slice.
-            unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
-            onOpenItem={(item) => setDetailId(item.id)}
-          />
-        ) : result.total === 0 ? (
-          <EmptyState
-            icon={<TaskListSquareLtr24Regular />}
-            title="Nothing here yet"
-            description="Everything you write is stored on this machine, in a file you own. Type above to add the first task."
-          />
-        ) : result.matched === 0 && place === 'today' ? (
-          <EmptyState
-            title="Nothing is due today"
-            description="Type above and it lands here. A task whose date comes round shows up on its own."
-          />
-        ) : result.matched === 0 ? (
-          <EmptyState
-            title="No item matches this view"
-            description="The items are still there — this view's filters just do not include any of them."
-            action={<Button onClick={() => setEditingQuery(true)}>Change the filters</Button>}
-          />
-        ) : view?.kind === 'timeline' ? (
-          <TimelineView
-            items={items.data ?? []}
-            edges={dependencies.data ?? []}
-            critical={criticalIds}
-            onOpen={(item) => setDetailId(item.id)}
-            onShift={(item, startAt, dueAt) =>
-              setSchedule.mutate({
-                id: item.id,
-                schedule: {
-                  startAt,
-                  dueAt,
-                  remindAt: item.remindAt,
-                  rule: item.recurrenceRule,
-                  mode: item.recurrenceMode,
-                },
-              })
-            }
-          />
-        ) : view?.kind === 'board' ? (
-          <BoardView
-            groups={result.groups}
-            items={items.data ?? []}
-            properties={properties.data ?? []}
-            query={query}
-            board={board}
-            onQueryChange={(nextQuery, nextBoard) => {
-              setDraftQuery(nextQuery);
-              setDraftBoard(nextBoard);
-            }}
-            onMove={(move) => moveOnBoard.mutate(move)}
-            onOpen={(row) => setDetailId(row.item.id)}
-          />
-        ) : view?.kind === 'table' ? (
-          <TableView
-            groups={result.groups}
-            properties={properties.data ?? []}
-            query={query}
-            onQueryChange={setDraftQuery}
-            onToggle={toggleRow}
-            onSetValue={setRowValue}
-            onOpen={(row) => setDetailId(row.item.id)}
-          />
-        ) : (
-          <ListView
-            groups={result.groups}
-            grouped={query.groupBy !== null}
-            blockedIds={blockedIds}
-            criticalIds={criticalIds}
-            milestoneIds={milestoneIds}
-            timingId={timingId}
-            inlineProperties={inlineProperties}
-            onToggle={toggleRow}
-            onRename={(row, title) => rename.mutate({ id: row.item.id, title })}
-            onDelete={(row) => remove.mutate(row.item.id)}
-            onOpen={(row) => setDetailId(row.item.id)}
-            onSetValue={setRowValue}
-          />
-        )}
         {place === 'today' && items.isSuccess && (
-          <div className="mt-4">
-            <ComingUp
-              items={items.data}
-              onOpen={(item) => setDetailId(item.id)}
-              onShowAll={onShowAll}
-            />
+          <div className="mb-4">
+            <TodayOverview pulse={pulse} />
           </div>
         )}
+        <div
+          className={
+            place === 'today'
+              ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]'
+              : 'contents'
+          }
+        >
+          <div className={place === 'today' ? 'min-w-0' : 'contents'}>
+            {readFailed ? null : items.isPending ? (
+              <div className="flex flex-col gap-1" aria-hidden="true">
+                {[0, 1, 2].map((skeleton) => (
+                  <div
+                    key={skeleton}
+                    className="h-(--density-row) animate-pulse rounded-md bg-card-hover"
+                  />
+                ))}
+              </div>
+            ) : view?.kind === 'calendar' ? (
+              // Before the empty states: the calendar is events, working hours,
+              // days off and the year, none of which needs a task to exist. An
+              // empty workspace — or one with only an imported calendar — showed
+              // "Nothing here yet" instead of its calendar until 1.3.
+              <CalendarView
+                // Work with no time reserved for it. The panel exists so a person
+                // can drag it onto the grid, which is the whole point of the slice.
+                unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
+                onOpenItem={(item) => setDetailId(item.id)}
+              />
+            ) : (items.data ?? []).length === 0 ? (
+              <EmptyState
+                icon={<TaskListSquareLtr24Regular />}
+                title="Nothing here yet"
+                description="Everything you write is stored on this machine, in a file you own. Type above to add the first task."
+              />
+            ) : result.matched === 0 && place === 'today' ? (
+              <EmptyState
+                title="Nothing is due today"
+                description="Type above and it lands here. A task whose date comes round shows up on its own."
+              />
+            ) : result.matched === 0 && slice !== null ? (
+              <EmptyState
+                title="No task here"
+                description="Nothing in this view is in the figure you pressed."
+                action={<Button onClick={() => setSlice(null)}>Show every task</Button>}
+              />
+            ) : result.matched === 0 ? (
+              <EmptyState
+                title="No item matches this view"
+                description="The items are still there — this view's filters just do not include any of them."
+                action={<Button onClick={() => setEditingQuery(true)}>Change the filters</Button>}
+              />
+            ) : view?.kind === 'timeline' ? (
+              <TimelineView
+                items={items.data ?? []}
+                edges={dependencies.data ?? []}
+                critical={criticalIds}
+                onOpen={(item) => setDetailId(item.id)}
+                onShift={(item, startAt, dueAt) =>
+                  setSchedule.mutate({
+                    id: item.id,
+                    schedule: {
+                      startAt,
+                      dueAt,
+                      remindAt: item.remindAt,
+                      rule: item.recurrenceRule,
+                      mode: item.recurrenceMode,
+                    },
+                  })
+                }
+              />
+            ) : view?.kind === 'board' ? (
+              <BoardView
+                groups={result.groups}
+                items={items.data ?? []}
+                properties={properties.data ?? []}
+                query={query}
+                board={board}
+                marks={marks}
+                onQueryChange={(nextQuery, nextBoard) => {
+                  setDraftQuery(nextQuery);
+                  setDraftBoard(nextBoard);
+                }}
+                onMove={(move) => moveOnBoard.mutate(move)}
+                onOpen={(row) => setDetailId(row.item.id)}
+              />
+            ) : view?.kind === 'table' ? (
+              <TableView
+                groups={result.groups}
+                properties={properties.data ?? []}
+                query={query}
+                onQueryChange={setDraftQuery}
+                onToggle={toggleRow}
+                onSetValue={setRowValue}
+                onOpen={(row) => setDetailId(row.item.id)}
+              />
+            ) : (
+              <ListView
+                groups={result.groups}
+                grouped={query.groupBy !== null}
+                blockedIds={blockedIds}
+                criticalIds={criticalIds}
+                milestoneIds={milestoneIds}
+                timingId={timingId}
+                inlineProperties={inlineProperties}
+                onToggle={toggleRow}
+                onRename={(row, title) => rename.mutate({ id: row.item.id, title })}
+                onDelete={(row) => remove.mutate(row.item.id)}
+                onOpen={(row) => setDetailId(row.item.id)}
+                onSetValue={setRowValue}
+              />
+            )}
+          </div>
+          {place === 'today' && items.isSuccess && (
+            <aside aria-label="Around today" className="flex min-w-0 flex-col gap-3">
+              <TodayAgenda pulse={pulse} now={now} />
+              <FinishedToday pulse={pulse} />
+              <ComingUp
+                items={items.data}
+                onOpen={(item) => setDetailId(item.id)}
+                onShowAll={onShowAll}
+              />
+            </aside>
+          )}
+        </div>
       </div>
 
       <TemplatesDialog

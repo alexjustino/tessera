@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 export function ProgressRing({
   share,
   tone = 'accent',
+  size = 'md',
   label,
   valueText,
   max,
@@ -16,7 +17,9 @@ export function ProgressRing({
   children,
 }: {
   share: number | null;
-  tone?: 'accent' | 'success';
+  tone?: 'accent' | 'success' | 'danger';
+  /** `lg` for the one figure a screen leads with. */
+  size?: 'md' | 'lg';
   /** The accessible name. */
   label: string;
   /** The progress in words. */
@@ -37,7 +40,7 @@ export function ProgressRing({
       aria-valuemax={measured ? max : undefined}
       aria-valuenow={measured ? value : undefined}
       aria-valuetext={measured ? valueText : undefined}
-      className="relative size-16 shrink-0"
+      className={`relative shrink-0 ${size === 'lg' ? 'size-24' : 'size-16'}`}
     >
       <svg viewBox="0 0 56 56" className="size-full -rotate-90" aria-hidden="true">
         <circle
@@ -59,12 +62,21 @@ export function ProgressRing({
           strokeDashoffset={circumference * (1 - (share ?? 1))}
           className={[
             'transition-[stroke-dashoffset] duration-300 ease-easy',
-            tone === 'success' ? 'stroke-success' : 'stroke-accent',
+            tone === 'success'
+              ? 'stroke-success'
+              : tone === 'danger'
+                ? 'stroke-danger'
+                : 'stroke-accent',
             measured ? '' : 'opacity-40',
           ].join(' ')}
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-caption font-semibold tabular-nums text-fg">
+      <span
+        className={[
+          'absolute inset-0 flex items-center justify-center font-semibold text-fg',
+          size === 'lg' ? 'text-title' : 'text-caption tabular-nums',
+        ].join(' ')}
+      >
         {children}
       </span>
     </div>

@@ -19,7 +19,7 @@
   background: #f3f3f3;
   color: #1b1b1b;
   font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
-  transition: opacity 300ms cubic-bezier(0.1, 0.9, 0.2, 1);
+  transition: opacity 500ms cubic-bezier(0.1, 0.9, 0.2, 1);
 }
 #opening.opening-dark {
   background: #202020;
@@ -37,7 +37,7 @@
   transform-box: fill-box;
   transform-origin: center;
   opacity: 0;
-  animation: opening-tile 520ms cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+  animation: opening-tile 680ms cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
 }
 #opening rect:nth-of-type(1) {
   --from: 0, 0;
@@ -45,25 +45,25 @@
 }
 #opening rect:nth-of-type(2) {
   --from: -16px, -16px;
-  animation-delay: 140ms;
+  animation-delay: 200ms;
 }
 #opening rect:nth-of-type(3) {
   --from: 16px, -16px;
-  animation-delay: 230ms;
+  animation-delay: 340ms;
 }
 #opening rect:nth-of-type(4) {
   --from: -16px, 16px;
-  animation-delay: 320ms;
+  animation-delay: 480ms;
 }
 /* The lighter tile, set last: the piece being placed. */
 #opening rect:nth-of-type(5) {
   --from: 28px, 28px;
-  animation-delay: 460ms;
+  animation-delay: 700ms;
 }
 #opening p {
   margin: 0;
   opacity: 0;
-  animation: opening-words 420ms ease-out 620ms forwards;
+  animation: opening-words 560ms ease-out 900ms forwards;
 }
 #opening .opening-name {
   font-size: 28px;

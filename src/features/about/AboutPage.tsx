@@ -62,15 +62,6 @@ export function AboutPage({ onOpenDiagnostics }: { onOpenDiagnostics: () => void
       </header>
 
       <PageColumns>
-        <Card
-          title="Diagnostics"
-          description="What Tessera can see of this machine and its own workspace, for when something does not behave."
-        >
-          <Button icon={<Wrench20Regular />} onClick={onOpenDiagnostics}>
-            Open diagnostics
-          </Button>
-        </Card>
-
         {/* ── The name ─────────────────────────────────────────────────────── */}
         <Card title="The name">
           <div className="flex flex-col gap-3 text-body text-fg-secondary">
@@ -179,6 +170,15 @@ export function AboutPage({ onOpenDiagnostics }: { onOpenDiagnostics: () => void
               That file is yours: copy it, back it up, or export everything to JSON and Markdown.
             </p>
           </div>
+        </Card>
+
+        <Card
+          title="Diagnostics"
+          description="What Tessera can see of this machine and its own workspace, for when something does not behave."
+        >
+          <Button icon={<Wrench20Regular />} onClick={onOpenDiagnostics}>
+            Open diagnostics
+          </Button>
         </Card>
 
         {/* ── Credits ──────────────────────────────────────────────────────── */}
