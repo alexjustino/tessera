@@ -173,6 +173,10 @@ from where it was — it does not decorate.
 
 Loading shows a skeleton of the shape that is coming, not a spinner.
 
+**The opening is the one flourish.** The mark, set tile by tile as the window opens, because it
+marks a real change of state: nothing there, then the workspace. It plays once, takes no press and
+is gone as soon as there is something to show.
+
 **`prefers-reduced-motion` is honoured globally**, in `global.css`, not per component. A
 component cannot forget it. Nothing animates in a loop.
 

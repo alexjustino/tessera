@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The opening.** Tessera opens with its mark set tile by tile and a welcome, then the
+  mark fades as the workspace appears. It plays once, follows your theme, and is still if
+  Windows is asked for less motion.
 - **Getting started.** A new workspace asks for your working hours and days off, then
   your first task and estimate, in a guide on Today and Tasks. Settings carries a mark
   in the rail until the two answers are in. The guide can be hidden, closes by itself

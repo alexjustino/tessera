@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
 import { useCallback, useEffect, useState } from 'react';
 
+import { closeOpening } from '@/app/opening';
 import { applyAccent, applyDensity, applyTheme } from '@/app/theme';
 import { WORKSPACE_CHANGED, showCapture } from '@/data/capture';
 import { pauseReminders, resumeReminders } from '@/data/reminders';
@@ -77,6 +78,11 @@ export function App() {
       void unlisten.then((off) => off());
     };
   }, [client]);
+
+  // The workspace has been read, or could not be: either way there is a window to show.
+  useEffect(() => {
+    if (settings.isSuccess || settings.isError) closeOpening();
+  }, [settings.isSuccess, settings.isError]);
 
   // The accent ramp follows the desktop. Applied once at start, and again on a
   // theme change, because the shade that reads on white does not read on black.
