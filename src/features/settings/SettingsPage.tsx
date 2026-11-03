@@ -1,5 +1,15 @@
-import { Keyboard20Regular } from '@fluentui/react-icons';
-import { useCallback } from 'react';
+import {
+  ArrowImport20Regular,
+  ArrowSwap20Regular,
+  CalendarClock20Regular,
+  DarkTheme20Regular,
+  History20Regular,
+  Keyboard20Regular,
+  LayoutRowTwo20Regular,
+  Power20Regular,
+  Settings20Regular,
+} from '@fluentui/react-icons';
+import { useCallback, useState, type ReactNode } from 'react';
 
 import { applyDensity, applyTheme } from '@/app/theme';
 import { describeError } from '@/data/errors';
@@ -12,13 +22,13 @@ import {
 } from '@/data/hooks';
 import { DENSITIES, DEFAULT_SETTINGS, SHORTCUTS, THEMES, type Settings } from '@/domain/settings';
 import type { SettingsCard } from '@/features/guide/GettingStarted';
-import { Card } from '@/ui/Card';
-import { Checkbox } from '@/ui/Checkbox';
 import { ChoiceGroup } from '@/ui/ChoiceGroup';
 import { InfoBar } from '@/ui/InfoBar';
 import { Kbd } from '@/ui/Kbd';
-import { Page, PageColumns } from '@/ui/Page';
+import { Page } from '@/ui/Page';
 import { Select } from '@/ui/Select';
+import { SettingGroup, SettingRow } from '@/ui/Setting';
+import { Toggle } from '@/ui/Toggle';
 
 import { BackupsCard } from './BackupsCard';
 import { ExportImportCard } from './ExportImportCard';
@@ -26,12 +36,25 @@ import { ImportsCard } from './ImportsCard';
 import { DaysOffCard } from './DaysOffCard';
 import { WorkHoursCard } from './WorkHoursCard';
 
+type Section = 'general' | 'time' | 'backups' | 'files' | 'imports';
+
+const SECTIONS: ReadonlyArray<{ id: Section; label: string; icon: ReactNode }> = [
+  { id: 'general', label: 'General', icon: <Settings20Regular /> },
+  { id: 'time', label: 'Working time', icon: <CalendarClock20Regular /> },
+  { id: 'backups', label: 'Backups', icon: <History20Regular /> },
+  { id: 'files', label: 'Export and import', icon: <ArrowSwap20Regular /> },
+  { id: 'imports', label: 'Add from another product', icon: <ArrowImport20Regular /> },
+];
+
 /**
  * Settings: what a person can change, kept in the workspace file.
  *
  * Every control writes through the host and reads back what it stored — a
  * refused value never looks accepted. Appearance changes are applied at once
  * and saved behind, so the screen answers before the disk does.
+ *
+ * One section at a time. All of it on one page was the owner's verdict on 1.4:
+ * polluted. A person comes here to change one thing.
  */
 export function SettingsPage({ focusCard = null }: { focusCard?: SettingsCard | null }) {
   const settings = useSettings();
@@ -39,6 +62,7 @@ export function SettingsPage({ focusCard = null }: { focusCard?: SettingsCard | 
   const autostart = useAutostart();
   const setAutostart = useSetAutostart();
   const capture = useCaptureStatus();
+  const [section, setSection] = useState<Section>(focusCard === null ? 'general' : 'time');
 
   const current: Settings = settings.data ?? DEFAULT_SETTINGS;
 
@@ -74,64 +98,116 @@ export function SettingsPage({ focusCard = null }: { focusCard?: SettingsCard | 
         </InfoBar>
       )}
 
-      <PageColumns>
-        <Card
-          title="Appearance"
-          description="Mica is painted by Windows behind the window; the accent colour is the one you chose for your desktop."
-        >
-          <div className="flex flex-col gap-4">
-            <ChoiceGroup
-              label="Theme"
-              options={THEMES}
-              value={current.theme}
-              onChange={(theme) => update({ theme })}
-              disabled={settings.isPending}
-            />
-            <ChoiceGroup
-              label="Density"
-              options={DENSITIES}
-              value={current.density}
-              onChange={(density) => update({ density })}
-              disabled={settings.isPending}
-            />
-          </div>
-        </Card>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+        <nav aria-label="Settings sections" className="shrink-0 lg:sticky lg:top-6 lg:w-64">
+          <ul className="flex flex-col gap-0.5">
+            {SECTIONS.map(({ id, label, icon }) => (
+              <li key={id}>
+                <button
+                  type="button"
+                  aria-current={section === id ? 'page' : undefined}
+                  onClick={() => setSection(id)}
+                  className={[
+                    'flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-body',
+                    'transition-colors duration-100 ease-easy',
+                    section === id
+                      ? 'bg-card-active font-semibold text-fg'
+                      : 'text-fg-secondary hover:bg-card-hover',
+                  ].join(' ')}
+                >
+                  <span aria-hidden="true" className="flex shrink-0">
+                    {icon}
+                  </span>
+                  {label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-        <Card
-          title="Quick capture"
-          description="The key combination that opens the capture line from any program."
-        >
-          <div className="flex flex-col gap-3">
-            <label className="flex items-center gap-3">
-              <span className="w-28 shrink-0 text-caption font-semibold text-fg-tertiary uppercase">
-                Shortcut
-              </span>
-              <span className="w-56">
-                <Select
-                  aria-label="Quick capture shortcut"
-                  value={current.quickCaptureShortcut}
-                  disabled={settings.isPending}
-                  onChange={(event) =>
-                    update({
-                      quickCaptureShortcut: event.target.value as Settings['quickCaptureShortcut'],
-                    })
+        <div className="flex min-w-0 max-w-4xl flex-1 flex-col gap-6">
+          {section === 'general' && (
+            <>
+              <SettingGroup title="Appearance">
+                <SettingRow
+                  icon={<DarkTheme20Regular />}
+                  title="Theme"
+                  description="System follows Windows. The accent colour is the one on your desktop."
+                >
+                  <ChoiceGroup
+                    label="Theme"
+                    hideLabel
+                    options={THEMES}
+                    value={current.theme}
+                    onChange={(theme) => update({ theme })}
+                    disabled={settings.isPending}
+                  />
+                </SettingRow>
+                <SettingRow
+                  icon={<LayoutRowTwo20Regular />}
+                  title="Density"
+                  description="How much fits on a screen."
+                >
+                  <ChoiceGroup
+                    label="Density"
+                    hideLabel
+                    options={DENSITIES}
+                    value={current.density}
+                    onChange={(density) => update({ density })}
+                    disabled={settings.isPending}
+                  />
+                </SettingRow>
+              </SettingGroup>
+
+              <SettingGroup title="Windows">
+                <SettingRow
+                  icon={<Keyboard20Regular />}
+                  title="Quick capture"
+                  description={
+                    capture.data?.registered === true ? (
+                      <>
+                        <Kbd>{capture.data.shortcut}</Kbd> is live, from any program.
+                      </>
+                    ) : (
+                      'Opens the capture line from any program.'
+                    )
                   }
                 >
-                  {SHORTCUTS.map((shortcut) => (
-                    <option key={shortcut} value={shortcut}>
-                      {shortcut}
-                    </option>
-                  ))}
-                </Select>
-              </span>
-            </label>
-            {capture.data &&
-              (capture.data.registered ? (
-                <p className="flex items-center gap-2 text-body text-fg-secondary">
-                  <Keyboard20Regular aria-hidden="true" className="text-fg-tertiary" />
-                  <Kbd>{capture.data.shortcut}</Kbd> is live.
-                </p>
-              ) : (
+                  <span className="w-48">
+                    <Select
+                      aria-label="Quick capture shortcut"
+                      value={current.quickCaptureShortcut}
+                      disabled={settings.isPending}
+                      onChange={(event) =>
+                        update({
+                          quickCaptureShortcut: event.target
+                            .value as Settings['quickCaptureShortcut'],
+                        })
+                      }
+                    >
+                      {SHORTCUTS.map((shortcut) => (
+                        <option key={shortcut} value={shortcut}>
+                          {shortcut}
+                        </option>
+                      ))}
+                    </Select>
+                  </span>
+                </SettingRow>
+                <SettingRow
+                  icon={<Power20Regular />}
+                  title="Start with Windows"
+                  description="Minimised to the tray, so reminders arrive before you open anything."
+                >
+                  <Toggle
+                    checked={autostart.data === true}
+                    label="Start with Windows"
+                    disabled={autostart.isPending || setAutostart.isPending}
+                    onChange={(on) => setAutostart.mutate(on)}
+                  />
+                </SettingRow>
+              </SettingGroup>
+
+              {capture.data !== undefined && !capture.data.registered && (
                 <InfoBar
                   severity="caution"
                   title={`${capture.data.shortcut} could not be registered`}
@@ -139,40 +215,28 @@ export function SettingsPage({ focusCard = null }: { focusCard?: SettingsCard | 
                   {capture.data.problem ?? 'Another program owns this key combination.'} Try another
                   combination above.
                 </InfoBar>
-              ))}
-          </div>
-        </Card>
+              )}
+            </>
+          )}
 
-        <Card title="Start-up" description="How Tessera behaves when Windows starts.">
-          <label className="flex items-center gap-2 text-body text-fg">
-            <Checkbox
-              checked={autostart.data === true}
-              label="Start with Windows"
-              disabled={autostart.isPending || setAutostart.isPending}
-              onChange={(on) => setAutostart.mutate(on)}
-            />
-            <span>
-              Start with Windows, minimised to the tray
-              <span className="block text-caption text-fg-tertiary">
-                Off unless you turn it on. This is how reminders arrive before you have opened
-                anything.
-              </span>
-            </span>
-          </label>
-        </Card>
+          {section === 'time' && (
+            <>
+              <div ref={focusCard === 'hours' ? focused : undefined}>
+                <WorkHoursCard />
+              </div>
+              <div ref={focusCard === 'daysOff' ? focused : undefined}>
+                <DaysOffCard />
+              </div>
+            </>
+          )}
 
-        <div ref={focusCard === 'hours' ? focused : undefined}>
-          <WorkHoursCard />
+          {section === 'backups' && (
+            <BackupsCard settings={current} onChange={update} busy={settings.isPending} />
+          )}
+          {section === 'files' && <ExportImportCard />}
+          {section === 'imports' && <ImportsCard />}
         </div>
-        <div ref={focusCard === 'daysOff' ? focused : undefined}>
-          <DaysOffCard />
-        </div>
-
-        <BackupsCard settings={current} onChange={update} busy={settings.isPending} />
-        <ExportImportCard />
-
-        <ImportsCard />
-      </PageColumns>
+      </div>
     </Page>
   );
 }

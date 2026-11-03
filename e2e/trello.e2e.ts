@@ -160,6 +160,11 @@ describe('a Trello board', () => {
   it('undo puts the board back: the Trello columns are gone, the four remain', async () => {
     const { driver } = session;
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Add from another product"]',
+      )
+    ).click();
     const undo = await driver.waitFor('the Undo control', () =>
       driver.find('button[aria-label^="Undo the import"]'),
     );

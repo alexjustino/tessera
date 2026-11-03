@@ -213,8 +213,27 @@ first — not inline in the feature.
 `Skeleton` · `EmptyState` · `Toast` · `InfoBar` · `Kbd` · `Resizer` · `VirtualList`
 
 Present today: `Button`, `IconButton`, `Card`, `InfoBar`, `Input`, `Select`, `Checkbox`, `Chip`,
-`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`, `TileGrid`, `Page`, `PageColumns`. The rest arrive with the slice that first
+`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`, `TileGrid`, `Page`, `PageColumns`, `Stat`, `StatRow`, `Sparkline`, `Meter`, `ColumnChart`, `StackBar`, `BarList`, `ProgressRing`, `Toggle`, `SettingGroup`, `SettingRow`. The rest arrive with the slice that first
 needs them, and arrive _here_.
+
+### Figures and charts
+
+A dashboard is built from these and nothing else: `Stat` for one number and what it is measured
+against, `Meter` for how much of something is used, `ColumnChart` for change over a run of days,
+`StackBar` for the parts of a whole, `BarList` for things ranked. Marks are thin, a value is never
+only a height or a colour (a word, a tooltip or a table says it too), and only the tallest column
+and the one the reader stands in carry a number. A figure that has not earned a reading shows a
+dash and says why.
+
+Identity is `--series-1` to `--series-6`, in that order, for telling goals apart. It is checked with
+the palette validator in both themes and is never used for state: late, done and at risk keep the
+`--state-*` tokens.
+
+### Settings
+
+One section at a time, chosen from a list on the left. A section is `SettingGroup`s of `SettingRow`s:
+what it is on the left in one line, the control on the right, as Windows 11 lays them out. A switch
+(`Toggle`) takes effect at once; a long explanation opens on request or does not exist.
 
 A destination is framed by `Page` and sets no width of its own, so it fills the window it is
 given. Screens made of cards put them in `PageColumns`. Only long running text keeps a reading
