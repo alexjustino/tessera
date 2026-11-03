@@ -10,6 +10,7 @@ import { Editor } from '@/features/editor/Editor';
 import { Dependencies } from './Dependencies';
 import { PlanEditor } from './PlanEditor';
 import { TimeTracker } from './TimeTracker';
+import { Warnings } from './Warnings';
 
 import { ScheduleEditor } from './ScheduleEditor';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
@@ -141,6 +142,13 @@ export function TaskDetail({
             </div>
           ))}
         </dl>
+      )}
+
+      {task !== null && (
+        <section className="mb-5 border-b border-stroke-subtle pb-5" aria-label="Warnings">
+          <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Warnings</h3>
+          <Warnings itemId={task.id} dueAt={task.dueAt} />
+        </section>
       )}
 
       {task !== null && <PlanEditor task={task} timing={timing} />}
