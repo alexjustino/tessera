@@ -6,73 +6,14 @@ import {
   Timer16Regular,
   WeatherSunny16Regular,
 } from '@fluentui/react-icons';
-import { useMemo } from 'react';
-
-import {
-  useCalendars,
-  useDaysOffSet,
-  useEventExceptions,
-  useEvents,
-  useTimeBlockedItems,
-  useTimeEntries,
-  useWorkHours,
-} from '@/data/hooks';
-import { addLocalDays, todayIn } from '@/domain/calendar';
-import type { Item } from '@/domain/item';
-import { pulseOf, type Pulse, type ScorePart } from '@/domain/pulse';
+import type { Pulse, ScorePart } from '@/domain/pulse';
 import { localDay, systemZone } from '@/domain/schedule';
-import { expandEvents } from '@/features/calendar/occurrences';
 import { describeHours } from '@/features/reports/format';
 import { Card } from '@/ui/Card';
 import { ColumnChart } from '@/ui/ColumnChart';
 import { Meter } from '@/ui/Meter';
 import { ProgressRing } from '@/ui/ProgressRing';
 import { Stat, StatRow } from '@/ui/Stat';
-import { useNow } from '@/ui/useNow';
-
-/** Today's figures, from what the workspace holds. One read for the whole page. */
-export function usePulse(items: readonly Item[]): Pulse {
-  const zone = useMemo(() => systemZone(), []);
-  const now = useNow(60_000);
-  const today = todayIn(now, zone);
-  const from = useMemo(() => new Date(`${today}T00:00:00`).toISOString(), [today]);
-  const to = useMemo(() => new Date(`${addLocalDays(today, 1)}T00:00:00`).toISOString(), [today]);
-
-  const calendars = useCalendars();
-  const events = useEvents(from, to, calendars.data ?? []);
-  const exceptions = useEventExceptions();
-  const entries = useTimeEntries();
-  const hours = useWorkHours();
-  const daysOff = useDaysOffSet();
-  const blocked = useTimeBlockedItems();
-
-  return useMemo(
-    () =>
-      pulseOf({
-        items,
-        entries: entries.data ?? [],
-        occurrences: expandEvents(events.data ?? [], exceptions.data ?? [], from, to),
-        hours: hours.data ?? [],
-        daysOff,
-        reserved: new Set(blocked.data ?? []),
-        now,
-        zone,
-      }),
-    [
-      items,
-      entries.data,
-      events.data,
-      exceptions.data,
-      from,
-      to,
-      hours.data,
-      daysOff,
-      blocked.data,
-      now,
-      zone,
-    ],
-  );
-}
 
 function timeOf(instant: string): string {
   return new Date(instant).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
