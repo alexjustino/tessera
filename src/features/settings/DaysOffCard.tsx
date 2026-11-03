@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { describeError } from '@/data/errors';
 import { useDaysOff, useRemoveDayOff, useSetDayOff } from '@/data/hooks';
 import { describeDay } from '@/features/reports/format';
+import { useGuideAnswer } from '@/features/guide/useGuideAnswer';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { IconButton } from '@/ui/IconButton';
@@ -30,6 +31,7 @@ export function DaysOffCard() {
   const daysOff = useDaysOff();
   const set = useSetDayOff();
   const remove = useRemoveDayOff();
+  const answer = useGuideAnswer();
   const [day, setDay] = useState('');
   const [label, setLabel] = useState('');
 
@@ -39,6 +41,7 @@ export function DaysOffCard() {
       { day, label },
       {
         onSuccess: (row) => {
+          answer({ guideDaysOffSet: true });
           announce(`${describeYearDay(row.day)} is a day off`);
           setDay('');
           setLabel('');

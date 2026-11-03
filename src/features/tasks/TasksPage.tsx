@@ -37,6 +37,7 @@ import { EMPTY_QUERY, flatten, run, type Query, type Row } from '@/domain/query'
 import { dueForToday } from '@/domain/today';
 import { CalendarView } from '@/features/calendar/CalendarView';
 import { CaptureLine } from '@/features/capture/CaptureLine';
+import { GettingStarted, type SettingsCard } from '@/features/guide/GettingStarted';
 import { PropertyManager } from '@/features/properties/PropertyManager';
 import { BoardView } from '@/features/views/BoardView';
 import { ListView } from '@/features/views/ListView';
@@ -90,11 +91,14 @@ export function TasksPage({
   initialDetailId = null,
   onFocus,
   onShowAll,
+  onOpenSettings,
 }: {
   /** Which place in the rail this is. */
   place?: TasksPlace;
   /** Go to the whole list, from a place that shows part of it. */
   onShowAll?: () => void;
+  /** Open a card in Settings, from the getting-started guide. */
+  onOpenSettings?: (card: SettingsCard) => void;
   /** An item to open on mount — how the palette lands on a search hit. */
   initialDetailId?: string | null;
   /** Enter focus mode on a task (P8). Absent where the page has no shell to hand it to. */
@@ -387,6 +391,10 @@ export function TasksPage({
           )}
         </CaptureLine>
       </div>
+
+      {(place === 'tasks' || place === 'today') && items.isSuccess && (
+        <GettingStarted items={items.data} onOpenSettings={onOpenSettings} />
+      )}
 
       {failure && (
         <InfoBar

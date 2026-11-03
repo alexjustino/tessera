@@ -7,6 +7,7 @@ import { WORKSPACE_CHANGED, showCapture } from '@/data/capture';
 import { pauseReminders, resumeReminders } from '@/data/reminders';
 import { useSaveSettings, useSettings } from '@/data/hooks';
 import { fetchAccentRamp } from '@/data/system';
+import { settingsAsk } from '@/domain/gettingStarted';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
 import { AboutPage } from '@/features/about/AboutPage';
 import { FocusMode } from '@/features/focus/FocusMode';
@@ -16,6 +17,7 @@ import { NotesPage } from '@/features/notes/NotesPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { ReviewPage } from '@/features/review/ReviewPage';
 import { FoundationPage } from '@/features/foundation/FoundationPage';
+import type { SettingsCard } from '@/features/guide/GettingStarted';
 import { CommandPalette } from '@/features/palette/CommandPalette';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import type { CommandId } from '@/features/palette/commands';
@@ -42,6 +44,7 @@ interface Focus {
  */
 export function App() {
   const [destination, setDestination] = useState<Destination>('tasks');
+  const [settingsCard, setSettingsCard] = useState<SettingsCard | null>(null);
   const [focus, setFocus] = useState<Focus>({ itemId: null, nonce: 0 });
   const [paletteOpen, setPaletteOpen] = useState(false);
   /** The page the palette asked for, until Notes has opened it. */
@@ -50,6 +53,7 @@ export function App() {
   const [focused, setFocused] = useState<string | null | undefined>(undefined);
   const client = useQueryClient();
   const settings = useSettings();
+  const settingsQuestion = settings.data === undefined ? null : settingsAsk(settings.data);
   const saveSettings = useSaveSettings();
 
   // The stored theme and density are applied as soon as they are read, and
@@ -107,7 +111,14 @@ export function App() {
   }, []);
 
   const go = useCallback((next: Destination) => {
+    setSettingsCard(null);
     setDestination(next);
+    setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
+  }, []);
+
+  const openSettings = useCallback((card: SettingsCard) => {
+    setSettingsCard(card);
+    setDestination('settings');
     setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
   }, []);
 
@@ -180,12 +191,22 @@ export function App() {
         />
       ) : (
         <div className="flex min-h-0 flex-1">
-          <Sidebar active={destination} onNavigate={go} onSearch={() => setPaletteOpen(true)} />
+          <Sidebar
+            active={destination}
+            onNavigate={go}
+            onSearch={() => setPaletteOpen(true)}
+            asks={settingsQuestion === null ? {} : { settings: settingsQuestion }}
+          />
           <main className="min-w-0 flex-1 overflow-y-auto bg-layer">
             {/* Today is the same page opened on a different saved view — it is
               a query over the same items, not a second screen. */}
             {destination === 'tasks' && (
-              <TasksPage key={pageKey} initialDetailId={focus.itemId} onFocus={setFocused} />
+              <TasksPage
+                key={pageKey}
+                initialDetailId={focus.itemId}
+                onFocus={setFocused}
+                onOpenSettings={openSettings}
+              />
             )}
             {destination === 'today' && (
               <TasksPage
@@ -193,6 +214,7 @@ export function App() {
                 place="today"
                 onFocus={setFocused}
                 onShowAll={() => go('tasks')}
+                onOpenSettings={openSettings}
               />
             )}
             {destination === 'board' && (
@@ -206,7 +228,7 @@ export function App() {
             {destination === 'goals' && <GoalsPage key={pageKey} />}
             {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}
             {destination === 'reports' && <ReportsPage />}
-            {destination === 'settings' && <SettingsPage />}
+            {destination === 'settings' && <SettingsPage key={pageKey} focusCard={settingsCard} />}
             {destination === 'diagnostics' && <FoundationPage />}
             {destination === 'about' && <AboutPage />}
           </main>
