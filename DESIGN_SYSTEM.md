@@ -209,8 +209,12 @@ first — not inline in the feature.
 `Skeleton` · `EmptyState` · `Toast` · `InfoBar` · `Kbd` · `Resizer` · `VirtualList`
 
 Present today: `Button`, `IconButton`, `Card`, `InfoBar`, `Input`, `Select`, `Checkbox`, `Chip`,
-`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`, `TileGrid`. The rest arrive with the slice that first
+`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`, `TileGrid`, `Page`, `PageColumns`. The rest arrive with the slice that first
 needs them, and arrive _here_.
+
+A destination is framed by `Page` and sets no width of its own, so it fills the window it is
+given. Screens made of cards put them in `PageColumns`. Only long running text keeps a reading
+measure.
 
 ### A grid of tiles
 

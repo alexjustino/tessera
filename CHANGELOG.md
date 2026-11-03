@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- A maximised window is used. Every screen kept its own narrow column with empty space
+  around it; the content now fills the window, and screens made of cards spread into
+  two or three columns when there is room.
 - Adding to a very long list no longer overflows the stack. Each append lengthens
   the order key a little, and at 30,000 or so appends to one list the code that
   computes the next key ran out of stack. It is a loop now, and it mints the same

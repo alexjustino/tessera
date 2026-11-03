@@ -27,6 +27,7 @@ import { Card } from '@/ui/Card';
 import { EmptyState } from '@/ui/EmptyState';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
+import { Page, PageColumns } from '@/ui/Page';
 import { TabStrip } from '@/ui/TabStrip';
 import { useNow } from '@/ui/useNow';
 
@@ -111,7 +112,7 @@ export function ReportsPage() {
     report.tracked.value === 0 && report.completed.value === 0 && report.reserved.value === 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
+    <Page>
       <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-title font-semibold text-fg">Reports</h1>
@@ -180,7 +181,7 @@ export function ReportsPage() {
           description="Nothing tracked, nothing completed, nothing reserved on the calendar. Try another week, or start a timer on a task."
         />
       ) : (
-        <>
+        <PageColumns>
           <Card title="Tracked" description="Time recorded by the clock, split at midnight.">
             <div className="flex flex-col gap-3">
               {/* The card already says Tracked; the figure says what of it. */}
@@ -265,9 +266,9 @@ export function ReportsPage() {
               </p>
             </div>
           </Card>
-        </>
+        </PageColumns>
       )}
-    </div>
+    </Page>
   );
 }
 

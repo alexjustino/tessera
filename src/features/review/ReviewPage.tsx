@@ -25,6 +25,7 @@ import { describePeriod } from '@/features/reports/format';
 import { Card } from '@/ui/Card';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
+import { Page, PageColumns } from '@/ui/Page';
 import { useNow } from '@/ui/useNow';
 
 /**
@@ -88,7 +89,7 @@ export function ReviewPage({ onOpenItem }: { onOpenItem?: (id: string) => void }
   const over = review.unscheduled.value > review.capacityLeft;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
+    <Page>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-title font-semibold text-fg">Review</h1>
@@ -127,73 +128,75 @@ export function ReviewPage({ onOpenItem }: { onOpenItem?: (id: string) => void }
         </InfoBar>
       )}
 
-      <Card
-        title="Projects with no next action"
-        description="A goal nobody can move. Put a task in it, or take something out of the way."
-      >
-        {review.projects.length === 0 ? (
-          <p className="flex items-center gap-2 text-body text-fg-secondary">
-            <CheckmarkCircle20Filled className="text-success" aria-hidden="true" />
-            Every goal has something to pick up.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-1" data-testid="review-projects">
-            {review.projects.map((gap) => (
-              <li key={gap.goal.id} className="flex items-baseline gap-3 rounded-md px-2 py-1">
-                <span className="min-w-0 flex-1 truncate text-body text-fg">{gap.goal.name}</span>
-                <span className="shrink-0 text-caption text-fg-tertiary">{describeGap(gap)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      <PageColumns>
+        <Card
+          title="Projects with no next action"
+          description="A goal nobody can move. Put a task in it, or take something out of the way."
+        >
+          {review.projects.length === 0 ? (
+            <p className="flex items-center gap-2 text-body text-fg-secondary">
+              <CheckmarkCircle20Filled className="text-success" aria-hidden="true" />
+              Every goal has something to pick up.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1" data-testid="review-projects">
+              {review.projects.map((gap) => (
+                <li key={gap.goal.id} className="flex items-baseline gap-3 rounded-md px-2 py-1">
+                  <span className="min-w-0 flex-1 truncate text-body text-fg">{gap.goal.name}</span>
+                  <span className="shrink-0 text-caption text-fg-tertiary">{describeGap(gap)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
-      <Card
-        title="Waiting on nothing"
-        description="These were blocked. What they were waiting for is finished, and nobody has picked them up."
-      >
-        {review.waiting.length === 0 ? (
-          <p className="flex items-center gap-2 text-body text-fg-secondary">
-            <CheckmarkCircle20Filled className="text-success" aria-hidden="true" />
-            No task is waiting for work that is already done.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-1" data-testid="review-waiting">
-            {review.waiting.map((row) => (
-              <li key={row.item.id} className="flex items-baseline gap-3">
-                <button
-                  type="button"
-                  aria-label={`Open ${row.item.title}`}
-                  onClick={() => onOpenItem?.(row.item.id)}
-                  className="min-w-0 flex-1 truncate rounded-md px-2 py-1 text-left text-body text-fg hover:bg-card-hover"
-                >
-                  {row.item.title}
-                </button>
-                <span className="shrink-0 text-caption text-fg-tertiary">
-                  was waiting for {row.blockers.join(', ')}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+        <Card
+          title="Waiting on nothing"
+          description="These were blocked. What they were waiting for is finished, and nobody has picked them up."
+        >
+          {review.waiting.length === 0 ? (
+            <p className="flex items-center gap-2 text-body text-fg-secondary">
+              <CheckmarkCircle20Filled className="text-success" aria-hidden="true" />
+              No task is waiting for work that is already done.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1" data-testid="review-waiting">
+              {review.waiting.map((row) => (
+                <li key={row.item.id} className="flex items-baseline gap-3">
+                  <button
+                    type="button"
+                    aria-label={`Open ${row.item.title}`}
+                    onClick={() => onOpenItem?.(row.item.id)}
+                    className="min-w-0 flex-1 truncate rounded-md px-2 py-1 text-left text-body text-fg hover:bg-card-hover"
+                  >
+                    {row.item.title}
+                  </button>
+                  <span className="shrink-0 text-caption text-fg-tertiary">
+                    was waiting for {row.blockers.join(', ')}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
 
-      <Card
-        title="Planned but not scheduled"
-        description="Estimated work due this week with no time reserved for it, against the working time the week has left."
-      >
-        <div className="flex flex-col gap-2">
-          <FigureRow
-            figure={{ ...review.unscheduled, label: 'Due, unreserved' }}
-            broken={broken}
-            big
-          />
-          <p className={`text-caption ${over ? 'text-caution' : 'text-fg-tertiary'}`}>
-            {formatDuration(review.capacityLeft)} of working time left this week
-            {over ? ' — less than the work that is due.' : '.'}
-          </p>
-        </div>
-      </Card>
-    </div>
+        <Card
+          title="Planned but not scheduled"
+          description="Estimated work due this week with no time reserved for it, against the working time the week has left."
+        >
+          <div className="flex flex-col gap-2">
+            <FigureRow
+              figure={{ ...review.unscheduled, label: 'Due, unreserved' }}
+              broken={broken}
+              big
+            />
+            <p className={`text-caption ${over ? 'text-caution' : 'text-fg-tertiary'}`}>
+              {formatDuration(review.capacityLeft)} of working time left this week
+              {over ? ' — less than the work that is due.' : '.'}
+            </p>
+          </div>
+        </Card>
+      </PageColumns>
+    </Page>
   );
 }

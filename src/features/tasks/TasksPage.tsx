@@ -45,6 +45,7 @@ import { TimelineView } from '@/features/views/TimelineView';
 import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
+import { Page } from '@/ui/Page';
 import { TabStrip } from '@/ui/TabStrip';
 import { announce } from '@/ui/announce';
 
@@ -274,7 +275,7 @@ export function TasksPage({
   };
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-5xl flex-col gap-3 p-6">
+    <Page className="h-full">
       <header className="flex items-baseline justify-between gap-4">
         <div>
           <h1 className="text-title font-semibold text-fg">Tasks</h1>
@@ -520,6 +521,6 @@ export function TasksPage({
         onClose={() => setDetailId(null)}
         onFocus={onFocus}
       />
-    </div>
+    </Page>
   );
 }
