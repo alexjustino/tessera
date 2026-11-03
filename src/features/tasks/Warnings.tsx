@@ -112,7 +112,7 @@ export function Warnings({ itemId, dueAt }: { itemId: string; dueAt: string | nu
           }}
         />
         <Button disabled={add.isPending} onClick={addCustom}>
-          Add
+          Add warning
         </Button>
       </div>
       {complaint !== null && <p className="text-caption text-danger">{complaint}</p>}
