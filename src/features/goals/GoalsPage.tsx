@@ -39,13 +39,19 @@ import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { EmptyState } from '@/ui/EmptyState';
+import { ChoiceGroup } from '@/ui/ChoiceGroup';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { Input } from '@/ui/Input';
 import { Page } from '@/ui/Page';
+import { ProgressRing } from '@/ui/ProgressRing';
 import { Select } from '@/ui/Select';
 import { announce } from '@/ui/announce';
 import { useNow } from '@/ui/useNow';
+
+/** The easy question first: is there a finish line at all? */
+const GOAL_KINDS = ['target', 'ongoing'] as const;
+const GOAL_KIND_LABELS = { target: 'Until I reach a target', ongoing: 'Ongoing focus' };
 
 /**
  * Goals — what you meant to get done, and how far it has got.
@@ -161,7 +167,7 @@ export function GoalsPage() {
           }
         />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid items-start gap-2 xl:grid-cols-2">
           {all.map((goal) => (
             <GoalCard
               key={goal.id}
@@ -180,8 +186,8 @@ export function GoalsPage() {
                 <div className="flex flex-col gap-4 border-t border-stroke-subtle pt-3">
                   <FigureRow figure={{ ...figure, label: 'Progress' }} broken={broken} big />
 
-                  <div className="flex flex-wrap items-end gap-3">
-                    <label className="flex flex-col gap-1">
+                  <div className="flex flex-wrap items-start gap-3">
+                    <label className="flex min-w-64 flex-1 flex-col gap-1">
                       <span className="text-caption text-fg-tertiary">Name</span>
                       <Input
                         aria-label="Goal name"
@@ -196,102 +202,132 @@ export function GoalsPage() {
                         }}
                       />
                     </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-caption text-fg-tertiary">Counting</span>
-                      <Select
-                        aria-label="What this goal counts"
-                        value={goal.measure}
-                        className="w-auto"
-                        onChange={(event) =>
+                    <div className="flex flex-col gap-1">
+                      <ChoiceGroup
+                        label="How long it runs"
+                        options={GOAL_KINDS}
+                        labels={GOAL_KIND_LABELS}
+                        value={goal.ongoing === true ? 'ongoing' : 'target'}
+                        onChange={(kind) =>
                           update.mutate({
                             id: goal.id,
-                            patch: { measure: event.target.value as Measure },
-                          })
-                        }
-                      >
-                        {MEASURES.map((measure) => (
-                          <option key={measure.id} value={measure.id}>
-                            {measure.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-caption text-fg-tertiary">
-                        Target {goal.measure === 'minutes' ? '(minutes)' : '(tasks)'}
-                      </span>
-                      <Input
-                        aria-label="Target"
-                        type="number"
-                        min={1}
-                        step={1}
-                        defaultValue={String(goal.target)}
-                        className="w-28"
-                        onBlur={(event) => {
-                          const target = Number(event.target.value);
-                          if (target === goal.target || checkTarget(target) !== null) {
-                            event.target.value = String(goal.target);
-                            return;
-                          }
-                          update.mutate({ id: goal.id, patch: { target } });
-                        }}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-caption text-fg-tertiary">By</span>
-                      <Input
-                        aria-label="Due day"
-                        type="date"
-                        defaultValue={goal.dueDay ?? ''}
-                        className="w-40"
-                        onChange={(event) =>
-                          update.mutate({
-                            id: goal.id,
-                            patch: {
-                              dueDay: event.target.value === '' ? null : event.target.value,
-                            },
+                            patch:
+                              kind === 'ongoing'
+                                ? { ongoing: true, dueDay: null }
+                                : { ongoing: false },
                           })
                         }
                       />
-                    </label>
+                    </div>
+                    {goal.ongoing !== true && (
+                      <>
+                        <label className="flex flex-col gap-1">
+                          <span className="text-caption text-fg-tertiary">
+                            Target {goal.measure === 'minutes' ? '(minutes)' : '(tasks)'}
+                          </span>
+                          <Input
+                            aria-label="Target"
+                            type="number"
+                            min={1}
+                            step={1}
+                            defaultValue={String(goal.target)}
+                            className="w-28"
+                            onBlur={(event) => {
+                              const target = Number(event.target.value);
+                              if (target === goal.target || checkTarget(target) !== null) {
+                                event.target.value = String(goal.target);
+                                return;
+                              }
+                              update.mutate({ id: goal.id, patch: { target } });
+                            }}
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1">
+                          <span className="text-caption text-fg-tertiary">By (optional)</span>
+                          <Input
+                            aria-label="Due day"
+                            type="date"
+                            defaultValue={goal.dueDay ?? ''}
+                            className="w-40"
+                            onChange={(event) =>
+                              update.mutate({
+                                id: goal.id,
+                                patch: {
+                                  dueDay: event.target.value === '' ? null : event.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </label>
+                      </>
+                    )}
                   </div>
 
-                  <label className="flex flex-col gap-1">
-                    <span className="text-caption text-fg-tertiary">
-                      Hours each week (optional) — the goal&apos;s envelope in the Mosaic
-                    </span>
-                    <Input
-                      aria-label="Hours each week"
-                      type="number"
-                      min={0}
-                      max={168}
-                      step={0.5}
-                      placeholder="No envelope"
-                      defaultValue={
-                        goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
-                          ? ''
-                          : String(goal.weeklyMinutes / 60)
-                      }
-                      className="w-40"
-                      onBlur={(event) => {
-                        const text = event.target.value.trim();
-                        const hours = Number(text);
-                        const minutes = text === '' || hours === 0 ? null : Math.round(hours * 60);
-                        if (
-                          minutes !== null &&
-                          (!Number.isFinite(hours) || hours < 0 || hours > 168)
-                        ) {
-                          event.target.value =
+                  <details className="group/details">
+                    <summary className="cursor-pointer text-body text-fg-secondary hover:text-fg">
+                      More details
+                    </summary>
+                    <div className="mt-3 flex flex-wrap items-start gap-3">
+                      <label className="flex flex-col gap-1">
+                        <span className="text-caption text-fg-tertiary">Counting</span>
+                        <Select
+                          aria-label="What this goal counts"
+                          value={goal.measure}
+                          className="w-auto"
+                          onChange={(event) =>
+                            update.mutate({
+                              id: goal.id,
+                              patch: { measure: event.target.value as Measure },
+                            })
+                          }
+                        >
+                          {MEASURES.map((measure) => (
+                            <option key={measure.id} value={measure.id}>
+                              {measure.label}
+                            </option>
+                          ))}
+                        </Select>
+                      </label>
+
+                      <label className="flex flex-col gap-1">
+                        <span className="text-caption text-fg-tertiary">
+                          Hours each week (optional) — the goal&apos;s envelope in the Mosaic
+                        </span>
+                        <Input
+                          aria-label="Hours each week"
+                          type="number"
+                          min={0}
+                          max={168}
+                          step={0.5}
+                          placeholder="No envelope"
+                          defaultValue={
                             goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
                               ? ''
-                              : String(goal.weeklyMinutes / 60);
-                          return;
-                        }
-                        if (minutes === (goal.weeklyMinutes ?? null)) return;
-                        update.mutate({ id: goal.id, patch: { weeklyMinutes: minutes } });
-                      }}
-                    />
-                  </label>
+                              : String(goal.weeklyMinutes / 60)
+                          }
+                          className="w-40"
+                          onBlur={(event) => {
+                            const text = event.target.value.trim();
+                            const hours = Number(text);
+                            const minutes =
+                              text === '' || hours === 0 ? null : Math.round(hours * 60);
+                            if (
+                              minutes !== null &&
+                              (!Number.isFinite(hours) || hours < 0 || hours > 168)
+                            ) {
+                              event.target.value =
+                                goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
+                                  ? ''
+                                  : String(goal.weeklyMinutes / 60);
+                              return;
+                            }
+                            if (minutes === (goal.weeklyMinutes ?? null)) return;
+                            update.mutate({ id: goal.id, patch: { weeklyMinutes: minutes } });
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </details>
 
                   <section aria-label="Tasks in this goal">
                     <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">
@@ -416,40 +452,61 @@ function GoalCard({
   const hours = (minutes: number) => formatDuration(minutes);
 
   const says =
-    state === 'achieved'
-      ? 'Achieved'
-      : state === 'overdue'
-        ? `${Math.abs(left ?? 0)} ${Math.abs(left ?? 0) === 1 ? 'day' : 'days'} past its date`
-        : state === 'due'
-          ? `${left} ${left === 1 ? 'day' : 'days'} left`
-          : `${remainingOf(figure, goal)} to go`;
+    state === 'ongoing'
+      ? 'Ongoing focus, no end date'
+      : state === 'achieved'
+        ? 'Achieved'
+        : state === 'overdue'
+          ? `${Math.abs(left ?? 0)} ${Math.abs(left ?? 0) === 1 ? 'day' : 'days'} past its date`
+          : state === 'due'
+            ? `${left} ${left === 1 ? 'day' : 'days'} left`
+            : `${remainingOf(figure, goal)} to go`;
 
   return (
-    <li>
+    <li className={open ? 'xl:col-span-2' : ''}>
       <Card>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-expanded={open}
-              aria-label={`${open ? 'Close' : 'Open'} ${goal.name}`}
-              onClick={onOpen}
-              className="min-w-0 flex-1 truncate text-left text-body-lg font-semibold text-fg"
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-4">
+            <ProgressRing
+              share={goal.ongoing === true ? null : share}
+              tone={state === 'achieved' ? 'success' : 'accent'}
+              label={`${goal.name} progress`}
+              valueText={describeProgress(figure, goal, hours)}
+              max={goal.target}
+              value={figure.value}
             >
-              {goal.name}
-            </button>
-            <span
-              className={[
-                'shrink-0 text-caption',
-                state === 'achieved'
-                  ? 'text-success'
-                  : state === 'overdue'
-                    ? 'text-danger'
-                    : 'text-fg-tertiary',
-              ].join(' ')}
-            >
-              {says}
-            </span>
+              {goal.ongoing === true
+                ? goal.measure === 'minutes'
+                  ? hours(figure.value)
+                  : figure.value
+                : `${Math.round(share * 100)}%`}
+            </ProgressRing>
+            <div className="min-w-0 flex-1">
+              <button
+                type="button"
+                aria-expanded={open}
+                aria-label={`${open ? 'Close' : 'Open'} ${goal.name}`}
+                onClick={onOpen}
+                className="block w-full truncate text-left text-body-lg font-semibold text-fg"
+              >
+                {goal.name}
+              </button>
+              <p className="truncate text-caption tabular-nums text-fg-secondary">
+                {describeProgress(figure, goal, hours)}
+              </p>
+              <p
+                className={[
+                  'text-caption',
+                  state === 'achieved'
+                    ? 'text-success'
+                    : state === 'overdue'
+                      ? 'text-danger'
+                      : 'text-fg-tertiary',
+                ].join(' ')}
+              >
+                {says}
+              </p>
+            </div>
             <IconButton
               label={`Delete ${goal.name}`}
               icon={<Delete20Regular />}
@@ -457,30 +514,7 @@ function GoalCard({
             />
           </div>
 
-          <div className="flex items-center gap-3">
-            <div
-              role="progressbar"
-              aria-label={`${goal.name} progress`}
-              aria-valuemin={0}
-              aria-valuemax={goal.target}
-              aria-valuenow={figure.value}
-              aria-valuetext={describeProgress(figure, goal, hours)}
-              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-card-hover"
-            >
-              <div
-                className={[
-                  'h-full rounded-full transition-[width] duration-200 ease-easy',
-                  state === 'achieved' ? 'bg-success' : 'bg-accent',
-                ].join(' ')}
-                style={{ width: `${Math.round(share * 100)}%` }}
-              />
-            </div>
-            <span className="shrink-0 text-caption tabular-nums text-fg-secondary">
-              {describeProgress(figure, goal, hours)}
-            </span>
-          </div>
-
-          {forecast !== null && state !== 'achieved' && (
+          {forecast !== null && state !== 'achieved' && state !== 'ongoing' && (
             <ForecastLine forecast={forecast} sample={sample} dueDay={goal.dueDay} />
           )}
 

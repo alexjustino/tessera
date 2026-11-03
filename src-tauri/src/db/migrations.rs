@@ -73,6 +73,10 @@ const MIGRATIONS: &[(&str, &str)] = &[
         "018_envelopes",
         include_str!("../../migrations/018_envelopes.sql"),
     ),
+    (
+        "019_goal_focus",
+        include_str!("../../migrations/019_goal_focus.sql"),
+    ),
 ];
 
 /// Every migration, name and SQL, in the order they apply.

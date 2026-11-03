@@ -62,6 +62,7 @@ describe('a 1.2 workspace in 1.3', () => {
     await driver.waitForText('Launch');
     await driver.waitFor('the goal forecast', () => driver.find('[data-testid="forecast"]'));
 
+    await (await driver.findByXPath('//summary[normalize-space(.)="More details"]')).click();
     const hours = await driver.waitFor('the hours field', () =>
       driver.find('input[aria-label="Hours each week"]'),
     );
