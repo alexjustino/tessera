@@ -1,4 +1,11 @@
-import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import {
+  useRef,
+  useState,
+  type CSSProperties,
+  type DragEvent,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 
 /**
  * A grid of tiles a keyboard can walk (M4).
@@ -26,13 +33,22 @@ export interface TileCell {
   current?: boolean;
   /** What pressing the tile does, by pointer or with Enter or Space. */
   onActivate?: (() => void) | undefined;
+  /** A colour the token layer holds as a value, such as a goal's. */
+  style?: CSSProperties | undefined;
+  /** The pointer or the focus came to this tile. */
+  onInspect?: (() => void) | undefined;
+  /** Something was dropped on the tile. Without it the tile takes no drop. */
+  onDropOn?: ((event: DragEvent<HTMLDivElement>) => void) | undefined;
 }
 
 export function TileGrid({
   label,
   columns,
   rows,
+  rowHeight = 'h-9',
 }: {
+  /** The tiles' height, as the utility that sets it. */
+  rowHeight?: string;
   /** The grid's accessible name. */
   label: string;
   /** Column headings, left to right. */
@@ -124,7 +140,16 @@ export function TileGrid({
                 aria-current={cell.current === true ? 'time' : undefined}
                 data-tile={cell.id}
                 tabIndex={active !== null && active[0] === r && active[1] === c ? 0 : -1}
-                onFocus={() => setFocused([r, c])}
+                style={cell.style}
+                onFocus={() => {
+                  setFocused([r, c]);
+                  cell.onInspect?.();
+                }}
+                onMouseEnter={cell.onInspect}
+                onDragOver={
+                  cell.onDropOn === undefined ? undefined : (event) => event.preventDefault()
+                }
+                onDrop={cell.onDropOn}
                 onClick={cell.onActivate}
                 onKeyDown={(event) => {
                   if (
@@ -138,7 +163,8 @@ export function TileGrid({
                   onKeyDown(event, r, c);
                 }}
                 className={[
-                  'h-9 min-w-0 flex-1 overflow-hidden rounded-sm px-1.5 py-1 text-caption outline-none',
+                  rowHeight,
+                  'min-w-0 flex-1 overflow-hidden rounded-sm px-1.5 py-1 text-caption outline-none',
                   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg',
                   cell.onActivate === undefined ? '' : 'cursor-pointer hover:brightness-110',
                   cell.className,

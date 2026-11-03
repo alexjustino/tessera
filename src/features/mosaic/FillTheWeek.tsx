@@ -44,7 +44,7 @@ export function FillTheWeek({
             ? '1 task has no estimate yet'
             : `${waiting.length} tasks have no estimate yet`
         }
-        description="The week counts hours, so it cannot draw work until it knows how long the work takes. Pick a size and the tiles appear."
+        description="The week cannot draw work until it knows how long it takes."
       >
         <ul className="flex flex-col gap-1">
           {shown.map((item) => (
@@ -55,7 +55,7 @@ export function FillTheWeek({
               <button
                 type="button"
                 onClick={() => onOpen(item.id)}
-                className="min-w-0 flex-1 truncate py-1 text-left text-body text-fg"
+                className="w-full min-w-0 truncate py-1 text-left text-body text-fg"
               >
                 {item.title}
               </button>
@@ -69,6 +69,7 @@ export function FillTheWeek({
                     key={size}
                     aria-label={`${item.title} takes ${formatDuration(parseDuration(size) ?? 0)}`}
                     disabled={setPlan.isPending}
+                    className="min-w-0 px-2"
                     onClick={() =>
                       setPlan.mutate({
                         id: item.id,
