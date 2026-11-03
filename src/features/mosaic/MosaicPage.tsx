@@ -196,7 +196,7 @@ function splitCellOf(tile: Tile, split: Split): TileCell {
   };
 }
 
-export function MosaicPage() {
+export function MosaicPage({ onOpenPage }: { onOpenPage?: (pageId: string) => void } = {}) {
   const [picked, setPicked] = useState<HourChoice | null>(null);
   // A task opens here, over the week, so closing it comes back to the week.
   const [openId, setOpenId] = useState<string | null>(null);
@@ -329,6 +329,7 @@ export function MosaicPage() {
         properties={properties.data ?? []}
         values={openId === null ? {} : (values.data?.[openId] ?? {})}
         onClose={() => setOpenId(null)}
+        onOpenPage={onOpenPage}
       />
     </Page>
   );

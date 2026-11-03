@@ -11,6 +11,7 @@ import { useBacklinks, useCreatePage, useDeletePage, usePages, useRenamePage } f
 import { between } from '@/domain/ordering';
 import { checkTitle, titleKey, UNTITLED, type Page } from '@/domain/page';
 import { Editor } from '@/features/editor/Editor';
+import { LinkedTasks } from './LinkedTasks';
 import { Button } from '@/ui/Button';
 import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { EmptyState } from '@/ui/EmptyState';
@@ -28,7 +29,14 @@ import { announce } from '@/ui/announce';
  * still be found from the page you linked *to*, which is how a set of notes
  * turns into something you can navigate a year later.
  */
-export function NotesPage({ initialPageId }: { initialPageId?: string | null }) {
+export function NotesPage({
+  initialPageId,
+  onOpenItem,
+}: {
+  initialPageId?: string | null;
+  /** Go to a task, from a page about it. */
+  onOpenItem?: (itemId: string) => void;
+}) {
   const pages = usePages();
   const create = useCreatePage();
   const rename = useRenamePage();
@@ -208,6 +216,8 @@ export function NotesPage({ initialPageId }: { initialPageId?: string | null }) 
               label={`Text of ${open.title}`}
             />
 
+            <LinkedTasks key={`tasks-${open.id}`} pageId={open.id} onOpenItem={onOpenItem} />
+
             <section aria-label="Linked from" className="mt-4 border-t border-stroke-subtle pt-4">
               <h2 className="mb-2 flex items-center gap-2 text-caption font-semibold text-fg-tertiary uppercase">
                 <Link20Regular aria-hidden="true" />
@@ -234,12 +244,17 @@ export function NotesPage({ initialPageId }: { initialPageId?: string | null }) 
                           {entry.title}
                         </button>
                       ) : (
-                        <p className="flex items-baseline gap-2 px-2 py-1">
+                        <button
+                          type="button"
+                          disabled={entry.ownerKind !== 'item'}
+                          onClick={() => onOpenItem?.(entry.ownerId)}
+                          className="flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-left enabled:hover:bg-card-hover"
+                        >
                           <span className="text-caption text-fg-tertiary">
                             {entry.ownerKind === 'item' ? 'Task' : 'Event'}
                           </span>
                           <span className="truncate text-body text-fg">{entry.title}</span>
-                        </p>
+                        </button>
                       )}
                     </li>
                   ))}

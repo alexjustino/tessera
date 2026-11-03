@@ -8,6 +8,7 @@ import { type Property, type PropertyValue } from '@/domain/property';
 import { Editor } from '@/features/editor/Editor';
 
 import { Dependencies } from './Dependencies';
+import { LinkedNotes } from './LinkedNotes';
 import { PlanEditor } from './PlanEditor';
 import { TimeTracker } from './TimeTracker';
 import { Warnings } from './Warnings';
@@ -34,6 +35,7 @@ export function TaskDetail({
   values,
   onClose,
   onFocus,
+  onOpenPage,
 }: {
   task: Item | null;
   /** Every task in the collection — what the dependency picker offers. */
@@ -45,6 +47,8 @@ export function TaskDetail({
   onClose: () => void;
   /** Enter focus mode on this task. */
   onFocus?: ((id: string) => void) | undefined;
+  /** Go to a page about this task. */
+  onOpenPage?: ((pageId: string) => void) | undefined;
 }) {
   const setValue = useSetPropertyValue();
   const setSchedule = useSetSchedule();
@@ -110,6 +114,29 @@ export function TaskDetail({
       )}
 
       {task !== null && (
+        <section className="mb-5 border-b border-stroke-subtle pb-3">
+          <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Notes</h3>
+          {/* Keyed on the item, so opening a different task builds a fresh
+              editor rather than pouring one document into another's state. */}
+          <Editor
+            key={task.id}
+            ownerKind="item"
+            ownerId={task.id}
+            label={`Notes on ${task.title}`}
+          />
+        </section>
+      )}
+
+      {task !== null && (
+        <p className="mt-6 text-caption text-fg-tertiary">
+          Created {new Date(task.createdAt).toLocaleString()}
+          {task.completedAt !== null &&
+            ` · completed ${new Date(task.completedAt).toLocaleString()}`}
+        </p>
+      )}
+      {task !== null && <LinkedNotes itemId={task.id} title={task.title} onOpenPage={onOpenPage} />}
+
+      {task !== null && (
         <section className="mb-5 border-b border-stroke-subtle pb-5">
           <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Schedule</h3>
           <ScheduleEditor
@@ -156,28 +183,6 @@ export function TaskDetail({
       {task !== null && <TimeTracker task={task} items={items} />}
 
       {task !== null && <Dependencies task={task} items={items} />}
-
-      {task !== null && (
-        <section className="mt-6 border-t border-stroke-subtle pt-4">
-          <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Notes</h3>
-          {/* Keyed on the item, so opening a different task builds a fresh
-              editor rather than pouring one document into another's state. */}
-          <Editor
-            key={task.id}
-            ownerKind="item"
-            ownerId={task.id}
-            label={`Notes on ${task.title}`}
-          />
-        </section>
-      )}
-
-      {task !== null && (
-        <p className="mt-6 text-caption text-fg-tertiary">
-          Created {new Date(task.createdAt).toLocaleString()}
-          {task.completedAt !== null &&
-            ` · completed ${new Date(task.completedAt).toLocaleString()}`}
-        </p>
-      )}
     </Drawer>
   );
 }

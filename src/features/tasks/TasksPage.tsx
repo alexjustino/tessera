@@ -92,11 +92,14 @@ export function TasksPage({
   onFocus,
   onShowAll,
   onOpenSettings,
+  onOpenPage,
 }: {
   /** Which place in the rail this is. */
   place?: TasksPlace;
   /** Go to the whole list, from a place that shows part of it. */
   onShowAll?: () => void;
+  /** Go to a page, from a task it is about. */
+  onOpenPage?: (pageId: string) => void;
   /** Open a card in Settings, from the getting-started guide. */
   onOpenSettings?: (card: SettingsCard) => void;
   /** An item to open on mount — how the palette lands on a search hit. */
@@ -589,6 +592,7 @@ export function TasksPage({
         values={detailTask ? (values.data?.[detailTask.id] ?? {}) : {}}
         onClose={() => setDetailId(null)}
         onFocus={onFocus}
+        onOpenPage={onOpenPage}
       />
     </Page>
   );
