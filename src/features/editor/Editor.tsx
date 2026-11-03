@@ -55,10 +55,13 @@ const SAVE_DELAY_MS = 600;
 export function Editor({
   ownerKind,
   ownerId,
+  subject,
   label,
 }: {
   ownerKind: string;
   ownerId: string;
+  /** What an email from this document is called. */
+  subject?: string;
   /**
    * The editor's accessible name. TipTap 3.32 declares the editable area a text
    * field, and a text field with no name is announced as nothing at all.
@@ -219,7 +222,14 @@ export function Editor({
 
   return (
     <div className="relative">
-      {editor !== null && <Toolbar editor={editor} ownerKind={ownerKind} ownerId={ownerId} />}
+      {editor !== null && (
+        <Toolbar
+          editor={editor}
+          ownerKind={ownerKind}
+          ownerId={ownerId}
+          subject={subject ?? label ?? 'Notes'}
+        />
+      )}
       <EditorContent editor={editor} />
       {slash.open && editor !== null && <SlashMenu editor={editor} state={slash} />}
       {links.open && editor !== null && <LinkMenu editor={editor} state={links} />}

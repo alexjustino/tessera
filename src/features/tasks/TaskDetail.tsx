@@ -123,6 +123,7 @@ export function TaskDetail({
             ownerKind="item"
             ownerId={task.id}
             label={`Notes on ${task.title}`}
+            subject={task.title}
           />
         </section>
       )}
