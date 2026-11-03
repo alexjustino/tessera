@@ -33,12 +33,29 @@ describe('the figures on each screen', () => {
     session = await startSession();
     const { driver } = session;
     const input = await driver.waitForElement('input[aria-label="New task"]');
-    await input.sendKeys(`Due at the end of today today at 11:30pm${Keys.ENTER}`);
-    await driver.waitForText('Due at the end of today');
-    await input.sendKeys(`Late one yesterday${Keys.ENTER}`);
+    await input.sendKeys(`Due tonight today at 11pm${Keys.ENTER}`);
+    await driver.waitForText('Due tonight');
+    await input.sendKeys(`Late one tomorrow${Keys.ENTER}`);
     await driver.waitForText('Late one');
+    // Nothing typed can make a date that has gone, so this one is moved back.
+    await driver.executeAsync(
+      `const done = arguments[arguments.length - 1];
+       const { invoke } = window.__TAURI_INTERNALS__;
+       const yesterday = new Date(Date.now() - 86400000).toISOString();
+       invoke('items_list', { collectionId: 'tasks', includeCompleted: true })
+         .then((items) => items.find((item) => item.title === 'Late one'))
+         .then((item) => invoke('item_set_schedule', {
+           id: item.id,
+           schedule: { start_at: null, due_at: yesterday, remind_at: null, recurrence_rrule: null, recurrence_mode: null },
+         }))
+         .then(() => done(), (error) => done(String(error)));`,
+      [],
+    );
     await input.sendKeys(`Someday${Keys.ENTER}`);
     await driver.waitForText('Someday');
+    // The date was changed behind the window's back: open it again to read it.
+    await session.restart();
+    await session.driver.waitForElement('input[aria-label="New task"]');
   });
 
   afterAll(async () => {
@@ -69,7 +86,6 @@ describe('the figures on each screen', () => {
     const score = await driver.find('[data-testid="today-score"]');
     expect(await score.text()).toContain('1 of 2 tasks finished.');
     await driver.waitForElement('[data-testid="finished-today"]');
-    await press('input[aria-label="Complete Late one"]').catch(() => undefined);
   });
 
   it('Tasks opens on an overview, and a figure shows those tasks', async () => {
@@ -109,7 +125,7 @@ describe('the figures on each screen', () => {
     const card = await driver.waitFor('the card for today', () =>
       driver.find('article[data-today="today"]'),
     );
-    expect(await card.text()).toContain('Due at the end of today');
+    expect(await card.text()).toContain('Due tonight');
     const strip = await driver.find('[data-testid="board-today"]');
     expect(await strip.text()).toContain('card');
 
@@ -149,6 +165,39 @@ describe('the figures on each screen', () => {
     expect(await driver.findAll('[data-testid="chart-column"]')).toHaveLength(7);
     await driver.waitForElement('[data-figure="completed"]');
     await session.screenshot('reports-figures');
+  });
+});
+
+describe('a screen that fails', () => {
+  let session: Session;
+
+  beforeAll(async () => {
+    session = await startSession();
+    await session.driver.waitForElement('input[aria-label="New task"]');
+  });
+
+  afterAll(async () => {
+    await session?.stop();
+  });
+
+  it('says so, keeps the rail alive, and going elsewhere is the way out', async () => {
+    const { driver } = session;
+    // Something every report renders with, made to throw: a render that fails, on
+    // purpose, with nothing about it known to the screen.
+    await driver.execute(`
+      window.__dates = Date.prototype.toLocaleDateString;
+      Date.prototype.toLocaleDateString = () => { throw new Error('Told to fail'); };
+    `);
+    await (await driver.findByXPath('//nav//button[normalize-space(.)="Reports"]')).click();
+    const failed = await driver.waitForElement('[data-testid="screen-failed"]');
+    expect(await failed.text()).toContain('Told to fail');
+    expect(await failed.text()).toContain('Your work is safe');
+    await session.screenshot('screen-failed');
+
+    await driver.execute('Date.prototype.toLocaleDateString = window.__dates');
+    await (await driver.findByXPath('//nav//button[normalize-space(.)="Tasks"]')).click();
+    await driver.waitForElement('input[aria-label="New task"]');
+    expect(await driver.findAll('[data-testid="screen-failed"]')).toHaveLength(0);
   });
 });
 

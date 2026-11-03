@@ -115,6 +115,26 @@ export const Keys = {
   ALT: '',
 } as const;
 
+/**
+ * How long a lookup gives a screen to arrive. Screens are read on demand, so what a
+ * press shows is there a moment after it rather than at once. `findAll` does not
+ * wait: it is what asks whether something is absent.
+ */
+const ARRIVING_MS = 1_500;
+
+async function arriving<T>(look: () => Promise<T>): Promise<T> {
+  const deadline = Date.now() + ARRIVING_MS;
+  for (;;) {
+    try {
+      return await look();
+    } catch (error) {
+      if (!(error instanceof DriverError) || error.kind !== 'no such element') throw error;
+      if (Date.now() >= deadline) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+}
+
 export class Driver {
   private constructor(
     private readonly base: string,
@@ -137,10 +157,12 @@ export class Driver {
   }
 
   async find(css: string): Promise<Element> {
-    const found = await call<Record<string, string>>('POST', this.sessionUrl('/element'), {
-      using: 'css selector',
-      value: css,
-    });
+    const found = await arriving(() =>
+      call<Record<string, string>>('POST', this.sessionUrl('/element'), {
+        using: 'css selector',
+        value: css,
+      }),
+    );
     return new Element(this, found[ELEMENT_KEY] ?? '');
   }
 
@@ -153,10 +175,12 @@ export class Driver {
   }
 
   async findByXPath(xpath: string): Promise<Element> {
-    const found = await call<Record<string, string>>('POST', this.sessionUrl('/element'), {
-      using: 'xpath',
-      value: xpath,
-    });
+    const found = await arriving(() =>
+      call<Record<string, string>>('POST', this.sessionUrl('/element'), {
+        using: 'xpath',
+        value: xpath,
+      }),
+    );
     return new Element(this, found[ELEMENT_KEY] ?? '');
   }
 

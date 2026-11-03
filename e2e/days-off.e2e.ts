@@ -34,15 +34,17 @@ describe('days off', () => {
     await goTo('Calendar');
     // Wait for the scale tabs themselves: "Not scheduled" only shows when
     // there are unscheduled tasks, and this workspace has none.
-    const year = await driver.waitFor('the Year tab', () =>
-      driver.findByXPath(
+    // Pressed until the year is up: pressing Calendar from the calendar replaces the
+    // screen, and a tab found a moment before that is gone by the time it is pressed.
+    const cell = await driver.waitFor(`the cell for ${day}`, async () => {
+      const [found] = await driver.findAll(`button[data-day="${day}"]`);
+      if (found !== undefined) return found;
+      const year = await driver.findByXPath(
         '//*[@role="tablist"][.//button[normalize-space(.)="Year"]]//button[normalize-space(.)="Year"]',
-      ),
-    );
-    await driver.execute('arguments[0].click()', [{ [ELEMENT]: year.id }]);
-    const cell = await driver.waitFor(`the cell for ${day}`, () =>
-      driver.find(`button[data-day="${day}"]`),
-    );
+      );
+      await driver.execute('arguments[0].click()', [{ [ELEMENT]: year.id }]);
+      return null;
+    });
     return cell.attribute('data-level');
   };
 

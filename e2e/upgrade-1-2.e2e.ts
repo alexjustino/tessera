@@ -83,6 +83,11 @@ describe('a 1.2 workspace in 1.3', () => {
     const { driver } = session;
     await driver.waitForElement('[data-testid="mosaic-summary"]');
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Working time"]',
+      )
+    ).click();
     await driver.waitForText('Days off');
     const field = await driver.waitForElement('input[aria-label="Day off"]');
     await driver.execute(
