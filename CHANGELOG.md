@@ -42,6 +42,9 @@ version 18, is migrated on first start.
 
 ### Changed
 
+- **Diagnostics moved into About.** It serves someone looking into a problem, not the day's
+  work, so it left the rail. About opens it, it has a way back, and the palette still goes
+  straight to it.
 - **Goals ask the easy question first.** A goal is either something to reach or an
   ongoing focus with no number and no end date, which is now a choice of its own. A date
   is optional. What it counts and its weekly hours are under More details, each goal

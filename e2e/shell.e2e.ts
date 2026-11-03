@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { openDiagnostics, startSession, type Session } from './session';
 
 /**
  * The shell: the window comes up, the rail names every destination, and each
@@ -42,7 +42,6 @@ describe('shell', () => {
       'Review',
       'Reports',
       'Settings',
-      'Diagnostics',
       'About',
     ]);
     const disabled = await driver.findAll('nav[aria-label="Main"] button[disabled]');
@@ -59,7 +58,6 @@ describe('shell', () => {
     ['Review', 'h1'],
     ['Reports', 'h1'],
     ['Settings', 'h1'],
-    ['Diagnostics', 'h1'],
     ['About', 'h1'],
     ['Tasks', 'input[aria-label="New task"]'],
   ])('navigates to %s and renders it', async (label, marker) => {
@@ -73,7 +71,11 @@ describe('shell', () => {
 
   it('Diagnostics reports the workspace the suite relocated it to', async () => {
     const { driver } = session;
-    await (await driver.findByXPath('//nav//button[normalize-space(.)="Diagnostics"]')).click();
+    await openDiagnostics(session);
+    // Inside About, so About stays lit, and there is a way back.
+    const lit = await driver.findByXPath('//nav//button[@aria-current="page"]');
+    expect(await lit.text()).toBe('About');
+    expect(await driver.findAll('nav button[title="Diagnostics"]')).toHaveLength(0);
     const row = await driver.waitForText('tessera.sqlite3');
     expect(await row.text()).toContain(session.dataDir.split('\\').pop() ?? session.dataDir);
     await driver.waitForText('up to date');

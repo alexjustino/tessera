@@ -11,7 +11,6 @@ import {
   Search20Regular,
   Settings20Regular,
   TaskListSquareLtr20Regular,
-  Wrench20Regular,
 } from '@fluentui/react-icons';
 import type { ReactNode } from 'react';
 
@@ -57,7 +56,6 @@ const ENTRIES: Entry[] = [
   { id: 'review', label: 'Review', icon: <TaskListLtr20Regular />, ready: true },
   { id: 'reports', label: 'Reports', icon: <DataBarHorizontal20Regular />, ready: true },
   { id: 'settings', label: 'Settings', icon: <Settings20Regular />, ready: true },
-  { id: 'diagnostics', label: 'Diagnostics', icon: <Wrench20Regular />, ready: true },
   { id: 'about', label: 'About', icon: <Info20Regular />, ready: true },
 ];
 
@@ -96,7 +94,10 @@ export function Sidebar({
         <Kbd>Ctrl+K</Kbd>
       </button>
       {ENTRIES.map((entry) => {
-        const selected = entry.ready && entry.id === active;
+        // Diagnostics opens from About and has no entry of its own, so About stays lit.
+        const selected =
+          entry.ready &&
+          (entry.id === active || (entry.id === 'about' && active === 'diagnostics'));
         return (
           <button
             key={entry.id}

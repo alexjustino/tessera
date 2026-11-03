@@ -1,4 +1,4 @@
-import { Copy20Regular, Open20Regular } from '@fluentui/react-icons';
+import { Copy20Regular, Open20Regular, Wrench20Regular } from '@fluentui/react-icons';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useState } from 'react';
 
@@ -27,7 +27,7 @@ const REPOSITORY = 'https://github.com/alexjustino/tessera';
  * who made it, what it is licensed under, and what it is built on — which is
  * the least a piece of software owes the person running it.
  */
-export function AboutPage() {
+export function AboutPage({ onOpenDiagnostics }: { onOpenDiagnostics: () => void }) {
   const [info, setInfo] = useState<SystemInfo | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -62,6 +62,15 @@ export function AboutPage() {
       </header>
 
       <PageColumns>
+        <Card
+          title="Diagnostics"
+          description="What Tessera can see of this machine and its own workspace, for when something does not behave."
+        >
+          <Button icon={<Wrench20Regular />} onClick={onOpenDiagnostics}>
+            Open diagnostics
+          </Button>
+        </Card>
+
         {/* ── The name ─────────────────────────────────────────────────────── */}
         <Card title="The name">
           <div className="flex flex-col gap-3 text-body text-fg-secondary">

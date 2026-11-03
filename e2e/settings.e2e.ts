@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { openDiagnostics, startSession, type Session } from './session';
 import { Keys } from './webdriver';
 
 const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
@@ -103,7 +103,7 @@ describe('settings and data', () => {
     );
     await driver.waitForText('Ctrl+Alt+T');
     await session.screenshot('settings');
-    await goTo('Diagnostics');
+    await openDiagnostics(session);
     await driver.waitForText('Ctrl+Alt+T');
   });
 

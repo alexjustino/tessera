@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { openDiagnostics, startSession, type Session } from './session';
 import { Keys } from './webdriver';
 
 /**
@@ -27,7 +27,7 @@ describe('diagnostics and about', () => {
     await input.sendKeys(`Submit the form tomorrow at 10am remind me 1h before${Keys.ENTER}`);
     await driver.waitForText('Submit the form');
 
-    await (await driver.findByXPath('//nav//button[normalize-space(.)="Diagnostics"]')).click();
+    await openDiagnostics(session);
     await driver.waitForText('Reminders');
     const queued = await driver.waitForText('Submit the form');
     expect(await queued.displayed()).toBe(true);

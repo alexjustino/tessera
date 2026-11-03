@@ -226,6 +226,17 @@ export interface SessionOptions {
   seedWorkspace?: string;
 }
 
+/** Diagnostics has no place in the rail: it opens from About. */
+export async function openDiagnostics(session: Session): Promise<void> {
+  const { driver } = session;
+  await (await driver.findByXPath('//nav//button[normalize-space(.)="About"]')).click();
+  const open = await driver.waitFor('the way into Diagnostics', () =>
+    driver.findByXPath('//button[normalize-space(.)="Open diagnostics"]'),
+  );
+  await open.click();
+  await driver.waitForText('What Tessera can see of this machine');
+}
+
 export async function startSession(options: SessionOptions = {}): Promise<Session> {
   // A previous file's application may still be going down.
   await stopStrayInstances();

@@ -1,4 +1,4 @@
-import { Alert20Regular, Database20Regular } from '@fluentui/react-icons';
+import { Alert20Regular, ArrowLeft20Regular, Database20Regular } from '@fluentui/react-icons';
 import { useCallback, useEffect, useState } from 'react';
 
 import { applyAccent } from '@/app/theme';
@@ -25,10 +25,9 @@ import { RemindersCard } from './RemindersCard';
  * It exists to make the foundation slice's claims checkable rather than
  * asserted: the host is reachable, the database migrated, the accent colour
  * really came from Windows, and the notification pipeline really reaches the
- * Action Center. When the product has real screens this page becomes
- * Diagnostics.
+ * Action Center. It opens from About: it serves someone looking into a problem.
  */
-export function FoundationPage() {
+export function FoundationPage({ onBack }: { onBack: () => void }) {
   const [info, setInfo] = useState<SystemInfo | null>(null);
   const [ramp, setRamp] = useState<AccentRamp | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -69,9 +68,13 @@ export function FoundationPage() {
   return (
     <Page>
       <header>
-        <h1 className="text-title font-semibold text-fg">Foundation</h1>
+        <Button appearance="subtle" icon={<ArrowLeft20Regular />} onClick={onBack}>
+          About
+        </Button>
+        <h1 className="mt-2 text-title font-semibold text-fg">Diagnostics</h1>
         <p className="mt-1 text-body text-fg-secondary">
-          Everything the first slice claims, shown rather than asserted.
+          What Tessera can see of this machine and its own workspace, for when something does not
+          behave.
         </p>
       </header>
 
