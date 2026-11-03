@@ -66,6 +66,11 @@ describe('days off', () => {
   it('a day off added in Settings is listed with its name', async () => {
     const { driver } = session;
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Working time"]',
+      )
+    ).click();
     await driver.waitForText('Days off');
     const field = await driver.waitForElement('input[aria-label="Day off"]');
     await driver.execute(
@@ -105,6 +110,11 @@ describe('days off', () => {
   it('removing the day off gives the day its hours back', async () => {
     const { driver } = session;
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Working time"]',
+      )
+    ).click();
     const remove = await driver.waitFor('the remove control', () =>
       driver.find(`[data-day-off="${day}"] button`),
     );

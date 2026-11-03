@@ -159,6 +159,11 @@ describe('Todoist and Microsoft To Do', () => {
   it('both imports are listed and both can be undone, leaving nothing', async () => {
     const { driver } = session;
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Add from another product"]',
+      )
+    ).click();
     await driver.waitForText('Recent imports');
     const rows = await driver.findAll('[data-testid="import-batch"]');
     expect(rows).toHaveLength(2);

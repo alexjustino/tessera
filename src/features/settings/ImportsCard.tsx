@@ -22,8 +22,8 @@ import { fromTrello, looksLikeTrello } from '@/domain/importers/trello';
 import { optionsOf } from '@/domain/property';
 import { systemZone } from '@/domain/schedule';
 import { Button } from '@/ui/Button';
-import { Card } from '@/ui/Card';
 import { InfoBar } from '@/ui/InfoBar';
+import { SettingBody, SettingGroup, SettingRow } from '@/ui/Setting';
 import { announce } from '@/ui/announce';
 
 import { ImportDialog } from './ImportDialog';
@@ -135,109 +135,48 @@ export function ImportsCard() {
     );
 
   const batches = imports.data ?? [];
+  const starts = {
+    tessera: startTessera,
+    todoist: startTodoist,
+    trello: startTrello,
+    notion: startNotion,
+    calendar: startCalendar,
+    todo: startToDo,
+  };
 
   return (
-    <Card
-      title="Add from another product"
-      description="Bring tasks in from a file without replacing anything here. Every import is previewed first and can be undone as one thing."
-    >
-      <div className="flex flex-col gap-3">
-        {complaint !== null && (
-          <InfoBar severity="caution" title="That file cannot be imported">
-            {complaint}
-          </InfoBar>
-        )}
-        {undo.error !== null && (
-          <InfoBar severity="danger" title="That import could not be undone">
-            {describeError(undo.error)}
-          </InfoBar>
-        )}
-        {done !== null && (
-          <InfoBar severity="success" title="Imported">
-            {done}
-          </InfoBar>
-        )}
+    <>
+      {complaint !== null && (
+        <InfoBar severity="caution" title="That file cannot be imported">
+          {complaint}
+        </InfoBar>
+      )}
+      {undo.error !== null && (
+        <InfoBar severity="danger" title="That import could not be undone">
+          {describeError(undo.error)}
+        </InfoBar>
+      )}
+      {done !== null && (
+        <InfoBar severity="success" title="Imported">
+          {done}
+        </InfoBar>
+      )}
 
-        <ul className="flex flex-col gap-2">
-          <li className="flex items-center gap-3">
-            <Button
-              icon={<ArrowImport20Regular />}
-              onClick={() => void startTessera()}
-              className="w-56 justify-start"
-            >
-              Tessera export…
+      <SettingGroup
+        title="Add from another product"
+        description="Nothing here is replaced. Every import is previewed first and can be undone as one thing."
+      >
+        {SOURCES(starts).map((source) => (
+          <SettingRow key={source.label} title={source.name} description={source.note}>
+            <Button icon={<ArrowImport20Regular />} onClick={() => void source.start()}>
+              {source.label}
             </Button>
-            <span className="text-caption text-fg-tertiary">another workspace's JSON export</span>
-          </li>
-          <li className="flex items-center gap-3">
-            <Button
-              icon={<ArrowImport20Regular />}
-              onClick={() => void startTodoist()}
-              className="w-56 justify-start"
-            >
-              Todoist project…
-            </Button>
-            <span className="text-caption text-fg-tertiary">
-              the CSV from Export as a template; one file per project
-            </span>
-          </li>
-          <li className="flex items-center gap-3">
-            <Button
-              icon={<ArrowImport20Regular />}
+          </SettingRow>
+        ))}
+      </SettingGroup>
 
-              onClick={() => void startTrello()}
-
-              className="w-56 justify-start"
-            >
-              Trello board…
-            </Button>
-
-            <span className="text-caption text-fg-tertiary">
-              the board's JSON export; lists become columns, labels a property
-            </span>
-          </li>
-          <li className="flex items-center gap-3">
-            <Button
-              icon={<ArrowImport20Regular />}
-              onClick={() => void startNotion()}
-              className="w-56 justify-start"
-            >
-              Notion database…
-            </Button>
-            <span className="text-caption text-fg-tertiary">
-              the .csv from an unzipped Markdown &amp; CSV export; pages become documents
-            </span>
-          </li>
-          <li className="flex items-center gap-3">
-            <Button
-              icon={<ArrowImport20Regular />}
-              onClick={() => void startCalendar()}
-              className="w-56 justify-start"
-            >
-              Calendar (ICS)…
-            </Button>
-            <span className="text-caption text-fg-tertiary">
-              events with their repeats and their exceptions; reminders stay where they are
-            </span>
-          </li>
-          <li className="flex items-center gap-3">
-            <Button
-              icon={<ArrowImport20Regular />}
-              onClick={() => void startToDo()}
-              className="w-56 justify-start"
-            >
-              Microsoft To Do list…
-            </Button>
-            <span className="text-caption text-fg-tertiary">
-              the Outlook CSV export of the list's Tasks folder
-            </span>
-          </li>
-        </ul>
-
-        <section aria-label="Recent imports" className="border-t border-stroke-subtle pt-3">
-          <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">
-            Recent imports
-          </h3>
+      <SettingGroup title="Recent imports">
+        <SettingBody>
           {batches.length === 0 ? (
             <p className="text-caption text-fg-tertiary">Nothing has been imported yet.</p>
           ) : (
@@ -275,12 +214,59 @@ export function ImportsCard() {
               ))}
             </ul>
           )}
-        </section>
-      </div>
+        </SettingBody>
+      </SettingGroup>
 
       <ImportDialog plan={plan} onClose={() => setPlan(null)} onImported={setDone} />
-    </Card>
+    </>
   );
+}
+
+/** The products a file can come from: what each is, and what to bring. */
+function SOURCES(
+  starts: Record<
+    'tessera' | 'todoist' | 'trello' | 'notion' | 'calendar' | 'todo',
+    () => Promise<void>
+  >,
+) {
+  return [
+    {
+      name: 'Tessera',
+      note: "Another workspace's JSON export.",
+      label: 'Tessera export…',
+      start: starts.tessera,
+    },
+    {
+      name: 'Todoist',
+      note: 'The CSV from Export as a template, one file per project.',
+      label: 'Todoist project…',
+      start: starts.todoist,
+    },
+    {
+      name: 'Trello',
+      note: "The board's JSON export. Lists become columns, labels a property.",
+      label: 'Trello board…',
+      start: starts.trello,
+    },
+    {
+      name: 'Notion',
+      note: 'The .csv from an unzipped Markdown & CSV export. Pages become documents.',
+      label: 'Notion database…',
+      start: starts.notion,
+    },
+    {
+      name: 'A calendar',
+      note: 'An .ics file, with its repeats and exceptions.',
+      label: 'Calendar (ICS)…',
+      start: starts.calendar,
+    },
+    {
+      name: 'Microsoft To Do',
+      note: "The Outlook CSV export of the list's Tasks folder.",
+      label: 'Microsoft To Do list…',
+      start: starts.todo,
+    },
+  ];
 }
 
 function describeBatch(summary: { tasks: number; events: number; collections: number }): string {
