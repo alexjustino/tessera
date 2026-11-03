@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startSession, type Session } from './session';
 import { Keys } from './webdriver';
 
+const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
+
 /**
  * The Mosaic with real work in it: a task nobody has sized yet says so, a size
  * puts it on the week, and the tiles can be pressed.
