@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startSession, type Session } from './session';
 import { Keys } from './webdriver';
 
+const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
+
 /**
  * The Mosaic with real work in it: a task nobody has sized yet says so, a size
  * puts it on the week, and the tiles can be pressed.
@@ -69,6 +71,58 @@ describe('using the mosaic', () => {
         ? true
         : null,
     );
+  });
+
+  it('says what is in an hour when the pointer or the focus comes to it', async () => {
+    const { driver } = session;
+    const free = await driver.find('[role="gridcell"][aria-label*=": Free"]');
+    await driver.execute('arguments[0].focus()', [{ [ELEMENT]: free.id }]);
+    const panel = await driver.waitForElement('[data-testid="inspector"]');
+    expect(await panel.text()).toContain('Free');
+    expect(await panel.text()).toContain('Set this hour aside');
+  });
+
+  it('takes a task dragged from the list onto a free hour', async () => {
+    const { driver } = session;
+    const input = 'input[aria-label="New task"]';
+    await (await driver.findByXPath('//nav//button[normalize-space(.)="Tasks"]')).click();
+    await (await driver.waitForElement(input)).sendKeys(`Dragged here${Keys.ENTER}`);
+    await driver.waitForText('Dragged here');
+    await (await driver.findByXPath('//nav//button[normalize-space(.)="Mosaic"]')).click();
+    const queued = await driver.waitFor('the task in the list', () =>
+      driver.findByXPath('//*[@data-testid="task-queue"]//li[contains(., "Dragged here")]'),
+    );
+    const before = (await driver.findAll('[role="gridcell"] [data-state="reserved"]')).length;
+    const free = await driver.find('[role="gridcell"][aria-label*=": Free"]');
+    // The drag's own events, because a real pointer cannot be driven across a
+    // WebView by WebDriver. What is under test is what the tile does with a drop.
+    await driver.execute(
+      `const [source, target] = arguments;
+       const data = new DataTransfer();
+       source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: data }));
+       target.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: data }));
+       target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: data }));`,
+      [{ [ELEMENT]: queued.id }, { [ELEMENT]: free.id }],
+    );
+    await driver.waitFor('a reserved tile', async () =>
+      (await driver.findAll('[role="gridcell"] [data-state="reserved"]')).length > before
+        ? true
+        : null,
+    );
+  });
+
+  it('shows the weeks behind this one, and pressing one goes there', async () => {
+    const { driver } = session;
+    const history = await driver.waitForElement('[data-testid="mosaic-history"]');
+    const weeks = await driver.findAll('[data-testid="mosaic-history"] button');
+    expect(weeks).toHaveLength(16);
+    expect(await history.text()).toBe('');
+    const shown = await (await driver.find('[data-testid="mosaic-week"]')).text();
+    await weeks[0]!.click();
+    await driver.waitFor('another week', async () =>
+      (await (await driver.find('[data-testid="mosaic-week"]')).text()) !== shown ? true : null,
+    );
+    await (await driver.find('button[aria-label="This week"]')).click();
   });
 
   // ── Negative case ──────────────────────────────────────────────────────
