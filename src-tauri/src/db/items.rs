@@ -416,6 +416,15 @@ pub fn set_schedule(conn: &Connection, id: &str, schedule: ItemSchedule) -> Resu
     // the person's intent; the row is what fires. They are kept in step here so
     // there is exactly one place where they can drift, and it is this one.
     super::reminders::sync_for_item(conn, id, schedule.remind_at.as_deref())?;
+    let due_before: Option<String> = conn
+        .query_row(
+            "SELECT due_at FROM item WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .optional()?
+        .flatten();
+    super::reminders::follow_due(conn, id, due_before.as_deref(), schedule.due_at.as_deref())?;
 
     let changed = conn.execute(
         "UPDATE item

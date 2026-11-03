@@ -449,6 +449,34 @@ export const reminderKeys = {
   autostart: ['autostart'] as const,
 };
 
+/** Keyed by the due time too: moving it moves the warnings on the host. */
+export function useWarnings(itemId: string, dueAt: string | null) {
+  return useQuery({
+    queryKey: ['warnings', itemId, dueAt],
+    queryFn: () => reminderApi.listWarnings(itemId),
+    enabled: dueAt !== null,
+    // The scheduler fires them on its own, so what is stored can change unasked.
+    refetchOnMount: 'always',
+    refetchInterval: 30_000,
+  });
+}
+
+export function useAddWarning() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: reminderApi.addWarning,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['warnings'] }),
+  });
+}
+
+export function useRemoveWarning() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: reminderApi.removeWarning,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['warnings'] }),
+  });
+}
+
 export function useReminderStatus() {
   return useQuery({
     queryKey: reminderKeys.status,
