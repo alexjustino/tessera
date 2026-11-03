@@ -1,5 +1,6 @@
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Image from '@tiptap/extension-image';
+import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { TableKit } from '@tiptap/extension-table';
@@ -23,6 +24,7 @@ import { refresh, targetsOf, type Page as PageRow } from '@/domain/page';
 
 import { BlockId, newId } from './BlockId';
 import { Callout } from './Callout';
+import { Toolbar } from './Toolbar';
 import { LinkMenu } from './LinkMenu';
 import { PageLink } from './PageLink';
 import { SlashMenu } from './SlashMenu';
@@ -154,6 +156,7 @@ export function Editor({
       TaskItem.configure({ nested: true }),
       CodeBlockLowlight.configure({ lowlight }),
       TableKit.configure({ table: { resizable: true } }),
+      Highlight,
       Image.configure({ inline: false }),
       Link.configure({
         openOnClick: false,
@@ -214,6 +217,7 @@ export function Editor({
 
   return (
     <div className="relative">
+      {editor !== null && <Toolbar editor={editor} />}
       <EditorContent editor={editor} />
       {slash.open && editor !== null && <SlashMenu editor={editor} state={slash} />}
       {links.open && editor !== null && <LinkMenu editor={editor} state={links} />}

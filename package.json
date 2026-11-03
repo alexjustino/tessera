@@ -37,6 +37,7 @@
     "@tauri-apps/plugin-notification": "^2.8.0",
     "@tauri-apps/plugin-opener": "^2.7.2",
     "@tiptap/extension-code-block-lowlight": "^3.32.2",
+    "@tiptap/extension-highlight": "^3.32.2",
     "@tiptap/extension-image": "^3.32.2",
     "@tiptap/extension-link": "^3.32.2",
     "@tiptap/extension-placeholder": "^3.32.2",
