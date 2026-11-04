@@ -71,6 +71,75 @@ describe('a task and its notes', () => {
     await session.driver.waitForElement('button[aria-label="Open the page Nozomi"]');
   });
 
+  it('the task says which note is applied to it, on its row and on its card', async () => {
+    const { driver } = session;
+    await driver.chord(Keys.ESCAPE);
+    const chip = await driver.waitFor('the note on the row', () =>
+      driver.find('button[aria-label="Open the note Nozomi"]'),
+    );
+    expect(await chip.text()).toContain('Nozomi');
+    await session.screenshot('task-row-note');
+    await goTo('Board');
+    await driver.waitFor('the note on the card', () =>
+      driver.find('button[aria-label="Open the note Nozomi"]'),
+    );
+    await goTo('Tasks');
+  });
+
+  it('pressing it goes to the note, which says what it is applied to', async () => {
+    const { driver } = session;
+    // Pressed inside the wait: pressing Tasks from Tasks replaces the screen.
+    await driver.waitFor('the note pressed', async () => {
+      await (await driver.find('button[aria-label="Open the note Nozomi"]')).click();
+      return true;
+    });
+    await driver.waitForElement('button[aria-label="Open the task Nozomi"]');
+    const applied = await driver.find('[data-testid="linked-tasks"]');
+    expect(await applied.text()).toContain('Applied to');
+    await driver.waitForElement('[data-page-applied="1"]');
+    await session.screenshot('note-applied');
+  });
+
+  it('a note is applied to another task from under its name', async () => {
+    const { driver } = session;
+    await goTo('Tasks');
+    const input = await driver.waitForElement('input[aria-label="New task"]');
+    await input.sendKeys(`Dragos${Keys.ENTER}`);
+    await driver.waitForText('Dragos');
+    await goTo('Notes');
+    await (
+      await driver.waitFor('the Apply button', () =>
+        driver.findByXPath('//button[normalize-space(.)="Apply to a task"]'),
+      )
+    ).click();
+    const find = await driver.waitForElement('input[aria-label="Find a task"]');
+    await find.sendKeys('drag');
+    await (
+      await driver.waitFor('the task in the picker', () =>
+        driver.findByXPath('//ul[@aria-label="Open tasks"]//button[contains(., "Dragos")]'),
+      )
+    ).click();
+    await driver.waitForElement('button[aria-label="Open the task Dragos"]');
+    await driver.waitForElement('[data-page-applied="2"]');
+    await goTo('Tasks');
+    await driver.waitFor('the note on the new task too', async () =>
+      (await driver.findAll('[data-task-note]')).length === 2 ? true : null,
+    );
+    await goTo('Notes');
+    await (
+      await driver.waitFor('the way to take it off', () =>
+        driver.find('button[aria-label="Take Dragos off this page"]'),
+      )
+    ).click();
+    await driver.waitFor('it taken off', async () =>
+      (await driver.findAll('button[aria-label="Open the task Dragos"]')).length === 0
+        ? true
+        : null,
+    );
+    await goTo('Tasks');
+    await openTask();
+  });
+
   // ── Negative case ──────────────────────────────────────────────────────
   it('parts them without taking either away', async () => {
     const { driver } = session;

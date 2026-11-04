@@ -39,6 +39,9 @@ const SHORTEST_PIECE = 30;
 
 const SNAP = 15;
 
+/** The longest block a task gets when reserved by hand, before a person stretches it. */
+const LONGEST_BY_HAND = 240;
+
 export interface Suggestion {
   /** Unique within a plan. */
   key: string;
@@ -252,5 +255,51 @@ export function suggestPlan(
     assumed: assumedTasks,
     late: lateTasks.size,
     minutes: suggestions.reduce((sum, suggestion) => sum + suggestion.minutes, 0),
+  };
+}
+
+/**
+ * How long a task wants on a calendar when a person reserves it by hand: what is
+ * left of its estimate, or the same hour the plan assumes. Never more than half a
+ * day in one piece, because that is what a person would drag it down to anyway.
+ */
+export function blockLength(item: Item, tracked: number): number {
+  const left = item.estimateMinutes === null ? ASSUMED_MINUTES : item.estimateMinutes - tracked;
+  return Math.min(LONGEST_BY_HAND, Math.max(SNAP, left));
+}
+
+/**
+ * The first free time that holds this many minutes, so a block reserved by hand
+ * never lands on top of what is there. With nothing that long in the horizon, the
+ * longest usable piece, and null when there is no room at all.
+ */
+export function nextFree(
+  input: LedgerInput,
+  minutes: number,
+  horizonDays = PLAN_DAYS,
+): { day: string; minute: number; minutes: number; startsAt: string; endsAt: string } | null {
+  let best: { day: string; slot: Slot } | null = null;
+  for (let i = 0; i < horizonDays; i += 1) {
+    const day = addLocalDays(input.today, i);
+    for (const slot of freeSlots(day, input)) {
+      const room = slot.end - slot.start;
+      if (room >= minutes) return placed(input, day, slot.start, minutes);
+      if (room >= SHORTEST_PIECE && (best === null || room > best.slot.end - best.slot.start)) {
+        best = { day, slot };
+      }
+    }
+  }
+  return best === null
+    ? null
+    : placed(input, best.day, best.slot.start, best.slot.end - best.slot.start);
+}
+
+function placed(input: LedgerInput, day: string, minute: number, minutes: number) {
+  return {
+    day,
+    minute,
+    minutes,
+    startsAt: instantOf(day, minute, input.zone),
+    endsAt: instantOf(day, minute + minutes, input.zone),
   };
 }

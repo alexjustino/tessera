@@ -77,6 +77,25 @@ describe('the figures on each screen', () => {
     await session.screenshot('today-score');
   });
 
+  it('says what to do now, and starting it starts the clock', async () => {
+    const { driver } = session;
+    const card = await driver.waitForElement('[data-testid="now-card"]');
+    expect(await card.text()).not.toBe('');
+    await session.screenshot('today-now');
+    await (await driver.findByXPath('//button[normalize-space(.)="Start the clock"]')).click();
+    await driver.waitFor('the clock running', async () =>
+      (await driver.findAll('[data-testid="now-card"][data-now="running"]')).length === 1
+        ? true
+        : null,
+    );
+    await (await driver.findByXPath('//button[normalize-space(.)="Stop the clock"]')).click();
+    await driver.waitFor('the clock stopped', async () =>
+      (await driver.findAll('[data-testid="now-card"][data-now="running"]')).length === 0
+        ? true
+        : null,
+    );
+  });
+
   it('finishing the work moves the score at once', async () => {
     const { driver } = session;
     await press('input[aria-label="Complete Late one"]');

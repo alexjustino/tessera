@@ -9,7 +9,14 @@ import {
   ReOrderDotsVertical16Regular,
   Warning16Regular,
 } from '@fluentui/react-icons';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 
 import { describeError } from '@/data/errors';
 import {
@@ -21,12 +28,19 @@ import {
   useEventExceptions,
   useEvents,
   useMoveEvent,
+  useRenameEvent,
   useProperties,
   usePropertyValues,
   useTimeBlockedItems,
   useWorkHours,
 } from '@/data/hooks';
-import { suggestPlan, type SuggestedPlan, type Suggestion } from '@/domain/autoPlan';
+import {
+  blockLength,
+  nextFree,
+  suggestPlan,
+  type SuggestedPlan,
+  type Suggestion,
+} from '@/domain/autoPlan';
 import {
   addLocalDays,
   CALENDAR_SCALES,
@@ -63,6 +77,9 @@ import { Meter } from '@/ui/Meter';
 import { Modal } from '@/ui/Modal';
 import { TabStrip } from '@/ui/TabStrip';
 import { useNow } from '@/ui/useNow';
+import { usePointerDrag, type DragPoint } from '@/ui/usePointerDrag';
+
+import { BlockEditor, type BlockFields } from './BlockEditor';
 
 import { expandEvents } from './occurrences';
 import { YearView } from './YearView';
@@ -71,12 +88,26 @@ import { announce } from '@/ui/announce';
 /** The grid a drag snaps to. Fifteen minutes is what a person means by "about". */
 const SNAP_MINUTES = 15;
 
-/** What a task takes when it is first dropped on the calendar. */
-const DEFAULT_BLOCK_MINUTES = 60;
+/** What is being carried by the pointer. */
+type Grabbed =
+  | { kind: 'event'; occurrence: Occurrence }
+  | { kind: 'suggestion'; suggestion: Suggestion }
+  | { kind: 'task'; item: Item };
 
-const DRAG_TASK = 'application/x-tessera-task';
-const DRAG_EVENT = 'application/x-tessera-event';
-const DRAG_SUGGESTION = 'application/x-tessera-suggestion';
+/** Where it would land if let go now. `day` is null while it is off the grid. */
+interface Landing {
+  grabbed: Grabbed;
+  title: string;
+  day: string | null;
+  minute: number;
+  minutes: number;
+  x: number;
+  y: number;
+}
+
+/** What is open in the block editor. */
+type Editing =
+  { kind: 'event'; occurrence: Occurrence } | { kind: 'suggestion'; suggestion: Suggestion };
 
 /** Whether the suggested plan shows, remembered per machine. */
 const SHOW_PLAN = 'tessera.calendar-plan';
@@ -156,7 +187,13 @@ export function CalendarView({
   const deleteEvent = useDeleteEvent();
   const createBlock = useCreateTimeBlock();
   const createEvent = useCreateEvent();
+  const renameEvent = useRenameEvent();
   const daysOff = useDaysOffSet();
+  const startDrag = usePointerDrag();
+  const [landing, setLanding] = useState<Landing | null>(null);
+  const [editing, setEditing] = useState<Editing | null>(null);
+  /** What the last reservation did, said where a person is looking. */
+  const [notice, setNotice] = useState<string | null>(null);
 
   // ── The suggested plan ────────────────────────────────────────────────────
   // Computed, never stored (ADR-046): nothing here is on the calendar until the
@@ -243,7 +280,7 @@ export function CalendarView({
     calendars.error ?? events.error ?? exceptions.error ?? moveEvent.error ?? createBlock.error;
 
   // ── Moving by keyboard ────────────────────────────────────────────────────
-  // The mouse route is HTML5 drag-and-drop; this is the other one. Something
+  // The pointer drags the block itself; this is the other route. Something
   // is picked up (an event on the grid, or a task from the panel), nudged with
   // the arrows, and placed with Enter — every step spoken to the live region.
   const [carrying, setCarrying] = useState<Carrying | null>(null);
@@ -273,17 +310,201 @@ export function CalendarView({
     );
   };
 
+  /** How long a task wants, and the first free time that holds it. */
+  const placeFor = (item: Item) => {
+    const minutes = blockLength(item, ledger?.tracked.get(item.id) ?? 0);
+    return { minutes, free: ledger === null ? null : nextFree(ledger, minutes) };
+  };
+
+  // By keyboard: picked up at the first free time, to be nudged from there.
   const pickUpTask = (item: Item) => {
+    const { minutes, free } = placeFor(item);
     setCarrying({
       kind: 'task',
       id: item.id,
       title: item.title,
-      startsAt: firstSlot(bounds, todayIn(now, zone)),
-      durationMs: DEFAULT_BLOCK_MINUTES * 60_000,
+      startsAt: free?.startsAt ?? firstSlot(bounds, todayIn(now, zone)),
+      durationMs: (free?.minutes ?? minutes) * 60_000,
     });
     announce(
       `Reserving time for ${item.title}. Use the arrow keys, Enter to place, Escape to cancel.`,
     );
+  };
+
+  // By pointer: it simply goes in the first free time. Pressing it again would put
+  // the next one after it, never on top. Dragging is how it goes anywhere else.
+  const reserveNext = (item: Item) => {
+    const { free } = placeFor(item);
+    if (free === null) {
+      setNotice(`There is no free time for ${item.title} in the next three weeks.`);
+      return;
+    }
+    createBlock.mutate(
+      {
+        itemId: item.id,
+        calendarId: calendars.data?.[0]?.id ?? 'personal',
+        startsAt: free.startsAt,
+        endsAt: free.endsAt,
+        tz: zone,
+      },
+      {
+        onSuccess: () => {
+          if (!days.includes(free.day)) setAnchor(free.day);
+          const said = `Reserved ${item.title}: ${labelOf(free.day)}, ${timeOf(free.startsAt, zone)}, ${describeHours(free.minutes)}.`;
+          setNotice(said);
+          announce(said);
+        },
+      },
+    );
+  };
+
+  // ── Moving by pointer ─────────────────────────────────────────────────────
+  /** The day column under a point, and how many minutes down it. */
+  const columnAt = ({ x, y }: DragPoint): { day: string; minute: number } | null => {
+    const column = document
+      .elementsFromPoint(x, y)
+      .find((element) => element instanceof HTMLElement && element.dataset.dayColumn !== undefined);
+    if (!(column instanceof HTMLElement)) return null;
+    const box = column.getBoundingClientRect();
+    return {
+      day: column.dataset.dayColumn ?? '',
+      minute: ((y - box.top) / box.height) * 24 * 60,
+    };
+  };
+
+  /** Bring more of the day into view when the pointer is against the edge of the grid. */
+  const scrollNearEdge = ({ y }: DragPoint) => {
+    if (scroller === null) return;
+    const box = scroller.getBoundingClientRect();
+    if (y < box.top + 96) scroller.scrollBy({ top: -12 });
+    else if (y > box.bottom - 32) scroller.scrollBy({ top: 12 });
+  };
+
+  const snapped = (minute: number, minutes: number) =>
+    Math.max(0, Math.min(24 * 60 - minutes, Math.round(minute / SNAP_MINUTES) * SNAP_MINUTES));
+
+  const reserve = (itemId: string, day: string, minute: number, minutes: number) => {
+    const startsAt = instantAt(day, minute);
+    createBlock.mutate({
+      itemId,
+      calendarId: calendars.data?.[0]?.id ?? 'personal',
+      startsAt,
+      endsAt: new Date(new Date(startsAt).getTime() + minutes * 60_000).toISOString(),
+      tz: zone,
+    });
+  };
+
+  const land = (grabbed: Grabbed, day: string, minute: number, minutes: number) => {
+    if (grabbed.kind === 'event') {
+      const startsAt = instantAt(day, minute);
+      moveEvent.mutate({
+        id: grabbed.occurrence.event.id,
+        startsAt,
+        endsAt: new Date(new Date(startsAt).getTime() + minutes * 60_000).toISOString(),
+      });
+    } else {
+      reserve(
+        grabbed.kind === 'task' ? grabbed.item.id : grabbed.suggestion.itemId,
+        day,
+        minute,
+        minutes,
+      );
+    }
+  };
+
+  /** Pick something up to move it. The pointer keeps its place on the block. */
+  const grab = (
+    event: ReactPointerEvent<HTMLElement>,
+    grabbed: Grabbed,
+    title: string,
+    minutes: number,
+  ) => {
+    const column = event.currentTarget.closest<HTMLElement>('[data-day-column]');
+    const held =
+      column === null
+        ? 0
+        : ((event.clientY - event.currentTarget.getBoundingClientRect().top) /
+            column.getBoundingClientRect().height) *
+          24 *
+          60;
+    const at = (point: DragPoint): Landing => {
+      const place = columnAt(point);
+      return {
+        grabbed,
+        title,
+        minutes,
+        x: point.x,
+        y: point.y,
+        day: place?.day ?? null,
+        minute: place === null ? 0 : snapped(place.minute - held, minutes),
+      };
+    };
+    startDrag(event, {
+      onMove: (point) => {
+        setLanding(at(point));
+        scrollNearEdge(point);
+      },
+      onDrop: (point) => {
+        const final = at(point);
+        setLanding(null);
+        if (final.day !== null) land(grabbed, final.day, final.minute, minutes);
+      },
+      onCancel: () => setLanding(null),
+    });
+  };
+
+  /** Take a block by its bottom edge: it stays where it starts and changes length. */
+  const grabEnd = (
+    event: ReactPointerEvent<HTMLElement>,
+    grabbed: Grabbed,
+    title: string,
+    day: string,
+    startMinute: number,
+    starting: number,
+  ) => {
+    event.stopPropagation();
+    const at = (point: DragPoint): Landing => {
+      const column = document.querySelector<HTMLElement>(`[data-day-column="${day}"]`);
+      const box = column?.getBoundingClientRect();
+      const reached =
+        box === undefined ? startMinute + starting : ((point.y - box.top) / box.height) * 24 * 60;
+      const minutes = Math.max(
+        SNAP_MINUTES,
+        Math.min(
+          24 * 60 - startMinute,
+          Math.round((reached - startMinute) / SNAP_MINUTES) * SNAP_MINUTES,
+        ),
+      );
+      return { grabbed, title, day, minute: startMinute, minutes, x: point.x, y: point.y };
+    };
+    startDrag(event, {
+      onMove: (point) => {
+        setLanding(at(point));
+        scrollNearEdge(point);
+      },
+      onDrop: (point) => {
+        const final = at(point);
+        setLanding(null);
+        if (final.minutes !== starting) land(grabbed, day, startMinute, final.minutes);
+      },
+      onCancel: () => setLanding(null),
+    });
+  };
+
+  /** Save what the block editor holds. For a suggestion, this is what reserves it. */
+  const saveBlock = (target: Editing, fields: BlockFields) => {
+    if (target.kind === 'suggestion') {
+      reserve(target.suggestion.itemId, fields.day, fields.minute, fields.minutes);
+    } else {
+      land(target, fields.day, fields.minute, fields.minutes);
+      if (
+        target.occurrence.event.itemId === null &&
+        fields.title !== target.occurrence.event.title
+      ) {
+        renameEvent.mutate({ id: target.occurrence.event.id, title: fields.title });
+      }
+    }
+    setEditing(null);
   };
 
   useEffect(() => {
@@ -342,52 +563,6 @@ export function CalendarView({
     return new Date(`${day}T${hours}:${rest}:00`).toISOString();
   };
 
-  const onDrop = (day: string, minutes: number, transfer: DataTransfer) => {
-    const startsAt = instantAt(day, minutes);
-
-    // Moving a suggestion is taking it, there. The rest of the plan flows round.
-    const moved = transfer.getData(DRAG_SUGGESTION);
-    if (moved !== '') {
-      const [id, duration] = moved.split('|');
-      if (id === undefined) return;
-      createBlock.mutate({
-        itemId: id,
-        calendarId: calendars.data?.[0]?.id ?? 'personal',
-        startsAt,
-        endsAt: new Date(
-          new Date(startsAt).getTime() + Number(duration ?? 0) * 60_000,
-        ).toISOString(),
-        tz: zone,
-      });
-      return;
-    }
-
-    const itemId = transfer.getData(DRAG_TASK);
-    if (itemId !== '') {
-      createBlock.mutate({
-        itemId,
-        calendarId: calendars.data?.[0]?.id ?? 'personal',
-        startsAt,
-        endsAt: new Date(
-          new Date(startsAt).getTime() + DEFAULT_BLOCK_MINUTES * 60_000,
-        ).toISOString(),
-        tz: zone,
-      });
-      return;
-    }
-
-    const dragged = transfer.getData(DRAG_EVENT);
-    if (dragged !== '') {
-      const [id, duration] = dragged.split('|');
-      if (id === undefined) return;
-      moveEvent.mutate({
-        id,
-        startsAt,
-        endsAt: new Date(new Date(startsAt).getTime() + Number(duration ?? 0)).toISOString(),
-      });
-    }
-  };
-
   return (
     <div className="flex h-full min-h-0 gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -442,6 +617,37 @@ export function CalendarView({
           </InfoBar>
         )}
 
+        {(scale === 'week' || scale === 'workWeek' || scale === 'day') && (
+          <div
+            className="flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-fg-secondary"
+            data-testid="calendar-legend"
+          >
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="inline-block h-3 w-5 rounded-sm border border-accent/40 bg-accent-subtle"
+              />
+              Reserved
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                aria-hidden="true"
+                className="inline-block h-3 w-5 rounded-sm border border-dashed border-accent"
+              />
+              Suggested
+            </span>
+            <span className="text-fg-tertiary">
+              Drag to move, drag the bottom edge to change the length, press to edit. Double-click
+              an empty hour for a new event.
+            </span>
+          </div>
+        )}
+        {notice !== null && (
+          <p role="status" data-testid="calendar-notice" className="text-caption text-fg-secondary">
+            {notice}
+          </p>
+        )}
+
         <div
           ref={setScroller}
           className="min-h-0 flex-1 overflow-auto"
@@ -476,21 +682,17 @@ export function CalendarView({
             <AgendaList days={days} occurrences={occurrences} zone={zone} suggestions={onScreen} />
           ) : (
             <TimeGrid
+              landing={landing}
+              onGrab={grab}
+              onGrabEnd={grabEnd}
+              onEdit={setEditing}
               days={days}
               occurrences={occurrences}
               zone={zone}
               now={now}
               workHours={workHours.data ?? []}
               daysOff={daysOff}
-              onDrop={onDrop}
               onDelete={(id) => deleteEvent.mutate(id)}
-              onResize={(occurrence, endsAt) =>
-                moveEvent.mutate({
-                  id: occurrence.event.id,
-                  startsAt: occurrence.startsAt,
-                  endsAt,
-                })
-              }
               onNewEvent={setPlacing}
               carrying={carrying}
               onPickUp={pickUpEvent}
@@ -498,7 +700,6 @@ export function CalendarView({
               dueByDay={dueByDay}
               onOpenItem={onOpenItem}
               suggestions={onScreen}
-              allItems={unscheduled}
               onTake={(suggestion) => void take(suggestion)}
               onMoveSuggestion={pickUpSuggestion}
               onLeaveOut={(itemId) => setLeftOut((held) => new Set([...held, itemId]))}
@@ -523,10 +724,64 @@ export function CalendarView({
           onBringBack={(itemId) =>
             setLeftOut((held) => new Set([...held].filter((id) => id !== itemId)))
           }
+          suggestions={plan?.suggestions ?? []}
+          onShowDay={setAnchor}
           onOpen={onOpenItem}
           onPickUp={pickUpTask}
+          onReserve={reserveNext}
+          onGrab={(event, item) =>
+            grab(event, { kind: 'task', item }, item.title, placeFor(item).minutes)
+          }
         />
       </aside>
+
+      {/* Off the grid, the thing being carried stays with the pointer. */}
+      {landing !== null && landing.day === null && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-50 max-w-56 truncate rounded-md border border-accent bg-card px-2 py-1 text-caption font-semibold text-fg shadow-flyout"
+          style={{ left: landing.x + 8, top: landing.y + 8 }}
+        >
+          {landing.title}
+        </div>
+      )}
+
+      {editing !== null && (
+        <BlockEditor
+          key={
+            editing.kind === 'event'
+              ? `${editing.occurrence.event.id}-${editing.occurrence.originalStart}`
+              : editing.suggestion.key
+          }
+          initial={fieldsOf(editing, zone)}
+          suggested={editing.kind === 'suggestion'}
+          titleEditable={editing.kind === 'event' && editing.occurrence.event.itemId === null}
+          pending={createBlock.isPending || moveEvent.isPending}
+          onClose={() => setEditing(null)}
+          onSave={(fields) => saveBlock(editing, fields)}
+          onDelete={() => {
+            if (editing.kind === 'event') deleteEvent.mutate(editing.occurrence.event.id);
+            else {
+              const { itemId } = editing.suggestion;
+              setLeftOut((held) => new Set([...held, itemId]));
+            }
+            setEditing(null);
+          }}
+          onOpenTask={(() => {
+            const itemId =
+              editing.kind === 'event'
+                ? editing.occurrence.event.itemId
+                : editing.suggestion.itemId;
+            const item = unscheduled.find((candidate) => candidate.id === itemId);
+            return item === undefined
+              ? undefined
+              : () => {
+                  setEditing(null);
+                  onOpenItem(item);
+                };
+          })()}
+        />
+      )}
 
       <NewEventDialog
         place={placing}
@@ -567,15 +822,17 @@ export function CalendarView({
 // ── The timed grid ─────────────────────────────────────────────────────────
 
 function TimeGrid({
+  landing,
+  onGrab,
+  onGrabEnd,
+  onEdit,
   days,
   occurrences,
   zone,
   now,
   workHours,
   daysOff,
-  onDrop,
   onDelete,
-  onResize,
   onNewEvent,
   carrying,
   onPickUp,
@@ -586,13 +843,25 @@ function TimeGrid({
   onTake,
   onMoveSuggestion,
   onLeaveOut,
-  allItems,
 }: {
-  /** Open work, for opening the task a suggestion is for. */
-  allItems: readonly Item[];
+  /** Where the thing being carried would land. */
+  landing: Landing | null;
+  onGrab: (
+    event: ReactPointerEvent<HTMLElement>,
+    grabbed: Grabbed,
+    title: string,
+    minutes: number,
+  ) => void;
+  onGrabEnd: (
+    event: ReactPointerEvent<HTMLElement>,
+    grabbed: Grabbed,
+    title: string,
+    day: string,
+    startMinute: number,
+    minutes: number,
+  ) => void;
+  onEdit: (target: Editing) => void;
   daysOff: ReadonlySet<string>;
-  /** Drag a block's bottom edge: the new end. */
-  onResize: (occurrence: Occurrence, endsAt: string) => void;
   /** Double-click an empty place: a new event there. */
   onNewEvent: (place: NewEvent) => void;
   suggestions: readonly Suggestion[];
@@ -608,7 +877,6 @@ function TimeGrid({
   zone: string;
   now: string;
   workHours: Array<{ weekday: number; startsMinute: number; endsMinute: number }>;
-  onDrop: (day: string, minutes: number, transfer: DataTransfer) => void;
   onDelete: (id: string) => void;
   carrying: Carrying | null;
   onPickUp: (occurrence: Occurrence) => void;
@@ -623,8 +891,6 @@ function TimeGrid({
 
   const allDay = occurrences.filter((occurrence) => occurrence.event.allDay);
   const planned = useMemo(() => plannedByDay(occurrences, zone), [occurrences, zone]);
-  /** The block whose bottom edge is being dragged, and how long it is so far. */
-  const [resizing, setResizing] = useState<{ key: string; minutes: number } | null>(null);
   const hasBand = allDay.length > 0 || days.some((day) => dueByDay.has(day));
 
   // The working day fills the room there is, so a week is seen at a glance. The
@@ -713,7 +979,23 @@ function TimeGrid({
 
         {days.map((day) => {
           const boxes = layoutDay(occurrences, day, zone);
-          const working = workingSpan(day, workHours);
+          // A day off has no working hours to shade, whatever its weekday says.
+          const working =
+            capacityOf(day, workHours, daysOff) > 0 ? workingSpan(day, workHours) : null;
+          const carried =
+            landing?.grabbed.kind === 'event' ? landing.grabbed.occurrence.event.id : null;
+          const carriedSuggestion =
+            landing?.grabbed.kind === 'suggestion' ? landing.grabbed.suggestion.key : null;
+          // What the block would land on. Said, not refused: the person decides.
+          const landsOn =
+            landing?.day === day
+              ? boxes.find(
+                  (box) =>
+                    box.occurrence.event.id !== carried &&
+                    box.topMinutes < landing.minute + landing.minutes &&
+                    box.topMinutes + box.heightMinutes > landing.minute,
+                )
+              : undefined;
 
           return (
             <div
@@ -723,13 +1005,7 @@ function TimeGrid({
                 day === today ? 'bg-accent-subtle' : '',
               ].join(' ')}
               style={{ height: 24 * hourHeight }}
-              onDragOver={(event) => event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                const bounds = event.currentTarget.getBoundingClientRect();
-                const minutes = ((event.clientY - bounds.top) / hourHeight) * 60;
-                onDrop(day, minutes, event.dataTransfer);
-              }}
+              data-day-column={day}
               onDoubleClick={(event) => {
                 // Only the grid itself: a double click on a block is that block's.
                 const target = event.target as HTMLElement;
@@ -786,6 +1062,32 @@ function TimeGrid({
                 </div>
               )}
 
+              {/* Where the block will land if let go now. */}
+              {landing !== null && landing.day === day && (
+                <div
+                  aria-hidden="true"
+                  data-testid="landing"
+                  className={[
+                    'pointer-events-none absolute inset-x-0.5 z-30 overflow-hidden rounded-sm border-2 border-dashed px-1 text-caption font-semibold',
+                    landsOn === undefined
+                      ? 'border-accent bg-accent-subtle text-accent'
+                      : 'border-caution bg-caution-subtle text-caution',
+                  ].join(' ')}
+                  style={{
+                    top: (landing.minute / 60) * hourHeight,
+                    height: Math.max(20, (landing.minutes / 60) * hourHeight - 2),
+                  }}
+                >
+                  <span className="block truncate">{landing.title}</span>
+                  <span className="block truncate font-normal">
+                    {clockOf(landing.minute)} to {clockOf(landing.minute + landing.minutes)}
+                    {landsOn === undefined
+                      ? ''
+                      : `, on top of ${landsOn.occurrence.event.title || 'Untitled'}`}
+                  </span>
+                </div>
+              )}
+
               {suggestions
                 .filter((suggestion) => suggestion.day === day)
                 .map((suggestion) => (
@@ -794,10 +1096,26 @@ function TimeGrid({
                     suggestion={suggestion}
                     hourHeight={hourHeight}
                     zone={zone}
-                    onOpen={() => {
-                      const item = allItems.find((candidate) => candidate.id === suggestion.itemId);
-                      if (item !== undefined) onOpenItem(item);
-                    }}
+                    dimmed={carriedSuggestion === suggestion.key}
+                    onGrab={(event) =>
+                      onGrab(
+                        event,
+                        { kind: 'suggestion', suggestion },
+                        suggestion.title,
+                        suggestion.minutes,
+                      )
+                    }
+                    onGrabEnd={(event) =>
+                      onGrabEnd(
+                        event,
+                        { kind: 'suggestion', suggestion },
+                        suggestion.title,
+                        day,
+                        suggestion.startMinute,
+                        suggestion.minutes,
+                      )
+                    }
+                    onOpen={() => onEdit({ kind: 'suggestion', suggestion })}
                     onTake={() => onTake(suggestion)}
                     onMove={() => onMoveSuggestion(suggestion)}
                     onLeaveOut={() => onLeaveOut(suggestion.itemId)}
@@ -806,53 +1124,55 @@ function TimeGrid({
 
               {boxes.map((box) => {
                 const boxKey = `${box.occurrence.event.id}-${box.occurrence.originalStart}`;
-                const heightMinutes =
-                  resizing?.key === boxKey ? resizing.minutes : box.heightMinutes;
+                const title = box.occurrence.event.title || 'Untitled';
+                const grabbed: Grabbed = { kind: 'event', occurrence: box.occurrence };
                 return (
                   <article
                     key={boxKey}
-                    draggable
-                    aria-label={`${box.occurrence.event.title || 'Untitled'}, ${timeOf(box.occurrence.startsAt, zone)} to ${timeOf(box.occurrence.endsAt, zone)}`}
-                    onDragStart={(event) => {
-                      const duration =
-                        new Date(box.occurrence.endsAt).getTime() -
-                        new Date(box.occurrence.startsAt).getTime();
-                      event.dataTransfer.setData(
-                        DRAG_EVENT,
-                        `${box.occurrence.event.id}|${duration}`,
-                      );
+                    aria-label={`${title}, ${timeOf(box.occurrence.startsAt, zone)} to ${timeOf(box.occurrence.endsAt, zone)}`}
+                    onPointerDown={(event) => onGrab(event, grabbed, title, box.heightMinutes)}
+                    onClick={(event) => {
+                      if ((event.target as Element).closest('[data-no-drag]') !== null) return;
+                      onEdit({ kind: 'event', occurrence: box.occurrence });
                     }}
                     className={[
-                      'group absolute overflow-hidden rounded-sm border px-1 py-0.5 text-caption',
-                      carrying?.id === box.occurrence.event.id ? 'opacity-40' : '',
+                      'group absolute cursor-grab touch-none overflow-hidden rounded-sm border px-1 py-0.5 text-caption select-none active:cursor-grabbing',
+                      carrying?.id === box.occurrence.event.id ||
+                      carried === box.occurrence.event.id
+                        ? 'opacity-40'
+                        : '',
                       box.occurrence.event.itemId !== null
                         ? 'border-accent/40 bg-accent-subtle text-accent'
                         : 'border-stroke bg-card text-fg',
                     ].join(' ')}
                     style={{
                       top: (box.topMinutes / 60) * hourHeight,
-                      height: (heightMinutes / 60) * hourHeight - 2,
+                      height: (box.heightMinutes / 60) * hourHeight - 2,
                       left: `calc(${box.left * 100}% + 2px)`,
                       width: `calc(${box.width * 100}% - 4px)`,
                     }}
                     title={box.occurrence.event.title}
                   >
-                    <span className="block truncate font-semibold">
-                      {box.occurrence.event.title || 'Untitled'}
-                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Edit ${title}`}
+                      className="block w-full cursor-inherit truncate text-left font-semibold"
+                    >
+                      {title}
+                    </button>
                     <span className="block truncate opacity-70">
                       {timeOf(box.occurrence.startsAt, zone)}
                     </span>
-                    {/* The keyboard route. A real button, so Enter reaches it the
-                      way Enter reaches every other control — the mouse drags
-                      the block itself. */}
-                    <span className="absolute top-0.5 right-0.5 flex gap-0.5">
+                    {/* The keyboard route, in view only once the keys reach it. Sitting
+                      on the block they took the press meant for it, invisibly, and in
+                      a narrow column the middle of a block was its Delete. */}
+                    <span data-no-drag className="absolute top-0.5 right-0.5 flex gap-0.5">
                       <button
                         type="button"
                         aria-label={`Move ${box.occurrence.event.title || 'Untitled'}`}
                         aria-describedby="calendar-keyboard-help"
                         onClick={() => onPickUp(box.occurrence)}
-                        className="rounded-sm p-0.5 opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-100 hover:bg-card-hover focus-visible:opacity-100"
+                        className="sr-only rounded-sm bg-card p-0.5 focus-visible:not-sr-only"
                       >
                         <ReOrderDotsVertical16Regular />
                       </button>
@@ -860,7 +1180,7 @@ function TimeGrid({
                         type="button"
                         aria-label={`Delete ${box.occurrence.event.title}`}
                         onClick={() => onDelete(box.occurrence.event.id)}
-                        className="rounded-sm p-0.5 opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-100 hover:bg-card-hover focus-visible:opacity-100"
+                        className="sr-only rounded-sm bg-card p-0.5 focus-visible:not-sr-only"
                       >
                         <Delete16Regular />
                       </button>
@@ -870,40 +1190,13 @@ function TimeGrid({
                     <span
                       aria-hidden="true"
                       data-resize-handle
-                      className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
-                      onPointerDown={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        const from = event.clientY;
-                        const starting = box.heightMinutes;
-                        event.currentTarget.setPointerCapture(event.pointerId);
-                        const length = (clientY: number) =>
-                          Math.max(
-                            SNAP_MINUTES,
-                            Math.round(
-                              (starting + ((clientY - from) / hourHeight) * 60) / SNAP_MINUTES,
-                            ) * SNAP_MINUTES,
-                          );
-                        const handle = event.currentTarget;
-                        const onMove = (moved: PointerEvent) =>
-                          setResizing({ key: boxKey, minutes: length(moved.clientY) });
-                        const onUp = (ended: PointerEvent) => {
-                          handle.removeEventListener('pointermove', onMove);
-                          handle.removeEventListener('pointerup', onUp);
-                          setResizing(null);
-                          const minutes = length(ended.clientY);
-                          if (minutes === starting) return;
-                          onResize(
-                            box.occurrence,
-                            new Date(
-                              new Date(box.occurrence.startsAt).getTime() + minutes * 60_000,
-                            ).toISOString(),
-                          );
-                        };
-                        handle.addEventListener('pointermove', onMove);
-                        handle.addEventListener('pointerup', onUp);
-                      }}
-                    />
+                      className="absolute inset-x-0 bottom-0 flex h-2 cursor-ns-resize items-end justify-center"
+                      onPointerDown={(event) =>
+                        onGrabEnd(event, grabbed, title, day, box.topMinutes, box.heightMinutes)
+                      }
+                    >
+                      <span className="mb-px h-0.5 w-6 rounded-full bg-current opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-60" />
+                    </span>
                   </article>
                 );
               })}
@@ -969,6 +1262,9 @@ function SuggestionBlock({
   suggestion,
   hourHeight,
   zone,
+  dimmed,
+  onGrab,
+  onGrabEnd,
   onOpen,
   onTake,
   onMove,
@@ -977,6 +1273,9 @@ function SuggestionBlock({
   suggestion: Suggestion;
   hourHeight: number;
   zone: string;
+  dimmed: boolean;
+  onGrab: (event: ReactPointerEvent<HTMLElement>) => void;
+  onGrabEnd: (event: ReactPointerEvent<HTMLElement>) => void;
   onOpen: () => void;
   onTake: () => void;
   onMove: () => void;
@@ -986,17 +1285,15 @@ function SuggestionBlock({
   return (
     <div
       data-suggestion={suggestion.itemId}
-      draggable
-      onDragStart={(event) =>
-        event.dataTransfer.setData(DRAG_SUGGESTION, `${suggestion.itemId}|${suggestion.minutes}`)
-      }
+      onPointerDown={onGrab}
       style={{
         top: (suggestion.startMinute / 60) * hourHeight,
         height: (suggestion.minutes / 60) * hourHeight - 2,
       }}
       className={[
-        'group absolute inset-x-0.5 cursor-grab overflow-hidden rounded-sm border border-dashed bg-layer px-1 py-0.5 text-caption active:cursor-grabbing',
+        'group absolute inset-x-0.5 cursor-grab touch-none overflow-hidden rounded-sm border border-dashed bg-layer px-1 py-0.5 text-caption select-none active:cursor-grabbing',
         suggestion.late ? 'border-danger' : 'border-accent',
+        dimmed ? 'opacity-40' : '',
       ].join(' ')}
     >
       <button
@@ -1005,7 +1302,7 @@ function SuggestionBlock({
         aria-label={`Suggested: ${suggestion.title}, ${from}, ${describeHours(suggestion.minutes)}${
           suggestion.assumed ? ', length assumed' : ''
         }${suggestion.late ? ', after its date' : ''}`}
-        className="block w-full truncate pr-14 text-left font-semibold text-fg"
+        className="block w-full cursor-inherit truncate pr-5 text-left font-semibold text-fg"
       >
         {suggestion.title}
       </button>
@@ -1017,7 +1314,15 @@ function SuggestionBlock({
         {suggestion.assumed ? ' assumed' : ''}
         {suggestion.late ? ', after its date' : ''}
       </span>
-      <span className="absolute top-0.5 right-0.5 flex gap-0.5">
+      <span
+        aria-hidden="true"
+        data-resize-handle
+        className="absolute inset-x-0 bottom-0 flex h-2 cursor-ns-resize items-end justify-center"
+        onPointerDown={onGrabEnd}
+      >
+        <span className="mb-px h-0.5 w-6 rounded-full bg-current opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-60" />
+      </span>
+      <span data-no-drag className="absolute top-0.5 right-0.5 flex gap-0.5">
         <button
           type="button"
           aria-label={`Accept the time for ${suggestion.title}`}
@@ -1033,7 +1338,7 @@ function SuggestionBlock({
           aria-describedby="calendar-keyboard-help"
           title="Move with the keyboard"
           onClick={onMove}
-          className="rounded-sm p-0.5 opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-100 hover:bg-card-hover focus-visible:opacity-100"
+          className="sr-only rounded-sm bg-card p-0.5 focus-visible:not-sr-only"
         >
           <ReOrderDotsVertical16Regular />
         </button>
@@ -1042,7 +1347,7 @@ function SuggestionBlock({
           aria-label={`Leave ${suggestion.title} out of the plan`}
           title="Leave out of the plan"
           onClick={onLeaveOut}
-          className="rounded-sm p-0.5 opacity-0 transition-opacity duration-100 ease-easy group-hover:opacity-100 hover:bg-card-hover focus-visible:opacity-100"
+          className="sr-only rounded-sm bg-card p-0.5 focus-visible:not-sr-only"
         >
           <Dismiss16Regular />
         </button>
@@ -1345,10 +1650,21 @@ function PlanSummary({ plan }: { plan: SuggestedPlan }) {
 function UnscheduledPanel({
   items,
   leftOut,
+  suggestions,
+  onShowDay,
   onBringBack,
   onOpen,
   onPickUp,
+  onReserve,
+  onGrab,
 }: {
+  /** Where the plan has put each task, to say so beside it. */
+  suggestions: readonly Suggestion[];
+  /** Go to a day, from where the plan put a task. */
+  onShowDay: (day: string) => void;
+  /** Reserve it in the first free time: the pointer's way. */
+  onReserve: (item: Item) => void;
+  onGrab: (event: ReactPointerEvent<HTMLElement>, item: Item) => void;
   items: Item[];
   /** Tasks the person left out of the plan for now. */
   leftOut: ReadonlySet<string>;
@@ -1371,40 +1687,58 @@ function UnscheduledPanel({
         </p>
       ) : (
         <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
-          {items.map((item) => (
-            <li key={item.id}>
-              <div
-                draggable
-                onDragStart={(event) => event.dataTransfer.setData(DRAG_TASK, item.id)}
-                className="flex cursor-grab items-center gap-1 rounded-md border border-stroke-subtle bg-card p-1.5 text-caption text-fg active:cursor-grabbing"
-              >
-                <button
-                  type="button"
-                  onClick={() => onOpen(item)}
-                  className="block min-w-0 flex-1 truncate text-left"
+          {items.map((item) => {
+            const first = suggestions.find((suggestion) => suggestion.itemId === item.id);
+            return (
+              <li key={item.id}>
+                <div
+                  data-panel-task={item.id}
+                  onPointerDown={(event) => onGrab(event, item)}
+                  className="flex cursor-grab touch-none items-center gap-1 rounded-md border border-stroke-subtle bg-card p-1.5 text-caption text-fg select-none active:cursor-grabbing"
                 >
-                  {item.title}
-                </button>
-                {leftOut.has(item.id) && (
-                  <button
-                    type="button"
-                    onClick={() => onBringBack(item.id)}
-                    aria-label={`Bring ${item.title} back into the plan`}
-                    className="shrink-0 rounded-sm px-1 text-fg-tertiary underline hover:text-fg"
-                  >
-                    Left out
-                  </button>
-                )}
-                <IconButton
-                  label={`Reserve time for ${item.title}`}
-                  icon={<CalendarAdd20Regular />}
-                  aria-describedby="calendar-keyboard-help"
-                  onClick={() => onPickUp(item)}
-                  className="-my-1 shrink-0"
-                />
-              </div>
-            </li>
-          ))}
+                  <span className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => onOpen(item)}
+                      className="block w-full cursor-inherit truncate text-left"
+                    >
+                      {item.title}
+                    </button>
+                    {first !== undefined && (
+                      <button
+                        type="button"
+                        data-no-drag
+                        onClick={() => onShowDay(first.day)}
+                        className="block w-full truncate text-left text-fg-tertiary hover:underline"
+                      >
+                        Suggested {labelOf(first.day)}, {clockOf(first.startMinute)}
+                      </button>
+                    )}
+                  </span>
+                  {leftOut.has(item.id) && (
+                    <button
+                      type="button"
+                      data-no-drag
+                      onClick={() => onBringBack(item.id)}
+                      aria-label={`Bring ${item.title} back into the plan`}
+                      className="shrink-0 rounded-sm px-1 text-fg-tertiary underline hover:text-fg"
+                    >
+                      Left out
+                    </button>
+                  )}
+                  <IconButton
+                    label={`Reserve time for ${item.title}`}
+                    icon={<CalendarAdd20Regular />}
+                    aria-describedby="calendar-keyboard-help"
+                    data-no-drag
+                    // From the keys, a click has no detail: they pick it up to nudge it.
+                    onClick={(event) => (event.detail === 0 ? onPickUp(item) : onReserve(item))}
+                    className="-my-1 shrink-0"
+                  />
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -1486,6 +1820,29 @@ function dayOf(instant: string, zone: string): string {
   const local = new Date(new Date(instant).toLocaleString('en-US', { timeZone: zone }));
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}`;
+}
+
+/** `570` as `09:30`. */
+function clockOf(minute: number): string {
+  return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+}
+
+/** What the block editor opens with. */
+function fieldsOf(target: Editing, zone: string): BlockFields {
+  if (target.kind === 'suggestion') {
+    const { title, day, startMinute: minute, minutes } = target.suggestion;
+    return { title, day, minute, minutes };
+  }
+  const { occurrence } = target;
+  const day = dayOf(occurrence.startsAt, zone);
+  return {
+    title: occurrence.event.title,
+    day,
+    minute: minutesInto(occurrence.startsAt, day, zone),
+    minutes: Math.round(
+      (new Date(occurrence.endsAt).getTime() - new Date(occurrence.startsAt).getTime()) / 60_000,
+    ),
+  };
 }
 
 function timeOf(instant: string, zone: string): string {

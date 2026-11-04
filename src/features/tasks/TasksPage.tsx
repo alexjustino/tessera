@@ -13,7 +13,9 @@ import {
   useCompleteOccurrence,
   useDependencies,
   useDeleteItem,
+  useItemPages,
   useItems,
+  usePages,
   useProperties,
   usePropertyValues,
   useRenameItem,
@@ -32,6 +34,7 @@ import { runningEntry } from '@/domain/time';
 import type { Capture } from '@/domain/capture';
 import { positionForNewItem } from '@/domain/item';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
+import type { Page as NotesPage } from '@/domain/page';
 import type { Property, PropertyValue } from '@/domain/property';
 import { EMPTY_QUERY, flatten, run, type Query, type Row } from '@/domain/query';
 import { inSlice, type Slice } from '@/domain/overview';
@@ -45,6 +48,7 @@ import { Skeleton } from '@/ui/Skeleton';
 import { ListView } from '@/features/views/ListView';
 import { QueryBar } from '@/features/views/QueryBar';
 import { ComingUp } from './ComingUp';
+import { NowCard } from './NowCard';
 import { TasksOverview } from './TasksOverview';
 import { FinishedToday, TodayAgenda, TodayOverview } from './TodayOverview';
 import { usePulse } from './usePulse';
@@ -271,6 +275,19 @@ export function TasksPage({
   );
 
   const pulse = usePulse(items.data ?? []);
+
+  // Which pages are applied to each task, for its row and its card to say so.
+  const pages = usePages();
+  const itemPages = useItemPages();
+  const notesOf = useMemo(() => {
+    const byId = new Map((pages.data ?? []).map((page) => [page.id, page]));
+    const found = new Map<string, NotesPage[]>();
+    for (const pair of itemPages.data ?? []) {
+      const page = byId.get(pair.pageId);
+      if (page !== undefined) found.set(pair.itemId, [...(found.get(pair.itemId) ?? []), page]);
+    }
+    return found;
+  }, [pages.data, itemPages.data]);
 
   // Why each card on the board matters today, for the ones where it does.
   const marks = useMemo(() => {
@@ -499,7 +516,8 @@ export function TasksPage({
           </div>
         )}
         {place === 'today' && items.isSuccess && (
-          <div className="mb-4">
+          <div className="mb-4 flex flex-col gap-3">
+            <NowCard items={items.data} onFocus={onFocus} onOpen={setDetailId} />
             <TodayOverview pulse={pulse} />
           </div>
         )}
@@ -582,6 +600,8 @@ export function TasksPage({
                   query={query}
                   board={board}
                   marks={marks}
+                  notesOf={notesOf}
+                  onOpenPage={onOpenPage}
                   onQueryChange={(nextQuery, nextBoard) => {
                     setDraftQuery(nextQuery);
                     setDraftBoard(nextBoard);
@@ -603,6 +623,8 @@ export function TasksPage({
                 <ListView
                   groups={result.groups}
                   grouped={query.groupBy !== null}
+                  notesOf={notesOf}
+                  onOpenPage={onOpenPage}
                   blockedIds={blockedIds}
                   criticalIds={criticalIds}
                   milestoneIds={milestoneIds}

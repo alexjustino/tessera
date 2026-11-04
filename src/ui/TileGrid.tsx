@@ -1,11 +1,4 @@
-import {
-  useRef,
-  useState,
-  type CSSProperties,
-  type DragEvent,
-  type KeyboardEvent,
-  type ReactNode,
-} from 'react';
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 
 /**
  * A grid of tiles a keyboard can walk (M4).
@@ -37,8 +30,6 @@ export interface TileCell {
   style?: CSSProperties | undefined;
   /** The pointer or the focus came to this tile. */
   onInspect?: (() => void) | undefined;
-  /** Something was dropped on the tile. Without it the tile takes no drop. */
-  onDropOn?: ((event: DragEvent<HTMLDivElement>) => void) | undefined;
 }
 
 export function TileGrid({
@@ -146,10 +137,6 @@ export function TileGrid({
                   cell.onInspect?.();
                 }}
                 onMouseEnter={cell.onInspect}
-                onDragOver={
-                  cell.onDropOn === undefined ? undefined : (event) => event.preventDefault()
-                }
-                onDrop={cell.onDropOn}
                 onClick={cell.onActivate}
                 onKeyDown={(event) => {
                   if (
