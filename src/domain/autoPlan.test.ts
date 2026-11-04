@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ASSUMED_MINUTES, suggestPlan } from './autoPlan';
+import { ASSUMED_MINUTES, blockLength, nextFree, suggestPlan } from './autoPlan';
 import type { CalendarEvent, Occurrence, WorkHours } from './calendar';
 import type { Item } from './item';
 import type { LedgerInput } from './receipt';
@@ -283,5 +283,54 @@ describe('laying the work into free time', () => {
     const started = performance.now();
     suggestPlan(input({ items }));
     expect(performance.now() - started).toBeLessThan(150);
+  });
+});
+
+describe('reserving by hand', () => {
+  it('finds the first free time, not the start of the day', () => {
+    const found = nextFree(input({ occurrences: [event('m', '2026-11-02', 9, 11)] }), 60);
+    expect(found?.day).toBe('2026-11-02');
+    expect(found?.minute).toBe(11 * 60);
+  });
+
+  it('puts one after another, because each is on the calendar when the next is asked', () => {
+    const first = nextFree(input(), 60);
+    const second = nextFree(input({ occurrences: [event('a', '2026-11-02', 9, 10)] }), 60);
+    expect(first?.minute).toBe(9 * 60);
+    expect(second?.minute).toBe(10 * 60);
+  });
+
+  it('moves to the next day when today has no room that long', () => {
+    const found = nextFree(input({ occurrences: [event('m', '2026-11-02', 9, 16)] }), 120);
+    expect(found?.day).toBe('2026-11-03');
+  });
+
+  it('takes the left of an estimate, or the assumed hour', () => {
+    expect(blockLength(item('a', { estimateMinutes: 90 }), 30)).toBe(60);
+    expect(blockLength(item('a', { estimateMinutes: null }), 0)).toBe(ASSUMED_MINUTES);
+  });
+
+  // ── Negative cases ─────────────────────────────────────────────────────
+  it('never offers a whole working day as one block', () => {
+    expect(blockLength(item('a', { estimateMinutes: 10 * 60 }), 0)).toBe(240);
+  });
+
+  it('still offers something when the estimate has been overrun', () => {
+    expect(blockLength(item('a', { estimateMinutes: 30 }), 60)).toBe(15);
+  });
+
+  it('falls back to the longest piece when nothing holds the whole length', () => {
+    const found = nextFree(input({ occurrences: [event('m', '2026-11-02', 11, 17)] }), 4 * 60, 1);
+    expect(found?.minutes).toBe(120);
+  });
+
+  it('says there is no room rather than placing it on something', () => {
+    const found = nextFree(input({ occurrences: [event('m', '2026-11-02', 9, 17)] }), 60, 1);
+    expect(found).toBeNull();
+  });
+
+  it('skips a day off', () => {
+    const found = nextFree(input({ daysOff: new Set(['2026-11-02']) }), 60);
+    expect(found?.day).toBe('2026-11-03');
   });
 });

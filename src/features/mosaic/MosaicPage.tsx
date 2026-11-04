@@ -9,7 +9,13 @@ import {
   Grid16Regular,
   TaskListSquareLtr16Regular,
 } from '@fluentui/react-icons';
-import { useCallback, useMemo, useState, type DragEvent, type ReactNode } from 'react';
+import {
+  useCallback,
+  useMemo,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
 
 import { describeError } from '@/data/errors';
 import {
@@ -73,6 +79,7 @@ import { Stat, StatRow } from '@/ui/Stat';
 import { TileGrid, type TileCell } from '@/ui/TileGrid';
 import { announce } from '@/ui/announce';
 import { useNow } from '@/ui/useNow';
+import { usePointerDrag, type DragPoint } from '@/ui/usePointerDrag';
 
 /**
  * The week mosaic (M4): the working week as one tile per hour.
@@ -89,9 +96,6 @@ import { useNow } from '@/ui/useNow';
  */
 
 const COLLECTION = 'tasks';
-
-/** A task being dragged from the queue, the same way the calendar carries one. */
-const DRAG_TASK = 'application/x-tessera-task';
 
 /** How many weeks the history shows. */
 const HISTORY_WEEKS = 16;
@@ -498,6 +502,52 @@ function MosaicBody({
     (figure) => !traceable(figure),
   );
   const [inspected, setInspected] = useState<Tile | null>(null);
+  const startDrag = usePointerDrag();
+  /** The task being carried from the list, and the free hour under the pointer. */
+  const [carried, setCarried] = useState<{ title: string; x: number; y: number } | null>(null);
+  const [overTile, setOverTile] = useState<string | null>(null);
+
+  /** The free tile under a point, if that is what is there. */
+  const freeTileAt = useCallback(
+    ({ x, y }: DragPoint): Tile | null => {
+      const id = document
+        .elementsFromPoint(x, y)
+        .find((element) => element instanceof HTMLElement && element.dataset.tile !== undefined)
+        ?.getAttribute('data-tile');
+      if (id === null || id === undefined) return null;
+      const tile = mosaic.days
+        .flatMap((day) => day.tiles)
+        .find((candidate) => `${candidate.day}@${candidate.startMinute}` === id);
+      return tile?.state === 'free' ? tile : null;
+    },
+    [mosaic],
+  );
+
+  const grabTask = (event: ReactPointerEvent<HTMLElement>, item: Item) => {
+    startDrag(event, {
+      onMove: (point) => {
+        setCarried({ title: item.title, ...point });
+        const tile = freeTileAt(point);
+        setOverTile(tile === null ? null : `${tile.day}@${tile.startMinute}`);
+      },
+      onDrop: (point) => {
+        setCarried(null);
+        setOverTile(null);
+        const tile = freeTileAt(point);
+        if (tile !== null) {
+          onDropTask(item.id, {
+            day: tile.day,
+            startMinute: tile.startMinute,
+            minutes: tile.minutes,
+          });
+        }
+      },
+      onCancel: () => {
+        setCarried(null);
+        setOverTile(null);
+      },
+    });
+  };
 
   const goalsOf = useMemo(() => {
     const byItem = new Map<string, Goal[]>();
@@ -540,19 +590,13 @@ function MosaicBody({
           return {
             ...cell,
             className: `${cell.className}${
+              overTile === cell.id ? ' outline-2 outline-offset-1 outline-accent' : ''
+            }${
               itemId !== null && itemId === hoveredItem
                 ? ' outline-2 outline-offset-1 outline-fg-secondary'
                 : ''
             }`,
             onInspect: () => setInspected(tile),
-            onDropOn:
-              tile.state === 'free'
-                ? (event: DragEvent<HTMLDivElement>) => {
-                    event.preventDefault();
-                    const task = event.dataTransfer.getData(DRAG_TASK);
-                    if (task !== '') onDropTask(task, hour);
-                  }
-                : undefined,
             onActivate:
               itemId !== null
                 ? () => onOpenItem(itemId)
@@ -564,7 +608,7 @@ function MosaicBody({
       });
     }
     return out;
-  }, [mosaic, workingDays, goalsOf, series, hoveredItem, onOpenItem, onPickHour, onDropTask]);
+  }, [mosaic, workingDays, goalsOf, series, hoveredItem, overTile, onOpenItem, onPickHour]);
 
   if (mosaic.tileCount === 0) {
     return (
@@ -840,11 +884,28 @@ function MosaicBody({
             onOpenItem={onOpenItem}
             onPickHour={onPickHour}
           />
-          {!past && <TaskQueue items={items} reservedIds={reservedIds} onOpen={onOpenItem} />}
+          {!past && (
+            <TaskQueue
+              items={items}
+              reservedIds={reservedIds}
+              onOpen={onOpenItem}
+              onGrab={grabTask}
+            />
+          )}
           {!past && <FillTheWeek items={items} onOpen={onOpenItem} />}
           <EnvelopesCard envelopes={envelopes} series={series} />
         </aside>
       </div>
+
+      {carried !== null && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed z-50 max-w-56 truncate rounded-md border border-accent bg-card px-2 py-1 text-caption font-semibold text-fg shadow-flyout"
+          style={{ left: carried.x + 8, top: carried.y + 8 }}
+        >
+          {carried.title}
+        </div>
+      )}
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <HistoryCard history={history} today={today} shownWeek={week[0] ?? ''} onWeek={onWeek} />
@@ -985,10 +1046,12 @@ function TaskQueue({
   items,
   reservedIds,
   onOpen,
+  onGrab,
 }: {
   items: readonly Item[];
   reservedIds: ReadonlySet<string>;
   onOpen: (itemId: string) => void;
+  onGrab: (event: ReactPointerEvent<HTMLElement>, item: Item) => void;
 }) {
   const waiting = useMemo(
     () =>
@@ -1015,15 +1078,14 @@ function TaskQueue({
             {waiting.slice(0, QUEUE_SHOWN).map((item) => (
               <li
                 key={item.id}
-                draggable
                 data-queue-task={item.id}
-                onDragStart={(event) => event.dataTransfer.setData(DRAG_TASK, item.id)}
-                className="flex cursor-grab items-center gap-2 rounded-md border border-stroke-subtle bg-layer-alt px-2 py-1 active:cursor-grabbing"
+                onPointerDown={(event) => onGrab(event, item)}
+                className="flex cursor-grab touch-none items-center gap-2 select-none rounded-md border border-stroke-subtle bg-layer-alt px-2 py-1 active:cursor-grabbing"
               >
                 <button
                   type="button"
                   onClick={() => onOpen(item.id)}
-                  className="min-w-0 flex-1 truncate text-left text-body text-fg"
+                  className="min-w-0 flex-1 cursor-inherit truncate text-left text-body text-fg"
                 >
                   {item.title}
                 </button>

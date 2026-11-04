@@ -202,6 +202,39 @@ export class Driver {
     return call('POST', this.sessionUrl('/execute/async'), { script, args });
   }
 
+  /**
+   * A real pointer, through the same input the engine takes from a mouse. What is
+   * pressed stays pressed between calls until `up`; `releasePointer` ends the run.
+   */
+  async pointer(
+    steps: Array<{ type: 'move'; x: number; y: number } | { type: 'down' } | { type: 'up' }>,
+  ): Promise<void> {
+    await call('POST', this.sessionUrl('/actions'), {
+      actions: [
+        {
+          type: 'pointer',
+          id: 'mouse',
+          parameters: { pointerType: 'mouse' },
+          actions: steps.map((step) =>
+            step.type === 'move'
+              ? {
+                  type: 'pointerMove',
+                  duration: 60,
+                  origin: 'viewport',
+                  x: Math.round(step.x),
+                  y: Math.round(step.y),
+                }
+              : { type: step.type === 'down' ? 'pointerDown' : 'pointerUp', button: 0 },
+          ),
+        },
+      ],
+    });
+  }
+
+  async releasePointer(): Promise<void> {
+    await call('DELETE', this.sessionUrl('/actions'));
+  }
+
   /** Press a chord such as Ctrl+K: every key down, then every key up. */
   async chord(...keys: string[]): Promise<void> {
     const actions = [

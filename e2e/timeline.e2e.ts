@@ -124,7 +124,7 @@ describe('the timeline', () => {
     const { driver } = session;
     await openTimeline();
     const before = await driver.execute<string>(
-      'return document.querySelectorAll(\'[role="region"][aria-label="Timeline"] div[draggable]\')[0].style.left;',
+      'return document.querySelectorAll(\'[role="region"][aria-label="Timeline"] div[data-bar]\')[0].style.left;',
     );
 
     const move = await driver.waitFor('the Move control', () =>
@@ -138,7 +138,7 @@ describe('the timeline', () => {
     await announced('Cancelled');
 
     const after = await driver.execute<string>(
-      'return document.querySelectorAll(\'[role="region"][aria-label="Timeline"] div[draggable]\')[0].style.left;',
+      'return document.querySelectorAll(\'[role="region"][aria-label="Timeline"] div[data-bar]\')[0].style.left;',
     );
     expect(after).toBe(before);
   });

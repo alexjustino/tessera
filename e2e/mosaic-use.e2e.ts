@@ -94,16 +94,28 @@ describe('using the mosaic', () => {
     );
     const before = (await driver.findAll('[role="gridcell"] [data-state="reserved"]')).length;
     const free = await driver.find('[role="gridcell"][aria-label*=": Free"]');
-    // The drag's own events, because a real pointer cannot be driven across a
-    // WebView by WebDriver. What is under test is what the tile does with a drop.
-    await driver.execute(
+    const points = await driver.execute<{
+      from: { x: number; y: number };
+      to: { x: number; y: number };
+    }>(
       `const [source, target] = arguments;
-       const data = new DataTransfer();
-       source.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: data }));
-       target.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: data }));
-       target.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: data }));`,
+       target.scrollIntoView({ block: 'center' });
+       const a = source.getBoundingClientRect();
+       const b = target.getBoundingClientRect();
+       return {
+         from: { x: a.left + 8, y: a.top + a.height / 2 },
+         to: { x: b.left + b.width / 2, y: b.top + b.height / 2 },
+       };`,
       [{ [ELEMENT]: queued.id }, { [ELEMENT]: free.id }],
     );
+    await driver.pointer([
+      { type: 'move', ...points.from },
+      { type: 'down' },
+      { type: 'move', x: (points.from.x + points.to.x) / 2, y: (points.from.y + points.to.y) / 2 },
+      { type: 'move', ...points.to },
+      { type: 'up' },
+    ]);
+    await driver.releasePointer();
     await driver.waitFor('a reserved tile', async () =>
       (await driver.findAll('[role="gridcell"] [data-state="reserved"]')).length > before
         ? true

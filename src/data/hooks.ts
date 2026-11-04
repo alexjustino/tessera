@@ -433,6 +433,15 @@ export function useMoveEvent() {
   });
 }
 
+export function useRenameEvent() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) =>
+      calendarApi.renameEvent(id, title),
+    onSuccess: invalidate,
+  });
+}
+
 export function useDeleteEvent() {
   const invalidate = useInvalidateCalendar();
   return useMutation({ mutationFn: calendarApi.deleteEvent, onSuccess: invalidate });
