@@ -3,14 +3,16 @@ import {
   Delete20Regular,
   Rename20Regular,
   TagMultiple20Regular,
+  TaskListSquareLtr16Regular,
 } from '@fluentui/react-icons';
 import { Suspense, useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
-import { useCreatePage, useDeletePage, usePages, useRenamePage } from '@/data/hooks';
+import { useCreatePage, useDeletePage, useItemPages, usePages, useRenamePage } from '@/data/hooks';
 import { between } from '@/domain/ordering';
 import { checkTitle, titleKey, UNTITLED, type Page } from '@/domain/page';
 import { Editor } from '@/app/lazyPages';
+import { AppliedTasks } from './AppliedTasks';
 import { Connections } from './Connections';
 import { MarkedLines } from './MarkedLines';
 import { Button } from '@/ui/Button';
@@ -51,6 +53,14 @@ export function NotesPage({
   const [showMarked, setShowMarked] = useState(false);
 
   const all = useMemo(() => pages.data ?? [], [pages.data]);
+  const pairs = useItemPages();
+  const appliedTo = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const pair of pairs.data ?? []) {
+      counts.set(pair.pageId, (counts.get(pair.pageId) ?? 0) + 1);
+    }
+    return counts;
+  }, [pairs.data]);
   // Which page is open is derived, not synchronised: the state holds what the
   // person chose, and the list decides what that means now. Nothing chosen, or
   // a page deleted from under them, falls back to the first one — without an
@@ -153,13 +163,23 @@ export function NotesPage({
                   setShowMarked(false);
                 }}
                 className={[
-                  'w-full truncate rounded-md px-2 py-1.5 text-left text-body',
+                  'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-body',
                   !showMarked && page.id === open?.id
                     ? 'bg-card-hover text-fg'
                     : 'text-fg-secondary',
                 ].join(' ')}
               >
-                {page.title}
+                <span className="min-w-0 flex-1 truncate">{page.title}</span>
+                {(appliedTo.get(page.id) ?? 0) > 0 && (
+                  <span
+                    data-page-applied={appliedTo.get(page.id)}
+                    title={`Applied to ${appliedTo.get(page.id)} ${appliedTo.get(page.id) === 1 ? 'task' : 'tasks'}`}
+                    className="flex shrink-0 items-center gap-0.5 text-caption text-fg-tertiary"
+                  >
+                    <TaskListSquareLtr16Regular aria-hidden="true" />
+                    {appliedTo.get(page.id)}
+                  </span>
+                )}
               </button>
             </li>
           ))}
@@ -244,6 +264,13 @@ export function NotesPage({
                   onClick={() => setConfirming(true)}
                 />
               </div>
+
+              <AppliedTasks
+                key={`tasks-${open.id}`}
+                pageId={open.id}
+                pageTitle={open.title}
+                onOpenItem={onOpenItem}
+              />
 
               {/* Keyed on the page: opening another one is a different document,
                 and an editor that kept its content would show the last one. */}
