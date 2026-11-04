@@ -8,6 +8,7 @@ import { columnsOf, layout, shiftByDays, type TimelineTask } from '@/domain/time
 import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
 import { announce } from '@/ui/announce';
+import { usePointerDrag } from '@/ui/usePointerDrag';
 
 import { TimelinePrint } from './TimelinePrint';
 
@@ -69,6 +70,7 @@ export function TimelineView({
 }) {
   const zone = systemZone();
   const [carrying, setCarrying] = useState<Carrying | null>(null);
+  const startDrag = usePointerDrag();
 
   const tasks = useMemo(() => items.map(asTimelineTask), [items]);
   const timeline = useMemo(
@@ -288,18 +290,23 @@ export function TimelineView({
               return (
                 <div
                   key={bar.id}
-                  draggable
-                  onDragStart={(event) =>
-                    setCarrying({ id: bar.id, days: 0, fromX: event.clientX })
-                  }
-                  onDragEnd={(event) => {
-                    if (carrying?.id === bar.id && carrying.fromX !== null) {
-                      endDrag(bar.id, event.clientX, carrying.fromX);
-                    }
+                  data-bar={bar.id}
+                  onPointerDown={(event) => {
+                    const fromX = event.clientX;
+                    startDrag(event, {
+                      onMove: ({ x }) =>
+                        setCarrying({
+                          id: bar.id,
+                          days: Math.round((x - fromX) / DAY_WIDTH),
+                          fromX,
+                        }),
+                      onDrop: ({ x }) => endDrag(bar.id, x, fromX),
+                      onCancel: () => setCarrying(null),
+                    });
                   }}
                   title={`${bar.title}${bar.critical ? ' — on the critical path' : ''}`}
                   className={[
-                    'absolute z-10 cursor-grab truncate rounded-sm border px-1 text-caption active:cursor-grabbing',
+                    'absolute z-10 cursor-grab touch-none truncate rounded-sm border px-1 text-caption select-none active:cursor-grabbing',
                     carrying?.id === bar.id
                       ? 'border-dashed border-accent opacity-70'
                       : bar.critical
