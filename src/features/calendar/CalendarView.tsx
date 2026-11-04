@@ -1131,6 +1131,10 @@ function TimeGrid({
                     key={boxKey}
                     aria-label={`${title}, ${timeOf(box.occurrence.startsAt, zone)} to ${timeOf(box.occurrence.endsAt, zone)}`}
                     onPointerDown={(event) => onGrab(event, grabbed, title, box.heightMinutes)}
+                    onClick={(event) => {
+                      if ((event.target as Element).closest('[data-no-drag]') !== null) return;
+                      onEdit({ kind: 'event', occurrence: box.occurrence });
+                    }}
                     className={[
                       'group absolute cursor-grab touch-none overflow-hidden rounded-sm border px-1 py-0.5 text-caption select-none active:cursor-grabbing',
                       carrying?.id === box.occurrence.event.id ||
@@ -1152,7 +1156,6 @@ function TimeGrid({
                     <button
                       type="button"
                       aria-label={`Edit ${title}`}
-                      onClick={() => onEdit({ kind: 'event', occurrence: box.occurrence })}
                       className="block w-full cursor-inherit truncate text-left font-semibold"
                     >
                       {title}

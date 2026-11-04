@@ -69,8 +69,12 @@ describe('the timeline', () => {
   it('is a view of its own, beside the calendar', async () => {
     const { driver } = session;
     await goTo('Tasks');
-    const tabs = await driver.findAll('[role="tab"]');
-    const labels = await Promise.all(tabs.map((tab) => tab.text()));
+    // Asked until it holds still: pressing Tasks from Tasks replaces the screen.
+    const labels = await driver.waitFor('the view tabs', async () => {
+      const tabs = await driver.findAll('[role="tab"]');
+      const read = await Promise.all(tabs.map((tab) => tab.text()));
+      return read.includes('Timeline') ? read : null;
+    });
     expect(labels).toContain('Timeline');
     expect(labels.indexOf('Timeline')).toBeGreaterThan(labels.indexOf('Calendar'));
   });
@@ -127,10 +131,12 @@ describe('the timeline', () => {
       'return document.querySelectorAll(\'[role="region"][aria-label="Timeline"] div[data-bar]\')[0].style.left;',
     );
 
-    const move = await driver.waitFor('the Move control', () =>
-      driver.find('button[aria-label="Move Build it"]'),
-    );
-    await driver.execute('arguments[0].focus()', [{ [ELEMENT]: move.id }]);
+    // Focused inside the wait: pressing Tasks from Tasks replaces the screen.
+    await driver.waitFor('the Move control', async () => {
+      const move = await driver.find('button[aria-label="Move Build it"]');
+      await driver.execute('arguments[0].focus()', [{ [ELEMENT]: move.id }]);
+      return true;
+    });
     await driver.chord(Keys.ENTER);
     await announced('Moving Build it');
     await driver.chord(Keys.ARROW_RIGHT);
