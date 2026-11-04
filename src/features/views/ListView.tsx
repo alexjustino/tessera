@@ -9,6 +9,8 @@ import {
 import { useState } from 'react';
 
 import { checkTitle, type Item } from '@/domain/item';
+import type { Page } from '@/domain/page';
+import { NotesChip } from '@/features/notes/NotesChip';
 import type { Property, PropertyValue } from '@/domain/property';
 import type { Group, Row } from '@/domain/query';
 import { bucketOf, formatDue, systemZone } from '@/domain/schedule';
@@ -25,7 +27,11 @@ import { IconButton } from '@/ui/IconButton';
  * grows past that stops being scannable and becomes a spreadsheet nobody asked
  * for — which is what the table view is for, deliberately and separately.
  */
+const NO_NOTES: readonly Page[] = [];
+
 export function ListView({
+  notesOf,
+  onOpenPage,
   groups,
   grouped,
   inlineProperties,
@@ -39,6 +45,9 @@ export function ListView({
   onOpen,
   onSetValue,
 }: {
+  /** The pages applied to each task, by the task's id. */
+  notesOf?: ReadonlyMap<string, readonly Page[]>;
+  onOpenPage?: ((pageId: string) => void) | undefined;
   groups: readonly Group[];
   grouped: boolean;
   inlineProperties: Property[];
@@ -75,6 +84,8 @@ export function ListView({
               {group.rows.map((row) => (
                 <TaskRow
                   key={row.item.id}
+                  notes={notesOf?.get(row.item.id) ?? NO_NOTES}
+                  onOpenPage={onOpenPage}
                   task={row.item}
                   blocked={blockedIds.has(row.item.id)}
                   critical={criticalIds.has(row.item.id)}
@@ -98,6 +109,8 @@ export function ListView({
 }
 
 function TaskRow({
+  notes,
+  onOpenPage,
   task,
   blocked,
   critical,
@@ -111,6 +124,9 @@ function TaskRow({
   onOpen,
   onSetValue,
 }: {
+  /** The pages applied to this task. */
+  notes: readonly Page[];
+  onOpenPage?: ((pageId: string) => void) | undefined;
   task: Item;
   blocked: boolean;
   critical: boolean;
@@ -182,6 +198,8 @@ function TaskRow({
       )}
 
       <DueChip task={task} />
+
+      {notes.length > 0 && <NotesChip notes={notes} onOpenPage={onOpenPage} />}
 
       {/* A moment in the plan rather than work. A diamond because that is what
           a plan draws — and never the shape alone: the wrapper carries the

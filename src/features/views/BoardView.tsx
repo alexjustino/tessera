@@ -42,7 +42,9 @@ import {
   type Move,
 } from '@/domain/board';
 import type { Item } from '@/domain/item';
+import type { Page } from '@/domain/page';
 import type { TodayMark } from '@/domain/pulse';
+import { NotesChip } from '@/features/notes/NotesChip';
 import { formatValue, optionsOf, type Property } from '@/domain/property';
 import type { Group, Query, Row } from '@/domain/query';
 import { Button } from '@/ui/Button';
@@ -101,12 +103,17 @@ export function BoardView({
   query,
   board,
   marks,
+  notesOf,
+  onOpenPage,
   onQueryChange,
   onMove,
   onOpen,
 }: {
   /** Why a card matters today, for the ones where it does. */
   marks: ReadonlyMap<string, TodayMark>;
+  /** The pages applied to each task, by the task's id. */
+  notesOf?: ReadonlyMap<string, readonly Page[]>;
+  onOpenPage?: ((pageId: string) => void) | undefined;
   groups: readonly Group[];
   /** The whole collection, not the filtered columns: a drop's key is new to all of it. */
   items: readonly Item[];
@@ -220,6 +227,8 @@ export function BoardView({
               properties={shown}
               droppable={isDroppable(column, groupProperty)}
               marks={marks}
+              notesOf={notesOf}
+              onOpenPage={onOpenPage}
               spotlight={spotlight}
               onToggleCollapsed={() => toggleCollapsed(column)}
               onOpen={onOpen}
@@ -349,6 +358,8 @@ function BoardColumn({
   properties,
   droppable,
   marks,
+  notesOf,
+  onOpenPage,
   spotlight,
   onToggleCollapsed,
   onOpen,
@@ -357,6 +368,8 @@ function BoardColumn({
   properties: Property[];
   droppable: boolean;
   marks: ReadonlyMap<string, TodayMark>;
+  notesOf?: ReadonlyMap<string, readonly Page[]> | undefined;
+  onOpenPage?: ((pageId: string) => void) | undefined;
   spotlight: boolean;
   onToggleCollapsed: () => void;
   onOpen: (row: Row) => void;
@@ -433,6 +446,8 @@ function BoardColumn({
               row={row}
               properties={properties}
               mark={marks.get(row.item.id) ?? null}
+              notes={notesOf?.get(row.item.id)}
+              onOpenPage={onOpenPage}
               dimmed={spotlight && !marks.has(row.item.id)}
               onOpen={onOpen}
             />
@@ -450,12 +465,16 @@ function SortableCard({
   row,
   properties,
   mark,
+  notes,
+  onOpenPage,
   dimmed,
   onOpen,
 }: {
   row: Row;
   properties: Property[];
   mark: TodayMark | null;
+  notes?: readonly Page[] | undefined;
+  onOpenPage?: ((pageId: string) => void) | undefined;
   dimmed: boolean;
   onOpen: (row: Row) => void;
 }) {
@@ -491,6 +510,8 @@ function SortableCard({
         row={row}
         properties={properties}
         mark={mark}
+        notes={notes}
+        onOpenPage={onOpenPage}
         onOpen={onOpen}
         handle={
           <IconButton
@@ -512,10 +533,14 @@ function Card({
   row,
   properties,
   mark,
+  notes,
+  onOpenPage,
   onOpen,
   overlay = false,
   handle,
 }: {
+  notes?: readonly Page[] | undefined;
+  onOpenPage?: ((pageId: string) => void) | undefined;
   row: Row;
   properties: Property[];
   /** Why this card matters today. */
@@ -550,8 +575,11 @@ function Card({
         {handle}
       </div>
 
-      {(mark !== null || properties.length > 0) && (
+      {(mark !== null || properties.length > 0 || (notes?.length ?? 0) > 0) && (
         <div className="mt-2 flex flex-wrap gap-1">
+          {notes !== undefined && notes.length > 0 && (
+            <NotesChip notes={notes} onOpenPage={onOpenPage} />
+          )}
           {mark !== null && (
             <Chip tone={MARK[mark].tone}>
               {MARK[mark].icon}

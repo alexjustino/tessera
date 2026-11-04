@@ -14,11 +14,10 @@ import { linksIn, resolve, titleKey, type Page } from '@/domain/page';
 import { Button } from '@/ui/Button';
 import { Kbd } from '@/ui/Kbd';
 
-import { LinkedTasks } from './LinkedTasks';
-
 /**
  * What a page is connected to, beside it: the links written in it and whether each
- * one finds its page, the tasks it is about, and what points back at it.
+ * one finds its page, and what points back at it. The tasks it is applied to are under
+ * its name, where they are seen.
  *
  * This is what says a link is really a link. A name that finds nothing is listed
  * as such, with the press that makes it real, rather than looking like the others.
@@ -133,8 +132,6 @@ export function Connections({
           </>
         )}
       </section>
-
-      <LinkedTasks key={`tasks-${page.id}`} pageId={page.id} onOpenItem={onOpenItem} />
 
       <section aria-label="Linked from">
         <h2 className="mb-2 flex items-center gap-2 text-caption font-semibold text-fg-tertiary uppercase">
