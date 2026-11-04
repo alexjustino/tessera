@@ -55,6 +55,8 @@ that a later one narrows says so and points at it.
 | [046](#adr-046) | A suggested plan is computed and never stored                                | Accepted |
 | [047](#adr-047) | A link in the text opens, and says what it points at first                   | Accepted |
 | [048](#adr-048) | Screens are read on demand, and one failing does not take the window         | Accepted |
+| [049](#adr-049) | Dragging uses the pointer, and is tested with one                            | Accepted |
+| [050](#adr-050) | What to do now is one answer, computed                                       | Accepted |
 
 ---
 
@@ -1166,3 +1168,37 @@ and the rail stays. The editor guards against `useEditor` destroying an instance
 **Cost accepted.** Many small files instead of one. The result on start was measured release against release; see the
 release notes for the figures. E2E lookups now give a screen a moment to arrive, except `findAll`, which is what asks whether
 something is absent.
+
+## ADR-049 — Dragging uses the pointer, and is tested with one {#adr-049}
+
+**Context.** The owner could not move anything on the calendar. With `dragDropEnabled` on, Windows hands
+every HTML5 drag to the host and the page never hears of it, so the calendar, the Mosaic's queue and the
+timeline's bars had not moved from a mouse since they were written. The board worked because it uses
+pointer events. The suite passed because it dispatched the drag's events by hand: it proved what a tile does
+with a drop, not that a drop could happen.
+
+**Decision.** `usePointerDrag` is the one way this product drags outside the board: pointer events, a small
+threshold so a press stays a press, Escape to cancel, and the click that ends a drag swallowed. The screen shows
+where a thing will land and what it would land on. The suite drives it with WebDriver pointer actions, so the
+input goes through the engine as a mouse's does. Dispatching a drag's events by hand does not count as proof.
+
+**Why not turn `dragDropEnabled` off.** It would restore HTML5 drag, but its picture cannot show the hours or
+snap, and a real drag cannot be driven by the suite. With the flag off, a file dropped on the window could also
+navigate the page away.
+
+**Cost accepted.** A second drag mechanism beside dnd-kit on the board. A block can still be dropped on another:
+it is said while carried, and the person decides. Reserving with the button never does.
+
+## ADR-050 — What to do now is one answer, computed {#adr-050}
+
+**Context.** Every screen says something about the day; none says what a person asks when they sit down. The
+owner invited something of value beyond the list.
+
+**Decision.** `pickNow` (`src/domain/now.ts`) gives one answer, in a stated order: a running clock, time reserved
+for a task right now, the event you are in, then whichever is sooner of what is reserved and what the plan
+suggests. Today leads with it, with the press that starts it. It stores nothing and moves nothing (ADR-046): the
+buttons are the person acting.
+
+**Cost accepted.** Focus mode's queue answers a similar question in list order (P8). They differ on purpose: that
+one walks ready work, this one reads the calendar. A person who keeps neither a calendar nor a clock is told
+only what the plan suggests.

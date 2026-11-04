@@ -30,6 +30,12 @@ version 18, is migrated on first start.
 
 ### Added
 
+- **What to do now.** Today leads with one answer: the clock that is running, the time reserved
+  for right now, or what comes next, with the press that starts it.
+- **Apply a note to a task.** Under a page's name, what it is applied to and a button that finds
+  a task by typing. The task's row and its card then show the note, one press from it.
+- **Press a block to edit it.** Its day, start and length can be typed, and it can be deleted or
+  its task opened from there.
 - **A suggested plan on the calendar.** Open work appears by itself in your free working time
   for the next three weeks, earliest date first, never over an event, on a day off or before
   what blocks it. It is dashed because it is not there yet: accept a block, accept them all, or
@@ -127,6 +133,13 @@ version 18, is migrated on first start.
 
 ### Fixed
 
+- **Dragging works from a mouse.** On Windows, blocks on the calendar, tasks onto the Mosaic and bars
+  on the timeline could never be dragged. They can now, and a block shows where it will land.
+- Reserving a task by hand put it at the top of the day, on top of whatever was there, every time. It
+  now goes in the first free time, for what is left of its estimate.
+- The middle of a block in a narrow column was an invisible Delete button.
+- A day off is no longer shaded as working hours on the calendar.
+- The setup's picture is on the right, as the MSI's is.
 - Pressing a link in a note did nothing. It goes there now.
 - Coming back to the calendar opened it at midnight and unfitted. Only the first visit, and only
   sometimes, fitted the working day to the window.

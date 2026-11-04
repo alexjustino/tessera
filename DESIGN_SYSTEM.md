@@ -240,6 +240,12 @@ cannot read (ADR-048).
 Time the plan proposes is drawn with a dashed border and says so, because it is not there yet. A dashed
 block is never counted as reserved, and pressing or moving it is what makes it solid (ADR-046).
 
+### Dragging
+
+With `usePointerDrag`, or dnd-kit on the board, and never HTML5 drag and drop, which the host takes for itself
+on Windows. What is carried shows where it will land and what it would land on. Nothing hidden sits on a thing
+that can be dragged: a control with opacity 0 still takes the press (ADR-049).
+
 ### Settings
 
 One section at a time, chosen from a list on the left. A section is `SettingGroup`s of `SettingRow`s:

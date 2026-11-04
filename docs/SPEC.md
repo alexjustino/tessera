@@ -223,6 +223,11 @@ Mosaic becomes a wall of goals with a queue, an inspector and a history; links i
 what they point at, and `[[` reaches tasks (ADR-047); goals are cards; Settings shows one section at a
 time; and screens are read on demand, each failing on its own (ADR-048).
 
+The third round: everything that drags now does it with the pointer, because on Windows it never could
+from a mouse (ADR-049); a block opens when pressed and its hour and length can be typed; reserving by hand
+goes in the first free time; a note can be applied to a task and both say so; and Today leads with one
+answer to what to do now (ADR-050).
+
 Rules for this line: **no network, still** (ADR-012), so an email is a draft file in the person's
 own mail program. **A marker is meaning, not style**, stored on the line and never a colour alone.
 **A follow-up is a task**, with the same dates and reminders as any other.

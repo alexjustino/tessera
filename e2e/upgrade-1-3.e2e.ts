@@ -92,15 +92,14 @@ describe('a 1.3 workspace in 1.4', () => {
     await driver.chord('', '4');
     await driver.waitForElement('.tessera-prose [data-note-marker="decision"]');
 
-    const select = await driver.find('select[aria-label="Link a task to this page"]');
-    await driver.execute(
-      `const field = arguments[0];
-       const option = [...field.options].find((candidate) => candidate.text === 'Plan the launch');
-       const set = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-       set.call(field, option.value);
-       field.dispatchEvent(new Event('change', { bubbles: true }));`,
-      [{ [ELEMENT]: select.id }],
-    );
+    await (await driver.findByXPath('//button[normalize-space(.)="Apply to a task"]')).click();
+    await (
+      await driver.waitFor('the task in the picker', () =>
+        driver.findByXPath(
+          '//ul[@aria-label="Open tasks"]//button[contains(., "Plan the launch")]',
+        ),
+      )
+    ).click();
     await driver.waitForElement('button[aria-label="Open the task Plan the launch"]');
   });
 
