@@ -44,7 +44,9 @@ import {
 import type { Item } from '@/domain/item';
 import type { Page } from '@/domain/page';
 import type { TodayMark } from '@/domain/pulse';
+import type { Progress } from '@/domain/subtasks';
 import { NotesChip } from '@/features/notes/NotesChip';
+import { StepsChip } from '@/features/tasks/StepsChip';
 import { formatValue, optionsOf, type Property } from '@/domain/property';
 import type { Group, Query, Row } from '@/domain/query';
 import { Button } from '@/ui/Button';
@@ -103,6 +105,7 @@ export function BoardView({
   query,
   board,
   marks,
+  stepsOf,
   notesOf,
   onOpenPage,
   onQueryChange,
@@ -111,6 +114,8 @@ export function BoardView({
 }: {
   /** Why a card matters today, for the ones where it does. */
   marks: ReadonlyMap<string, TodayMark>;
+  /** How far along each task's subtasks are, by the task's id. */
+  stepsOf?: ReadonlyMap<string, Progress>;
   /** The pages applied to each task, by the task's id. */
   notesOf?: ReadonlyMap<string, readonly Page[]>;
   onOpenPage?: ((pageId: string) => void) | undefined;
@@ -228,6 +233,7 @@ export function BoardView({
               droppable={isDroppable(column, groupProperty)}
               marks={marks}
               notesOf={notesOf}
+              stepsOf={stepsOf}
               onOpenPage={onOpenPage}
               spotlight={spotlight}
               onToggleCollapsed={() => toggleCollapsed(column)}
@@ -359,6 +365,7 @@ function BoardColumn({
   droppable,
   marks,
   notesOf,
+  stepsOf,
   onOpenPage,
   spotlight,
   onToggleCollapsed,
@@ -369,6 +376,7 @@ function BoardColumn({
   droppable: boolean;
   marks: ReadonlyMap<string, TodayMark>;
   notesOf?: ReadonlyMap<string, readonly Page[]> | undefined;
+  stepsOf?: ReadonlyMap<string, Progress> | undefined;
   onOpenPage?: ((pageId: string) => void) | undefined;
   spotlight: boolean;
   onToggleCollapsed: () => void;
@@ -447,6 +455,7 @@ function BoardColumn({
               properties={properties}
               mark={marks.get(row.item.id) ?? null}
               notes={notesOf?.get(row.item.id)}
+              steps={stepsOf?.get(row.item.id)}
               onOpenPage={onOpenPage}
               dimmed={spotlight && !marks.has(row.item.id)}
               onOpen={onOpen}
@@ -466,6 +475,7 @@ function SortableCard({
   properties,
   mark,
   notes,
+  steps,
   onOpenPage,
   dimmed,
   onOpen,
@@ -473,6 +483,7 @@ function SortableCard({
   row: Row;
   properties: Property[];
   mark: TodayMark | null;
+  steps?: Progress | undefined;
   notes?: readonly Page[] | undefined;
   onOpenPage?: ((pageId: string) => void) | undefined;
   dimmed: boolean;
@@ -511,6 +522,7 @@ function SortableCard({
         properties={properties}
         mark={mark}
         notes={notes}
+        steps={steps}
         onOpenPage={onOpenPage}
         onOpen={onOpen}
         handle={
@@ -534,11 +546,13 @@ function Card({
   properties,
   mark,
   notes,
+  steps,
   onOpenPage,
   onOpen,
   overlay = false,
   handle,
 }: {
+  steps?: Progress | undefined;
   notes?: readonly Page[] | undefined;
   onOpenPage?: ((pageId: string) => void) | undefined;
   row: Row;
@@ -575,8 +589,12 @@ function Card({
         {handle}
       </div>
 
-      {(mark !== null || properties.length > 0 || (notes?.length ?? 0) > 0) && (
+      {(mark !== null ||
+        properties.length > 0 ||
+        (notes?.length ?? 0) > 0 ||
+        (steps?.total ?? 0) > 0) && (
         <div className="mt-2 flex flex-wrap gap-1">
+          <StepsChip progress={steps} />
           {notes !== undefined && notes.length > 0 && (
             <NotesChip notes={notes} onOpenPage={onOpenPage} />
           )}

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Subtasks.** The steps inside a task: type them one after another or paste a list, tick
+  them, drag or key them into order, and make one a task of its own when it turns out to be
+  work. The row and the card say how far along the task is, Now names the next step, and
+  Focus shows the steps to tick. When the last one is ticked the task offers its finish, and
+  waits for you. A repeating task starts its steps again. Lists, the score and the plan still
+  count tasks, not steps.
+
 - **An email from your notes.** One press turns a page or a selection into a draft, with a
   greeting, the topics as you formatted them, markers in words, and the page's follow-ups with
   their dates. It opens in your own mail program, unsent and addressed to nobody. Tessera

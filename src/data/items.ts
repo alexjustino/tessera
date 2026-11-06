@@ -84,6 +84,19 @@ export async function listItems(
   return raw.map(toItem);
 }
 
+/** Every subtask in the workspace (ADR-051). */
+export async function listSubtasks(): Promise<Item[]> {
+  return (await invoke<RawItem[]>('subtasks_list')).map(toItem);
+}
+
+export async function addSubtask(parentId: string, title: string, position: string): Promise<Item> {
+  return toItem(await invoke<RawItem>('subtask_add', { parentId, title, position }));
+}
+
+export async function promoteSubtask(id: string, position: string): Promise<Item> {
+  return toItem(await invoke<RawItem>('subtask_promote', { id, position }));
+}
+
 /**
  * Create an item.
  *

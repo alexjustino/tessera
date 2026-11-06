@@ -10,7 +10,9 @@ import { useState } from 'react';
 
 import { checkTitle, type Item } from '@/domain/item';
 import type { Page } from '@/domain/page';
+import type { Progress } from '@/domain/subtasks';
 import { NotesChip } from '@/features/notes/NotesChip';
+import { StepsChip } from '@/features/tasks/StepsChip';
 import type { Property, PropertyValue } from '@/domain/property';
 import type { Group, Row } from '@/domain/query';
 import { bucketOf, formatDue, systemZone } from '@/domain/schedule';
@@ -30,6 +32,7 @@ import { IconButton } from '@/ui/IconButton';
 const NO_NOTES: readonly Page[] = [];
 
 export function ListView({
+  stepsOf,
   notesOf,
   onOpenPage,
   groups,
@@ -45,6 +48,8 @@ export function ListView({
   onOpen,
   onSetValue,
 }: {
+  /** How far along each task's subtasks are, by the task's id. */
+  stepsOf?: ReadonlyMap<string, Progress>;
   /** The pages applied to each task, by the task's id. */
   notesOf?: ReadonlyMap<string, readonly Page[]>;
   onOpenPage?: ((pageId: string) => void) | undefined;
@@ -85,6 +90,7 @@ export function ListView({
                 <TaskRow
                   key={row.item.id}
                   notes={notesOf?.get(row.item.id) ?? NO_NOTES}
+                  steps={stepsOf?.get(row.item.id)}
                   onOpenPage={onOpenPage}
                   task={row.item}
                   blocked={blockedIds.has(row.item.id)}
@@ -109,6 +115,7 @@ export function ListView({
 }
 
 function TaskRow({
+  steps,
   notes,
   onOpenPage,
   task,
@@ -124,6 +131,8 @@ function TaskRow({
   onOpen,
   onSetValue,
 }: {
+  /** How far along its subtasks are. */
+  steps?: Progress | undefined;
   /** The pages applied to this task. */
   notes: readonly Page[];
   onOpenPage?: ((pageId: string) => void) | undefined;
@@ -198,6 +207,8 @@ function TaskRow({
       )}
 
       <DueChip task={task} />
+
+      <StepsChip progress={steps} />
 
       {notes.length > 0 && <NotesChip notes={notes} onOpenPage={onOpenPage} />}
 

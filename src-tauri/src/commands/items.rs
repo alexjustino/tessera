@@ -47,6 +47,29 @@ pub fn items_list(
 }
 
 #[tauri::command]
+pub fn subtasks_list(db: State<'_, Db>) -> Result<Vec<Item>> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    items::list_subtasks(&conn)
+}
+
+#[tauri::command]
+pub fn subtask_add(
+    db: State<'_, Db>,
+    parent_id: String,
+    title: String,
+    position: String,
+) -> Result<Item> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    items::add_subtask(&mut conn, &parent_id, &title, &position)
+}
+
+#[tauri::command]
+pub fn subtask_promote(db: State<'_, Db>, id: String, position: String) -> Result<Item> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    items::promote_subtask(&conn, &id, &position)
+}
+
+#[tauri::command]
 pub fn item_create(db: State<'_, Db>, item: NewItem) -> Result<Item> {
     let mut conn = db.0.lock().expect("the database lock was poisoned");
     items::create_item(&mut conn, item)
