@@ -7,6 +7,7 @@
 use tauri::State;
 
 use crate::db::models::{CaptureRequest, Collection, Item, ItemPlan, ItemSchedule, NewItem};
+use crate::db::replan::{self, ReplanChange, ReplanUndo};
 use crate::db::{items, Db};
 use crate::error::Result;
 
@@ -44,6 +45,47 @@ pub fn items_list(
 ) -> Result<Vec<Item>> {
     let conn = db.0.lock().expect("the database lock was poisoned");
     items::list_items(&conn, collection_id.as_deref(), include_completed)
+}
+
+/// Every late task's new date and blocks, in one write; returns the way back.
+#[tauri::command]
+pub fn items_replan(
+    db: State<'_, Db>,
+    calendar_id: String,
+    tz: String,
+    changes: Vec<ReplanChange>,
+) -> Result<ReplanUndo> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    replan::replan(&mut conn, &calendar_id, &tz, &changes)
+}
+
+#[tauri::command]
+pub fn items_replan_undo(db: State<'_, Db>, undo: ReplanUndo) -> Result<()> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    replan::undo_replan(&mut conn, &undo)
+}
+
+#[tauri::command]
+pub fn subtasks_list(db: State<'_, Db>) -> Result<Vec<Item>> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    items::list_subtasks(&conn)
+}
+
+#[tauri::command]
+pub fn subtask_add(
+    db: State<'_, Db>,
+    parent_id: String,
+    title: String,
+    position: String,
+) -> Result<Item> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    items::add_subtask(&mut conn, &parent_id, &title, &position)
+}
+
+#[tauri::command]
+pub fn subtask_promote(db: State<'_, Db>, id: String, position: String) -> Result<Item> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    items::promote_subtask(&conn, &id, &position)
 }
 
 #[tauri::command]

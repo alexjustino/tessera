@@ -81,10 +81,10 @@ export function CommandPalette({
       heading: GROUP_LABELS[item.command.group],
     }));
     if (!commandsOnly) {
-      for (const hit of hits.data ?? []) {
+      for (const [index, hit] of (hits.data ?? []).entries()) {
         list.push({
           kind: 'hit',
-          key: `h:${hit.ownerKind}:${hit.ownerId}`,
+          key: `h:${hit.ownerKind}:${hit.ownerId}:${index}`,
           hit,
           heading: hit.ownerKind === 'event' ? 'Events' : 'Tasks',
         });

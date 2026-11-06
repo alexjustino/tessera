@@ -68,6 +68,44 @@ function useInvalidateItems() {
   return () => client.invalidateQueries({ queryKey: ['items'] });
 }
 
+/** Under the items key, so whatever refreshes the tasks refreshes their steps. */
+export function useSubtasks() {
+  return useQuery({ queryKey: ['items', 'subtasks'], queryFn: api.listSubtasks });
+}
+
+export function useAddSubtask() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({
+      parentId,
+      title,
+      position,
+    }: {
+      parentId: string;
+      title: string;
+      position: string;
+    }) => api.addSubtask(parentId, title, position),
+    onSuccess: invalidate,
+  });
+}
+
+export function usePromoteSubtask() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({ id, position }: { id: string; position: string }) =>
+      api.promoteSubtask(id, position),
+    onSuccess: invalidate,
+  });
+}
+
+export function useMoveItem() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({ id, position }: { id: string; position: string }) => api.moveItem(id, position),
+    onSuccess: invalidate,
+  });
+}
+
 export function useCreateItem() {
   const invalidate = useInvalidateItems();
   return useMutation({
@@ -450,6 +488,17 @@ export function useDeleteEvent() {
 export function useSetException() {
   const invalidate = useInvalidateCalendar();
   return useMutation({ mutationFn: calendarApi.setException, onSuccess: invalidate });
+}
+
+/** Dates and blocks together, so both the tasks and the calendar refresh. */
+export function useReplan() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: api.replanItems, onSuccess: invalidate });
+}
+
+export function useUndoReplan() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: api.undoReplan, onSuccess: invalidate });
 }
 
 export function useCreateTimeBlock() {

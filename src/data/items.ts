@@ -84,6 +84,62 @@ export async function listItems(
   return raw.map(toItem);
 }
 
+/** What the host hands back after a replan, and takes again to undo it (ADR-052). */
+export interface ReplanUndo {
+  schedules: Array<{
+    item_id: string;
+    start_at: string | null;
+    due_at: string | null;
+    remind_at: string | null;
+    recurrence_rrule: string | null;
+    recurrence_mode: string | null;
+  }>;
+  event_ids: string[];
+}
+
+/** Every late task's new date and blocks, written as one. */
+export async function replanItems(input: {
+  calendarId: string;
+  tz: string;
+  changes: ReadonlyArray<{
+    itemId: string;
+    dueAt: string;
+    remindAt: string | null;
+    blocks: ReadonlyArray<{ startsAt: string; endsAt: string }>;
+  }>;
+}): Promise<ReplanUndo> {
+  return invoke<ReplanUndo>('items_replan', {
+    calendarId: input.calendarId,
+    tz: input.tz,
+    changes: input.changes.map((change) => ({
+      item_id: change.itemId,
+      due_at: change.dueAt,
+      remind_at: change.remindAt,
+      blocks: change.blocks.map((block) => ({
+        starts_at: block.startsAt,
+        ends_at: block.endsAt,
+      })),
+    })),
+  });
+}
+
+export async function undoReplan(undo: ReplanUndo): Promise<void> {
+  await invoke('items_replan_undo', { undo });
+}
+
+/** Every subtask in the workspace (ADR-051). */
+export async function listSubtasks(): Promise<Item[]> {
+  return (await invoke<RawItem[]>('subtasks_list')).map(toItem);
+}
+
+export async function addSubtask(parentId: string, title: string, position: string): Promise<Item> {
+  return toItem(await invoke<RawItem>('subtask_add', { parentId, title, position }));
+}
+
+export async function promoteSubtask(id: string, position: string): Promise<Item> {
+  return toItem(await invoke<RawItem>('subtask_promote', { id, position }));
+}
+
 /**
  * Create an item.
  *

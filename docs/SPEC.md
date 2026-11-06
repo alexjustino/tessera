@@ -239,6 +239,47 @@ meeting notes started from an event. From the second round: keeping a task left 
 across a restart, resizing a block from its top edge, moving a whole week's plan at once, and a
 history of the day's score.
 
+#### After the third look: subtasks, replanning and lists
+
+What the owner asked for after the third look at the candidate: a task's steps, a way
+out of a week that slipped, and more than one list. Each landed as its own slice, with
+its own proof.
+
+- **Subtasks** (ADR-051). The steps inside a task: typed one after another, or pasted
+  as a list, ticked, put in order by pointer or keyboard, and made a task of their own
+  when they turn out to be work. The task's row and card say how far along it is, Now
+  names the next step, and Focus shows the steps to tick. When the last is ticked the
+  task is offered its finish, never given it. A repeating task starts its steps again.
+  A step is not a task: lists, the score, the plan and every figure count tasks.
+  Search finds a step and opens its task; Markdown prints steps under their task; the
+  import door brings them in as the task's checklist.
+- **Replan in one press** (ADR-052). When work is late, Today and the Calendar say how
+  much, and list where each late task would go and what its new date would be. Nothing is
+  written until the press. One press reserves blocks in the next free working time, late
+  work first, and moves each date to the day its last block ends, at the time of day it was
+  set for when that still holds. A reminder moves by as much as its date. All of it is one
+  write: if any of it fails, none of it happens. One more press, Undo, puts every date back
+  and takes every block away. A repeating task, a task waiting on work that is not late,
+  and a task with no room in three weeks are left as they are, and named.
+
+#### Deferred out of subtasks, and why
+
+- **Dates, estimates and the clock on a step.** Each would make a step a second kind of
+  task, and every figure would have to choose which to count. The task carries them.
+- **Steps inside steps.** One level keeps a task readable at a glance and the count
+  honest. The host refuses a deeper one.
+- **Steps in templates.** A template stamps tasks; stamping their steps is a change to
+  ADR-033's shape, and belongs with it.
+
+#### Deferred out of replanning, and why
+
+- **Missed blocks in the past.** A block that came and went without the work stays on the
+  calendar as a record of what was planned; replanning reserves new time and leaves it.
+- **Undo after leaving the screen.** The way back lives with the card that made the change.
+  A person who walks away has moved on, and every date can still be changed by hand.
+- **Choosing which late tasks to move.** The first version moves them all or none. Leaving
+  one out is a date changed by hand first.
+
 ## 3. Architecture
 
 ```

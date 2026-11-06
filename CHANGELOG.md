@@ -30,6 +30,17 @@ version 18, is migrated on first start.
 
 ### Added
 
+- **Replan in one press.** When work is late, Today and the Calendar list where each late task
+  would go and its new date, before anything changes. One press gives every late task the next
+  free time and moves its date there, all at once. Undo puts every date back and takes every
+  block away. Repeating tasks, tasks waiting on other work, and tasks with no room are left as
+  they are, and named.
+- **Subtasks.** The steps inside a task: type them one after another or paste a list, tick
+  them, drag or key them into order, and make one a task of its own when it turns out to be
+  work. The row and the card say how far along the task is, Now names the next step, and
+  Focus shows the steps to tick. When the last one is ticked the task offers its finish, and
+  waits for you. A repeating task starts its steps again. Lists, the score and the plan still
+  count tasks, not steps.
 - **What to do now.** Today leads with one answer: the clock that is running, the time reserved
   for right now, or what comes next, with the press that starts it.
 - **Apply a note to a task.** Under a page's name, what it is applied to and a button that finds
