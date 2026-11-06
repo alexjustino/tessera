@@ -23,6 +23,7 @@ pub mod properties;
 pub mod reminders;
 pub mod replan;
 pub mod search;
+pub mod sections;
 pub mod settings;
 pub mod templates;
 pub mod time_entries;

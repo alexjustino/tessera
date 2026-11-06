@@ -246,6 +246,12 @@ of a week that slipped. Each lands as its own slice, with its own proof.
   which are done, and pressing a line goes to that line in its page, with the caret on it.
   A Question, an Important line and a Decision are never done.
 
+- **A notebook in sections** (ADR-057). Notes keeps pages in sections, as OneNote does:
+  each section has a name and one of nine named colours, and holds its own pages. A new page
+  is made in the section on screen; a page moves to another from its own header. A page in
+  no section is in Quick notes, and finding a page looks in every section. Deleting a
+  section sends its pages back to Quick notes and deletes none.
+
 #### Deferred out of lists, and why
 
 - **Ordering lists by dragging, colours and icons.** The rail shows them in the order

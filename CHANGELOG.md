@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Sections in Notes.** Keep pages in coloured sections, as OneNote does: make a section, give
+  it one of nine colours, and the pages you make there stay there. Move a page from its header.
+  Pages with no section are in Quick notes, and deleting a section moves its pages back there.
+  Adds migration 022.
 - **Meeting notes.** Press Meeting notes on an event to open its notes: a page named for the
   meeting and its day, ready with when it is and headings for notes, decisions and follow-ups.
   The same press finds the page again, and each week of a repeating meeting has its own. A
