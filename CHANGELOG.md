@@ -23,12 +23,15 @@ leads with a score whose sum you can read, the calendar suggests your work and l
 it, the Mosaic is a wall of your goals, and links in your notes finally go somewhere.
 
 The third look asked for more structure, and got it: the steps inside a task, a week that
-slipped put right in one press and undone in one more, and more than one list.
+slipped put right in one press and undone in one more, and more than one list, with `#work` on
+the capture line to reach one. Notes caught up too: a meeting's notes one press from its event,
+a tick on a To do, and a Follow up that is struck through when its task is done.
 
 ### Migrations
 
-This release adds migrations **019** (`goal.ongoing`, a goal with no finish line) and **020**
-(`item_page`, a task and a page paired by a person). Forward-only. A 1.3.0 workspace, schema
+This release adds migrations **019** (`goal.ongoing`, a goal with no finish line), **020**
+(`item_page`, a task and a page paired by a person) and **021** (`event_page`, a meeting and its
+notes). Forward-only. A 1.3.0 workspace, schema
 version 18, is migrated on first start.
 
 ### Added

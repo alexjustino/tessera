@@ -233,9 +233,7 @@ own mail program. **A marker is meaning, not style**, stored on the line and nev
 **A follow-up is a task**, with the same dates and reminders as any other.
 
 What 1.4 deliberately does not add: handwriting and ink, audio recording, sections beyond pages,
-shared notebooks, sending mail. Left for a later line: a person's own markers, a checkbox on the To
-do marker, going to the exact line from Marked lines, a follow-up's completion marking its line, and
-meeting notes started from an event. From the second round: keeping a task left out of the plan
+shared notebooks, sending mail. Left for a later line: a person's own markers. From the second round: keeping a task left out of the plan
 across a restart, resizing a block from its top edge, moving a whole week's plan at once, and a
 history of the day's score.
 

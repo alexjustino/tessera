@@ -13,8 +13,8 @@ const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
  * `fixtures/workspace-1.3.0.sqlite3` (built by `make_1_3.py`) is a workspace at
  * schema 18 — the eighteen migrations 1.3.0 shipped — holding estimated tasks with
  * a dependency and a reminder, tracked time, a page, a goal with an envelope and a
- * day off. 1.4 adds migrations 019 (a goal with no finish line) and 020 (a task and
- * a page paired).
+ * day off. 1.4 adds migrations 019 (a goal with no finish line), 020 (a task and a
+ * page paired) and 021 (a meeting and its notes).
  */
 describe('a 1.3 workspace in 1.4', () => {
   let session: Session;
