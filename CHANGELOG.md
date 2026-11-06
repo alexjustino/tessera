@@ -33,6 +33,10 @@ version 18, is migrated on first start.
 
 ### Added
 
+- **Meeting notes.** Press Meeting notes on an event to open its notes: a page named for the
+  meeting and its day, ready with when it is and headings for notes, decisions and follow-ups.
+  The same press finds the page again, and each week of a repeating meeting has its own. A
+  follow-up written there becomes a task paired with the page. Adds migration 021.
 - **Lists.** Make a list from the rail, under Tasks, and keep work apart: each list has its own
   tasks, board and properties, set up the way Tasks is. Move a task to another list from its
   panel, and its subtasks and values go with it. Today still shows everything due, from every

@@ -42,6 +42,7 @@ import * as templateApi from './templates';
 import * as importApi from './importing';
 import * as daysOffApi from './daysOff';
 import * as goalApi from './goals';
+import * as meetingApi from './meetingNotes';
 import * as pageApi from './pages';
 import type { TemplateBody, TemplateEdge } from '@/domain/template';
 
@@ -992,6 +993,25 @@ export const pageKeys = {
   all: ['pages'] as const,
   backlinks: (id: string) => ['backlinks', id] as const,
 };
+
+/** Every page paired with an occurrence of a meeting. */
+export function useEventPages() {
+  return useQuery({ queryKey: ['event-pages'], queryFn: meetingApi.listEventPages });
+}
+
+/** Open a meeting's notes, making them the first time; resolves to the page's id. */
+export function useOpenMeetingNotes() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: meetingApi.openMeetingNotes,
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['event-pages'] });
+      void client.invalidateQueries({ queryKey: pageKeys.all });
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
+      void client.invalidateQueries({ queryKey: ['blocks'] });
+    },
+  });
+}
 
 export function usePages() {
   return useQuery({ queryKey: pageKeys.all, queryFn: pageApi.listPages });
