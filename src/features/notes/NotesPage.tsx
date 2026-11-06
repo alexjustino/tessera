@@ -13,6 +13,7 @@ import { between } from '@/domain/ordering';
 import { checkTitle, titleKey, UNTITLED, type Page } from '@/domain/page';
 import { Editor } from '@/app/lazyPages';
 import { AppliedTasks } from './AppliedTasks';
+import { MeetingLine } from './MeetingLine';
 import { Connections } from './Connections';
 import { MarkedLines } from './MarkedLines';
 import { Button } from '@/ui/Button';
@@ -267,6 +268,8 @@ export function NotesPage({
                   onClick={() => setConfirming(true)}
                 />
               </div>
+
+              <MeetingLine pageId={open.id} />
 
               <AppliedTasks
                 key={`tasks-${open.id}`}

@@ -230,6 +230,16 @@ of a week that slipped. Each lands as its own slice, with its own proof.
   task opens it in its own list. A list is renamed from its page, and deleted only once it
   is empty.
 
+- **Meeting notes** (ADR-054). An event on the calendar opens its notes in one press:
+  a page named for the meeting and its day, made the first time with when it is and three
+  headings, Notes, Decisions and Follow-ups, and found by the same press every time after.
+  Each occurrence of a repeating meeting has a page of its own. The page says which meeting
+  it holds the notes of. A follow-up written there is a task paired with the page, as from
+  any page. Time reserved for a task offers no meeting notes: the task has its own.
+- **Capturing into a list, and going to one** (ADR-055). `#work` on any capture line,
+  the quick-capture window included, sends the task to Work, and a chip says so before
+  anything is written; the task lands after that list's last, with that list's Priority.
+  A `#word` that names no list stays in the title. The palette offers Go to for each list.
 - **Marked lines that know when they are done** (ADR-056). A To do line carries a tick
   where it is written, and ticking it is saved with the page. A Follow up line remembers
   the task it became, and is drawn done once that task is finished. Marked lines shows
@@ -240,11 +250,10 @@ of a week that slipped. Each lands as its own slice, with its own proof.
 
 - **Ordering lists by dragging, colours and icons.** The rail shows them in the order
   they were made. Worth doing with the rail's own keyboard model, not bolted on.
-- **Capturing into a list by name** (`#work` on the capture line). The grammar change
-  needs its own negative cases: a hash is also how people write numbers and tags.
 - **Archiving a list.** A list with work in it is kept or emptied; an archived list whose
   tasks still count on Today would be a list that is and is not there.
-- **Lists in templates and the palette's Go to.** Additive, and better with the above.
+- **Lists in templates.** A template stamps into the list it is applied in; choosing
+  another list is a change to ADR-033's shape.
 
 #### Deferred out of subtasks, and why
 

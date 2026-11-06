@@ -47,6 +47,7 @@ export function FollowUp({
           remindAt: null,
           rule: null,
           priority: null,
+          listId: null,
           chips: [],
         },
         priorityPropertyId: null,

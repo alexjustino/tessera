@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Meeting notes.** Press Meeting notes on an event to open its notes: a page named for the
+  meeting and its day, ready with when it is and headings for notes, decisions and follow-ups.
+  The same press finds the page again, and each week of a repeating meeting has its own. A
+  follow-up written there becomes a task paired with the page. Adds migration 021.
+- **Capture into a list.** Write `#work` on the capture line, or in quick capture, and the task
+  goes to Work; a chip says so before it is added. A `#` that names no list stays in the title.
+  Search or run a command offers Go to for each list.
 - **Done, on the line.** A To do line has a tick where you wrote it. A Follow up line is struck
   through once its task is finished. Marked lines shows which are done, and pressing one takes
   you to that line in its page.

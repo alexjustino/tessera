@@ -6,6 +6,7 @@
 
 use tauri::State;
 
+use crate::db::event_pages;
 use crate::db::lists;
 use crate::db::models::{CaptureRequest, Collection, Item, ItemPlan, ItemSchedule, NewItem};
 use crate::db::replan::{self, ReplanChange, ReplanUndo};
@@ -46,6 +47,34 @@ pub fn items_list(
 ) -> Result<Vec<Item>> {
     let conn = db.0.lock().expect("the database lock was poisoned");
     items::list_items(&conn, collection_id.as_deref(), include_completed)
+}
+
+/// The page of one occurrence of a meeting, made and paired the first time.
+#[tauri::command]
+pub fn meeting_notes_open(
+    db: State<'_, Db>,
+    event_id: String,
+    original_start: String,
+    title: String,
+    position: String,
+) -> Result<MeetingNotes> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    let (page, created) =
+        event_pages::open(&mut conn, &event_id, &original_start, &title, &position)?;
+    Ok(MeetingNotes { page, created })
+}
+
+#[tauri::command]
+pub fn event_pages_list(db: State<'_, Db>) -> Result<Vec<event_pages::EventPage>> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    event_pages::list(&conn)
+}
+
+/// A meeting's page, and whether this press made it.
+#[derive(serde::Serialize)]
+pub struct MeetingNotes {
+    pub page: crate::db::pages::Page,
+    pub created: bool,
 }
 
 /// A new list, set up the way Tasks is (ADR-053).

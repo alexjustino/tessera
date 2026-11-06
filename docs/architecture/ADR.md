@@ -1137,6 +1137,44 @@ before it.
 **Cost accepted.** On Today, a task from another list shows its title, date and list, not its Status
 or Priority; those are edited in its panel or its list.
 
+## ADR-054 — A meeting's notes are a page paired with one occurrence {#adr-054}
+
+**Context.** 1.4 left "meeting notes started from an event" for later. The owner chose it before the
+UAT of the candidate.
+
+**Decision.** Migration 021 adds `event_page (event_id, original_start, page_id)`. The pair names an
+occurrence by the start the series gave it, the same key an exception uses, so a weekly meeting has a
+page for each week and moving one occurrence keeps its notes. Meeting notes, in an event's editor,
+calls `meeting_notes_open`: the pair's page when there is one; otherwise a page named "Meeting — Mon,
+Nov 9", or the page of that name when one exists, paired. A new page is written its opening lines by
+the client, through the same change set the editor uses: when and where, then Notes, Decisions and
+Follow-ups. The page says which meeting it holds the notes of. Time reserved for a task offers no
+meeting notes. Either side going removes the pair, and nothing else, as with `item_page` (ADR-041).
+
+**Why not a link in the page's text.** The press has to find the page again from the event, and a
+link a person can delete without meaning to would make the press make a second page.
+
+**Cost accepted.** Making the page and pairing it are two writes: a failure between them leaves a page
+with the meeting's name and no pair. The next press finds it by name and pairs it, so nothing is lost
+and nothing is made twice. Location is not shown yet: events are made without one today.
+
+## ADR-055 — A `#name` on the capture line is a list only when a list has that name {#adr-055}
+
+**Context.** ADR-053 left capturing into a list for later, because a hash is also how people write
+numbers and tags.
+
+**Decision.** `parseCapture` takes the person's lists. A `#` at the start of the line or after a space,
+followed by a list's name, whatever its case, and then the end, a space or punctuation, is that list.
+The longest name written wins, so `#home office` is not `#home`. It is read last, so it claims nothing
+another phrase claimed, and never inside brackets. The chip reads "In Work". Any other `#word` stays
+in the title, for the same reason a reminder with no date does: a chip that does nothing is a lie.
+The task lands after the target list's last task, with the target list's own Priority property,
+read from the host when the list is not the one on screen. The palette lists Go to for each list.
+
+**Cost accepted.** A list renamed to a word people write with a hash, `#1` say, starts taking that
+word out of titles. The chip shows it before the task is written, and removing the chip keeps the
+word.
+
 ## ADR-056 — A To do is ticked on the line; a Follow up is done by its task {#adr-056}
 
 **Context.** 1.4 left three things about markers for later: a tick on To do, a Follow up line that

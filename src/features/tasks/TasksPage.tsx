@@ -34,6 +34,7 @@ import { formatDuration, plan as computePlan } from '@/domain/criticalPath';
 import { isBlocked } from '@/domain/graph';
 import { runningEntry } from '@/domain/time';
 import type { Capture } from '@/domain/capture';
+import { landingIn } from '@/data/items';
 import { positionForNewItem } from '@/domain/item';
 import { INBOX } from '@/domain/lists';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
@@ -282,36 +283,53 @@ export function TasksPage({
 
   const submit = useCallback(
     (capture: Capture) => {
-      create.mutate(
-        {
-          collectionId: place === 'today' ? INBOX : collectionId,
-          position: positionForNewItem(
-            (items.data ?? []).filter(
-              (item) => item.collectionId === (place === 'today' ? INBOX : collectionId),
-            ),
-          ),
-          // Typed on Today, with no date of its own: today is what was meant, and
-          // anything else would vanish from the screen it was just typed on.
-          capture:
-            place === 'today'
-              ? {
-                  ...capture,
-                  dueAt: dueForToday(capture.dueAt, new Date().toISOString(), systemZone()),
-                }
-              : capture,
-          priorityPropertyId,
-        },
-        // Clearing only after the host accepted it means a rejected write does
-        // not silently swallow what the person typed.
-        {
-          onSuccess: (item) => {
-            setDraft('');
-            announce(`Added ${item.title}`);
+      // Typed here, a task goes to the list on screen, or to Tasks from Today; a #name on
+      // the line sends it to that list instead (ADR-053).
+      const home = place === 'today' ? INBOX : collectionId;
+      const target = capture.listId ?? home;
+      const write = (position: string, priority: string | null) =>
+        create.mutate(
+          {
+            collectionId: target,
+            position,
+            // Typed on Today, with no date of its own: today is what was meant, and
+            // anything else would vanish from the screen it was just typed on.
+            capture:
+              place === 'today'
+                ? {
+                    ...capture,
+                    dueAt: dueForToday(capture.dueAt, new Date().toISOString(), systemZone()),
+                  }
+                : capture,
+            priorityPropertyId: priority,
           },
-        },
-      );
+          // Clearing only after the host accepted it means a rejected write does
+          // not silently swallow what the person typed.
+          {
+            onSuccess: (item) => {
+              setDraft('');
+              const where = listNames.get(target);
+              announce(
+                target === home || where === undefined
+                  ? `Added ${item.title}`
+                  : `Added ${item.title} to ${where}`,
+              );
+            },
+          },
+        );
+      if (target === shapeOf) {
+        write(
+          positionForNewItem((items.data ?? []).filter((item) => item.collectionId === target)),
+          priorityPropertyId,
+        );
+      } else {
+        void landingIn(target).then(
+          (landing) => write(landing.position, landing.priorityPropertyId),
+          () => write(positionForNewItem([]), null),
+        );
+      }
     },
-    [create, items.data, priorityPropertyId, place, collectionId],
+    [create, items.data, priorityPropertyId, place, collectionId, shapeOf, listNames],
   );
 
   const pulse = usePulse(items.data ?? []);
@@ -613,6 +631,7 @@ export function TasksPage({
                   // can drag it onto the grid, which is the whole point of the slice.
                   unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
                   onOpenItem={(item) => setDetailId(item.id)}
+                  onOpenPage={onOpenPage}
                 />
               ) : (items.data ?? []).length === 0 ? (
                 <EmptyState
