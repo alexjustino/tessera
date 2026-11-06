@@ -102,6 +102,15 @@
   --color-success-subtle: var(--state-success-subtle);
   --color-caution-subtle: var(--state-caution-subtle);
   --color-danger-subtle: var(--state-danger-subtle);
+  --color-tag-red: var(--tag-red);
+  --color-tag-orange: var(--tag-orange);
+  --color-tag-yellow: var(--tag-yellow);
+  --color-tag-green: var(--tag-green);
+  --color-tag-teal: var(--tag-teal);
+  --color-tag-blue: var(--tag-blue);
+  --color-tag-purple: var(--tag-purple);
+  --color-tag-pink: var(--tag-pink);
+  --color-tag-gray: var(--tag-gray);
 }
 
 /*
@@ -165,6 +174,15 @@
   /* Text set on a filled tile. The light violet is the one too dark for black. */
   --series-ink: #000000;
   --series-6-ink: #ffffff;
+  --tag-red: #c50f1f;
+  --tag-orange: #ca5010;
+  --tag-yellow: #986f0b;
+  --tag-green: #107c10;
+  --tag-teal: #03787c;
+  --tag-blue: #0f6cbd;
+  --tag-purple: #8764b8;
+  --tag-pink: #c239b3;
+  --tag-gray: #707070;
 }
 
 /* ── Dark ──────────────────────────────────────────────────────────────── */
@@ -213,6 +231,15 @@
     --series-6: #9085e9;
     --series-ink: #000000;
     --series-6-ink: #000000;
+    --tag-red: #f1707b;
+    --tag-orange: #f7894a;
+    --tag-yellow: #fde300;
+    --tag-green: #54b054;
+    --tag-teal: #4bc4c4;
+    --tag-blue: #4cc2ff;
+    --tag-purple: #b4a0ff;
+    --tag-pink: #ef85c8;
+    --tag-gray: #a19f9d;
   }
 }
 
@@ -260,6 +287,15 @@
   --series-6: #9085e9;
   --series-ink: #000000;
   --series-6-ink: #000000;
+  --tag-red: #f1707b;
+  --tag-orange: #f7894a;
+  --tag-yellow: #fde300;
+  --tag-green: #54b054;
+  --tag-teal: #4bc4c4;
+  --tag-blue: #4cc2ff;
+  --tag-purple: #b4a0ff;
+  --tag-pink: #ef85c8;
+  --tag-gray: #a19f9d;
 }
 
 /* ── Heat ───────────────────────────────────────────────────────────────────
@@ -353,5 +389,14 @@
     --series-6: #4a3aa7;
     --series-ink: #ffffff;
     --series-6-ink: #ffffff;
+    --tag-red: #c50f1f;
+    --tag-orange: #ca5010;
+    --tag-yellow: #986f0b;
+    --tag-green: #107c10;
+    --tag-teal: #03787c;
+    --tag-blue: #0f6cbd;
+    --tag-purple: #8764b8;
+    --tag-pink: #c239b3;
+    --tag-gray: #707070;
   }
 }

@@ -1013,6 +1013,43 @@ export function useOpenMeetingNotes() {
   });
 }
 
+export function useSections() {
+  return useQuery({ queryKey: ['sections'], queryFn: pageApi.listSections });
+}
+
+/** Sections and the pages filed in them are read again together. */
+function useInvalidateNotebook() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: ['sections'] });
+    void client.invalidateQueries({ queryKey: pageKeys.all });
+  };
+}
+
+export function useCreateSection() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({ mutationFn: pageApi.createSection, onSuccess: invalidate });
+}
+
+export function useUpdateSection() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({ mutationFn: pageApi.updateSection, onSuccess: invalidate });
+}
+
+export function useDeleteSection() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({ mutationFn: pageApi.deleteSection, onSuccess: invalidate });
+}
+
+export function useFilePage() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({
+    mutationFn: ({ id, sectionId }: { id: string; sectionId: string | null }) =>
+      pageApi.filePage(id, sectionId),
+    onSuccess: invalidate,
+  });
+}
+
 export function usePages() {
   return useQuery({ queryKey: pageKeys.all, queryFn: pageApi.listPages });
 }
