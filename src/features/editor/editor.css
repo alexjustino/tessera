@@ -291,3 +291,27 @@
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
+
+/* A To do line's tick, and a line whose work is done: struck, and still readable. */
+.tessera-prose .note-tick {
+  margin: 0 0.5em 0 0;
+  vertical-align: middle;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.tessera-prose [data-note-done='true'] {
+  color: var(--color-fg-tertiary);
+  text-decoration: line-through;
+}
+
+.tessera-prose [data-note-done='true']::before {
+  text-decoration: none;
+}
+
+/* The line Marked lines went to, lit for a moment so the eye lands on it. */
+.tessera-prose .note-revealed {
+  background: var(--color-accent-subtle);
+  border-radius: 4px;
+  transition: background 600ms ease;
+}

@@ -48,6 +48,8 @@ export function NotesPage({
   const remove = useDeletePage();
 
   const [openId, setOpenId] = useState<string | null>(initialPageId ?? null);
+  /** The line Marked lines was pressed for, to go to once its page is open. */
+  const [reveal, setReveal] = useState<{ blockId: string; text: string } | null>(null);
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [filter, setFilter] = useState('');
@@ -204,6 +206,7 @@ export function NotesPage({
                 return;
               }
               setOpenId(line.ownerId);
+              setReveal({ blockId: line.blockId, text: line.text });
               setDraftTitle(null);
               setShowMarked(false);
             }}
@@ -287,6 +290,7 @@ export function NotesPage({
                   fill
                   onOpenPage={openPage}
                   onOpenItem={onOpenItem}
+                  reveal={reveal}
                 />
               </Suspense>
             </div>

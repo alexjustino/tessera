@@ -40,6 +40,9 @@ version 18, is migrated on first start.
 - **Capture into a list.** Write `#work` on the capture line, or in quick capture, and the task
   goes to Work; a chip says so before it is added. A `#` that names no list stays in the title.
   Search or run a command offers Go to for each list.
+- **Done, on the line.** A To do line has a tick where you wrote it. A Follow up line is struck
+  through once its task is finished. Marked lines shows which are done, and pressing one takes
+  you to that line in its page.
 - **Lists.** Make a list from the rail, under Tasks, and keep work apart: each list has its own
   tasks, board and properties, set up the way Tasks is. Move a task to another list from its
   panel, and its subtasks and values go with it. Today still shows everything due, from every
