@@ -65,11 +65,10 @@ describe('command palette', () => {
     });
     expect(await first.text()).toContain('Go to Diagnostics');
     await box.sendKeys(Keys.ENTER);
-    const current = await driver.waitFor('Diagnostics selected', async () => {
-      const active = await driver.findByXPath('//nav//button[@aria-current="page"]');
-      return (await active.text()) === 'Diagnostics' ? active : null;
-    });
-    expect(await current.text()).toBe('Diagnostics');
+    // It has no entry of its own in the rail, so About stays lit while it is open.
+    await driver.waitForText('What Tessera can see of this machine');
+    const current = await driver.findByXPath('//nav//button[@aria-current="page"]');
+    expect(await current.text()).toBe('About');
   });
 
   it('finds a task through the index and opens it', async () => {

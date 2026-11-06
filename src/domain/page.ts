@@ -26,6 +26,9 @@ import type { DocJSON, DocNode } from './document';
 /** The node type an inline link is stored as. */
 export const PAGE_LINK = 'pageLink';
 
+/** The node type a task named in a document is stored as. */
+export const TASK_LINK = 'taskLink';
+
 /** A page, as the interface handles it. */
 export interface Page {
   id: string;
@@ -147,7 +150,11 @@ export function targetsOf(document: DocJSON, pages: readonly Page[]): Link[] {
  * refresh is returned as it was, so an editor is not handed a new object for
  * no reason.
  */
-export function refresh(document: DocJSON, pages: readonly Page[]): DocJSON {
+export function refresh(
+  document: DocJSON,
+  pages: readonly Page[],
+  tasks: readonly { id: string; title: string }[] = [],
+): DocJSON {
   let changed = false;
 
   const rewrite = (node: DocNode): DocNode => {
@@ -169,6 +176,15 @@ export function refresh(document: DocJSON, pages: readonly Page[]): DocJSON {
           ...(inside ? { content } : {}),
           attrs: { ...attrs, pageId: page.id, title: page.title },
         };
+      }
+    }
+
+    if (node.type === TASK_LINK) {
+      const attrs = node.attrs ?? {};
+      const task = tasks.find((candidate) => candidate.id === attrs.itemId);
+      if (task !== undefined && task.title !== attrs.title) {
+        changed = true;
+        return { ...node, attrs: { ...attrs, title: task.title } };
       }
     }
 

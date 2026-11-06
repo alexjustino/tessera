@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { openDiagnostics, startSession, type Session } from './session';
 import { Keys } from './webdriver';
 
 const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
@@ -103,7 +103,7 @@ describe('settings and data', () => {
     );
     await driver.waitForText('Ctrl+Alt+T');
     await session.screenshot('settings');
-    await goTo('Diagnostics');
+    await openDiagnostics(session);
     await driver.waitForText('Ctrl+Alt+T');
   });
 
@@ -115,6 +115,11 @@ describe('settings and data', () => {
     await driver.waitForText('Before the backup');
 
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Backups"]',
+      )
+    ).click();
     await (await driver.findByXPath('//button[normalize-space(.)="Back up now"]')).click();
     const row = await driver.waitFor('a listed backup', async () => {
       const rows = await driver.findAll('ul[aria-label="Backups"] li');
@@ -129,6 +134,11 @@ describe('settings and data', () => {
     await driver.waitForText('After the backup');
 
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Backups"]',
+      )
+    ).click();
     // Newest first. The first start of the day already took a backup of the
     // empty workspace, so the one to restore is the newest, not the oldest.
     const restore = await driver.waitFor('the Restore control', async () => {
@@ -154,6 +164,11 @@ describe('settings and data', () => {
     // The safety backup taken before the restore joins the list, beside the
     // start-of-day one and the manual one.
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Backups"]',
+      )
+    ).click();
     await driver.waitFor('three backups', async () => {
       const rows = await driver.findAll('ul[aria-label="Backups"] li');
       return rows.length >= 3 ? rows : null;

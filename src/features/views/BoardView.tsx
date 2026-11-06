@@ -18,10 +18,14 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+  CalendarToday16Regular,
   ChevronDown16Regular,
   ChevronRight16Regular,
+  ClockAlarm16Regular,
   ReOrderDotsVertical20Regular,
   Stack16Filled,
+  Target16Regular,
+  Timer16Regular,
   Warning16Regular,
 } from '@fluentui/react-icons';
 import { useMemo, useState, type KeyboardEventHandler, type ReactNode } from 'react';
@@ -38,12 +42,49 @@ import {
   type Move,
 } from '@/domain/board';
 import type { Item } from '@/domain/item';
+import type { Page } from '@/domain/page';
+import type { TodayMark } from '@/domain/pulse';
+import type { Progress } from '@/domain/subtasks';
+import { NotesChip } from '@/features/notes/NotesChip';
+import { StepsChip } from '@/features/tasks/StepsChip';
 import { formatValue, optionsOf, type Property } from '@/domain/property';
 import type { Group, Query, Row } from '@/domain/query';
+import { Button } from '@/ui/Button';
 import { Chip } from '@/ui/Chip';
 import { toChipTone } from '@/ui/chipTone';
 import { IconButton } from '@/ui/IconButton';
 import { announce } from '@/ui/announce';
+
+/** What a card says about today. Colour, icon and word, never the colour alone. */
+const MARK: Record<
+  TodayMark,
+  { word: string; tone: 'danger' | 'accent' | 'caution'; bar: string; icon: ReactNode }
+> = {
+  late: {
+    word: 'Late',
+    tone: 'danger',
+    bar: 'border-l-danger',
+    icon: <ClockAlarm16Regular aria-hidden="true" />,
+  },
+  running: {
+    word: 'On the clock',
+    tone: 'accent',
+    bar: 'border-l-accent',
+    icon: <Timer16Regular aria-hidden="true" />,
+  },
+  today: {
+    word: 'Today',
+    tone: 'caution',
+    bar: 'border-l-caution',
+    icon: <Target16Regular aria-hidden="true" />,
+  },
+  reserved: {
+    word: 'On the calendar today',
+    tone: 'accent',
+    bar: 'border-l-accent',
+    icon: <CalendarToday16Regular aria-hidden="true" />,
+  },
+};
 
 /**
  * The board.
@@ -63,10 +104,21 @@ export function BoardView({
   properties,
   query,
   board,
+  marks,
+  stepsOf,
+  notesOf,
+  onOpenPage,
   onQueryChange,
   onMove,
   onOpen,
 }: {
+  /** Why a card matters today, for the ones where it does. */
+  marks: ReadonlyMap<string, TodayMark>;
+  /** How far along each task's subtasks are, by the task's id. */
+  stepsOf?: ReadonlyMap<string, Progress>;
+  /** The pages applied to each task, by the task's id. */
+  notesOf?: ReadonlyMap<string, readonly Page[]>;
+  onOpenPage?: ((pageId: string) => void) | undefined;
   groups: readonly Group[];
   /** The whole collection, not the filtered columns: a drop's key is new to all of it. */
   items: readonly Item[];
@@ -78,9 +130,8 @@ export function BoardView({
   onOpen: (row: Row) => void;
 }) {
   const [dragging, setDragging] = useState<Row | null>(null);
-
-  const columns = useMemo(() => toColumns(groups, board), [groups, board]);
-  const shown = cardProperties(board, properties);
+  /** Only dims the rest: hiding cards would leave a drop with the wrong neighbours. */
+  const [spotlight, setSpotlight] = useState(false);
 
   // Bound to a local so the narrowing survives the second access.
   const groupBy = query.groupBy;
@@ -88,6 +139,12 @@ export function BoardView({
     groupBy?.kind === 'property'
       ? (properties.find((p) => p.id === groupBy.propertyId) ?? null)
       : null;
+
+  const columns = useMemo(
+    () => toColumns(groups, board, groupProperty?.name ?? null),
+    [groups, board, groupProperty?.name],
+  );
+  const shown = cardProperties(board, properties);
 
   const sensors = useSensors(
     // A small distance before a drag begins, so clicking a card to open it is
@@ -156,28 +213,101 @@ export function BoardView({
       onDragEnd={onDragEnd}
       onDragCancel={() => setDragging(null)}
     >
-      {/* Named, like the timeline's region: a scrolling area with no
-          accessible name is one a screen reader cannot announce and a test
-          cannot address without reading the whole window. */}
-      <div role="region" aria-label="Board" className="flex h-full gap-3 overflow-x-auto pb-2">
-        {columns.map((column) => (
-          <BoardColumn
-            key={columnKeyToStorage(column.key)}
-            column={column}
-            properties={shown}
-            droppable={isDroppable(column, groupProperty)}
-            onToggleCollapsed={() => toggleCollapsed(column)}
-            onOpen={onOpen}
-          />
-        ))}
+      <div className="flex h-full min-h-0 flex-col gap-2">
+        <TodayStrip
+          marks={marks}
+          rows={columns.flatMap((column) => column.rows)}
+          spotlight={spotlight}
+          onSpotlight={setSpotlight}
+        />
+        {/* Named, like the timeline's region: a scrolling area with no
+            accessible name is one a screen reader cannot announce and a test
+            cannot address without reading the whole window. */}
+        <div
+          role="region"
+          aria-label="Board"
+          className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2"
+        >
+          {columns.map((column) => (
+            <BoardColumn
+              key={columnKeyToStorage(column.key)}
+              column={column}
+              properties={shown}
+              droppable={isDroppable(column, groupProperty)}
+              marks={marks}
+              notesOf={notesOf}
+              stepsOf={stepsOf}
+              onOpenPage={onOpenPage}
+              spotlight={spotlight}
+              onToggleCollapsed={() => toggleCollapsed(column)}
+              onOpen={onOpen}
+            />
+          ))}
+        </div>
       </div>
 
       {/* The card follows the cursor rather than the column reflowing under it,
           so a drag reads as picking something up. */}
       <DragOverlay>
-        {dragging && <Card row={dragging} properties={shown} overlay onOpen={() => {}} />}
+        {dragging && (
+          <Card
+            row={dragging}
+            properties={shown}
+            mark={marks.get(dragging.item.id) ?? null}
+            overlay
+            onOpen={() => {}}
+          />
+        )}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+/** How many cards today asks about, and a way to see only them. */
+function TodayStrip({
+  marks,
+  rows,
+  spotlight,
+  onSpotlight,
+}: {
+  marks: ReadonlyMap<string, TodayMark>;
+  rows: readonly Row[];
+  spotlight: boolean;
+  onSpotlight: (on: boolean) => void;
+}) {
+  const counts = new Map<TodayMark, number>();
+  for (const row of rows) {
+    const mark = marks.get(row.item.id);
+    if (mark !== undefined) counts.set(mark, (counts.get(mark) ?? 0) + 1);
+  }
+  const total = [...counts.values()].reduce((sum, count) => sum + count, 0);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2" data-testid="board-today">
+      <span className="text-body font-semibold text-fg">
+        {total === 0
+          ? 'Nothing on this board is for today'
+          : `${total} ${total === 1 ? 'card is' : 'cards are'} for today`}
+      </span>
+      {(['late', 'running', 'today', 'reserved'] as const).map((mark) =>
+        (counts.get(mark) ?? 0) === 0 ? null : (
+          <Chip key={mark} tone={MARK[mark].tone}>
+            {MARK[mark].icon}
+            {counts.get(mark)} {MARK[mark].word.toLocaleLowerCase()}
+          </Chip>
+        ),
+      )}
+      {total > 0 && (
+        <Button
+          appearance="subtle"
+          aria-pressed={spotlight}
+          icon={<Target16Regular />}
+          onClick={() => onSpotlight(!spotlight)}
+        >
+          {spotlight ? 'Show all cards' : 'Spotlight today'}
+        </Button>
+      )}
+    </div>
   );
 }
 
@@ -236,18 +366,29 @@ function BoardColumn({
   column,
   properties,
   droppable,
+  marks,
+  notesOf,
+  stepsOf,
+  onOpenPage,
+  spotlight,
   onToggleCollapsed,
   onOpen,
 }: {
   column: Column;
   properties: Property[];
   droppable: boolean;
+  marks: ReadonlyMap<string, TodayMark>;
+  notesOf?: ReadonlyMap<string, readonly Page[]> | undefined;
+  stepsOf?: ReadonlyMap<string, Progress> | undefined;
+  onOpenPage?: ((pageId: string) => void) | undefined;
+  spotlight: boolean;
   onToggleCollapsed: () => void;
   onOpen: (row: Row) => void;
 }) {
   const key = columnKeyToStorage(column.key);
   const { setNodeRef, isOver } = useDroppable({ id: key, disabled: !droppable });
   const wip = wipState(column);
+  const forToday = column.rows.filter((row) => marks.has(row.item.id)).length;
 
   if (column.collapsed) {
     return (
@@ -295,6 +436,7 @@ function BoardColumn({
         <h3 className="min-w-0 flex-1 truncate text-body font-semibold text-fg">{column.label}</h3>
 
         {wip === 'over' && <Warning16Regular aria-hidden="true" className="text-danger" />}
+        {forToday > 0 && <Chip tone="accent">{forToday} today</Chip>}
         <ColumnCount column={column} />
       </header>
 
@@ -310,7 +452,17 @@ function BoardColumn({
       >
         <div className="flex min-h-16 flex-1 flex-col gap-1.5 overflow-y-auto p-2 pt-0">
           {column.rows.map((row) => (
-            <SortableCard key={row.item.id} row={row} properties={properties} onOpen={onOpen} />
+            <SortableCard
+              key={row.item.id}
+              row={row}
+              properties={properties}
+              mark={marks.get(row.item.id) ?? null}
+              notes={notesOf?.get(row.item.id)}
+              steps={stepsOf?.get(row.item.id)}
+              onOpenPage={onOpenPage}
+              dimmed={spotlight && !marks.has(row.item.id)}
+              onOpen={onOpen}
+            />
           ))}
           {column.rows.length === 0 && (
             <p className="px-1 py-4 text-center text-caption text-fg-tertiary">Drop a card here</p>
@@ -324,10 +476,20 @@ function BoardColumn({
 function SortableCard({
   row,
   properties,
+  mark,
+  notes,
+  steps,
+  onOpenPage,
+  dimmed,
   onOpen,
 }: {
   row: Row;
   properties: Property[];
+  mark: TodayMark | null;
+  steps?: Progress | undefined;
+  notes?: readonly Page[] | undefined;
+  onOpenPage?: ((pageId: string) => void) | undefined;
+  dimmed: boolean;
   onOpen: (row: Row) => void;
 }) {
   const {
@@ -352,12 +514,19 @@ function SortableCard({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       // The original stays in place as a gap while the overlay follows the
       // cursor; hiding it entirely makes the column jump.
-      className={isDragging ? 'opacity-40' : undefined}
+      className={[
+        isDragging || dimmed ? 'opacity-40' : '',
+        'transition-opacity duration-150 ease-easy',
+      ].join(' ')}
       {...pointerListeners}
     >
       <Card
         row={row}
         properties={properties}
+        mark={mark}
+        notes={notes}
+        steps={steps}
+        onOpenPage={onOpenPage}
         onOpen={onOpen}
         handle={
           <IconButton
@@ -378,12 +547,21 @@ function SortableCard({
 function Card({
   row,
   properties,
+  mark,
+  notes,
+  steps,
+  onOpenPage,
   onOpen,
   overlay = false,
   handle,
 }: {
+  steps?: Progress | undefined;
+  notes?: readonly Page[] | undefined;
+  onOpenPage?: ((pageId: string) => void) | undefined;
   row: Row;
   properties: Property[];
+  /** Why this card matters today. */
+  mark: TodayMark | null;
   onOpen: (row: Row) => void;
   overlay?: boolean;
   /** The keyboard drag handle; absent on the overlay copy. */
@@ -393,8 +571,10 @@ function Card({
 
   return (
     <article
+      data-today={mark ?? undefined}
       className={[
         'rounded-md border border-stroke-subtle bg-card p-2 text-left',
+        mark === null ? '' : `border-l-4 ${MARK[mark].bar}`,
         overlay ? 'shadow-flyout' : 'shadow-card hover:bg-card-hover',
       ].join(' ')}
     >
@@ -412,8 +592,21 @@ function Card({
         {handle}
       </div>
 
-      {properties.length > 0 && (
+      {(mark !== null ||
+        properties.length > 0 ||
+        (notes?.length ?? 0) > 0 ||
+        (steps?.total ?? 0) > 0) && (
         <div className="mt-2 flex flex-wrap gap-1">
+          <StepsChip progress={steps} />
+          {notes !== undefined && notes.length > 0 && (
+            <NotesChip notes={notes} onOpenPage={onOpenPage} />
+          )}
+          {mark !== null && (
+            <Chip tone={MARK[mark].tone}>
+              {MARK[mark].icon}
+              {MARK[mark].word}
+            </Chip>
+          )}
           {properties.map((property) => {
             const raw = row.values[property.id];
             if (raw === undefined || raw === null) return null;

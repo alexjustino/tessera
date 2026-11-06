@@ -102,6 +102,15 @@
   --color-success-subtle: var(--state-success-subtle);
   --color-caution-subtle: var(--state-caution-subtle);
   --color-danger-subtle: var(--state-danger-subtle);
+  --color-tag-red: var(--tag-red);
+  --color-tag-orange: var(--tag-orange);
+  --color-tag-yellow: var(--tag-yellow);
+  --color-tag-green: var(--tag-green);
+  --color-tag-teal: var(--tag-teal);
+  --color-tag-blue: var(--tag-blue);
+  --color-tag-purple: var(--tag-purple);
+  --color-tag-pink: var(--tag-pink);
+  --color-tag-gray: var(--tag-gray);
 }
 
 /*
@@ -152,6 +161,28 @@
   --state-success-subtle: rgb(15 123 15 / 0.1);
   --state-caution-subtle: rgb(157 93 0 / 0.1);
   --state-danger-subtle: rgb(196 43 28 / 0.1);
+
+  /* Identity, for telling goals apart on a chart or a tile (1.5). Never state:
+     severity keeps its own tokens. The order is what keeps neighbours apart under
+     colour blindness, and the validator was run on it in both themes. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #6250d6;
+  /* Text set on a filled tile. The light violet is the one too dark for black. */
+  --series-ink: #000000;
+  --series-6-ink: #ffffff;
+  --tag-red: #c50f1f;
+  --tag-orange: #ca5010;
+  --tag-yellow: #986f0b;
+  --tag-green: #107c10;
+  --tag-teal: #03787c;
+  --tag-blue: #0f6cbd;
+  --tag-purple: #8764b8;
+  --tag-pink: #c239b3;
+  --tag-gray: #707070;
 }
 
 /* ── Dark ──────────────────────────────────────────────────────────────── */
@@ -192,6 +223,23 @@
     --state-success-subtle: rgb(108 203 95 / 0.12);
     --state-caution-subtle: rgb(252 225 0 / 0.12);
     --state-danger-subtle: rgb(255 153 164 / 0.12);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #9085e9;
+    --series-ink: #000000;
+    --series-6-ink: #000000;
+    --tag-red: #f1707b;
+    --tag-orange: #f7894a;
+    --tag-yellow: #fde300;
+    --tag-green: #54b054;
+    --tag-teal: #4bc4c4;
+    --tag-blue: #4cc2ff;
+    --tag-purple: #b4a0ff;
+    --tag-pink: #ef85c8;
+    --tag-gray: #a19f9d;
   }
 }
 
@@ -231,6 +279,33 @@
   --state-success-subtle: rgb(108 203 95 / 0.12);
   --state-caution-subtle: rgb(252 225 0 / 0.12);
   --state-danger-subtle: rgb(255 153 164 / 0.12);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #9085e9;
+  --series-ink: #000000;
+  --series-6-ink: #000000;
+  --tag-red: #f1707b;
+  --tag-orange: #f7894a;
+  --tag-yellow: #fde300;
+  --tag-green: #54b054;
+  --tag-teal: #4bc4c4;
+  --tag-blue: #4cc2ff;
+  --tag-purple: #b4a0ff;
+  --tag-pink: #ef85c8;
+  --tag-gray: #a19f9d;
+}
+
+/* ── Heat ───────────────────────────────────────────────────────────────────
+   One hue, four steps, from the accent itself, so it follows the person's own
+   colour and both themes without being declared twice. */
+:root {
+  --heat-1: color-mix(in srgb, var(--accent-base) 28%, transparent);
+  --heat-2: color-mix(in srgb, var(--accent-base) 50%, transparent);
+  --heat-3: color-mix(in srgb, var(--accent-base) 75%, transparent);
+  --heat-4: var(--accent-base);
 }
 
 /* ── Density ────────────────────────────────────────────────────────────────
@@ -306,5 +381,22 @@
     --state-success-subtle: rgb(11 92 11 / 0.12);
     --state-caution-subtle: rgb(122 72 0 / 0.12);
     --state-danger-subtle: rgb(155 33 22 / 0.12);
+    --series-1: #1c5cab;
+    --series-2: #b8481c;
+    --series-3: #0e7a53;
+    --series-4: #8f6000;
+    --series-5: #a83563;
+    --series-6: #4a3aa7;
+    --series-ink: #ffffff;
+    --series-6-ink: #ffffff;
+    --tag-red: #c50f1f;
+    --tag-orange: #ca5010;
+    --tag-yellow: #986f0b;
+    --tag-green: #107c10;
+    --tag-teal: #03787c;
+    --tag-blue: #0f6cbd;
+    --tag-purple: #8764b8;
+    --tag-pink: #c239b3;
+    --tag-gray: #707070;
   }
 }

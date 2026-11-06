@@ -45,6 +45,11 @@ export interface Goal {
   position: string;
   /** A weekly budget of working minutes — the goal's envelope (1.3, M5). */
   weeklyMinutes?: number | null;
+  /**
+   * A focus kept up over time, with no finish line (1.4). Not everything a person
+   * commits to has a number or a date, and asking for one anyway gets a made-up one.
+   */
+  ongoing?: boolean;
 }
 
 /** One task counting towards one goal. */
@@ -147,6 +152,7 @@ export function shareOf(figure: Figure, goal: Goal): number {
 
 /** Is it done? */
 export function isAchieved(figure: Figure, goal: Goal): boolean {
+  if (goal.ongoing === true) return false;
   return figure.value >= goal.target;
 }
 
@@ -168,7 +174,7 @@ export function daysLeft(goal: Goal, now: string, zone: string): number | null {
   return Math.round((to - from) / 86_400_000);
 }
 
-export type GoalState = 'achieved' | 'due' | 'overdue' | 'open';
+export type GoalState = 'achieved' | 'due' | 'overdue' | 'open' | 'ongoing';
 
 /**
  * Where a goal stands, in one word.
@@ -178,6 +184,7 @@ export type GoalState = 'achieved' | 'due' | 'overdue' | 'open';
  * how a product loses an argument it should not be having.
  */
 export function stateOf(figure: Figure, goal: Goal, now: string, zone: string): GoalState {
+  if (goal.ongoing === true) return 'ongoing';
   if (isAchieved(figure, goal)) return 'achieved';
   const left = daysLeft(goal, now, zone);
   if (left === null) return 'open';
@@ -187,6 +194,11 @@ export function stateOf(figure: Figure, goal: Goal, now: string, zone: string): 
 
 /** A goal's progress said out loud: `3 of 12 tasks`, `2h 30m of 10h`. */
 export function describeProgress(figure: Figure, goal: Goal, hours: (m: number) => string): string {
+  if (goal.ongoing === true) {
+    return goal.measure === 'minutes'
+      ? `${hours(figure.value)} tracked so far`
+      : `${figure.value} ${figure.value === 1 ? 'task' : 'tasks'} finished so far`;
+  }
   return goal.measure === 'minutes'
     ? `${hours(figure.value)} of ${hours(goal.target)}`
     : `${figure.value} of ${goal.target} ${goal.target === 1 ? 'task' : 'tasks'}`;

@@ -1,5 +1,29 @@
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Image from '@tiptap/extension-image';
+import Highlight from '@tiptap/extension-highlight';
+
+import { isColor } from '@/domain/colors';
+
+/**
+ * A highlight in one of the named colours. The colour is kept by name and painted by
+ * the stylesheet from the theme's tokens, so it reads in both themes and on paper; an
+ * inline colour would be the same in the dark as in the light.
+ */
+const NamedHighlight = Highlight.extend({
+  addAttributes() {
+    return {
+      color: {
+        default: null,
+        parseHTML: (element) => {
+          const value = element.getAttribute('data-color');
+          return isColor(value) ? value : null;
+        },
+        renderHTML: (attributes) =>
+          isColor(attributes.color) ? { 'data-color': attributes.color as string } : {},
+      },
+    };
+  },
+}).configure({ multicolor: true });
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { TableKit } from '@tiptap/extension-table';
@@ -10,7 +34,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { common, createLowlight } from 'lowlight';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { useApplyBlocks, useBlocks, usePages } from '@/data/hooks';
+import { useApplyBlocks, useBlocks, useCreatePage, useItems, usePages } from '@/data/hooks';
 import {
   diff,
   isEmptyChange,
@@ -18,13 +42,19 @@ import {
   toDocument,
   type Block,
   type DocJSON,
+  BLOCK_ID_ATTR,
 } from '@/domain/document';
-import { refresh, targetsOf, type Page as PageRow } from '@/domain/page';
+import { between } from '@/domain/ordering';
+import { refresh, resolve, targetsOf, type Page as PageRow } from '@/domain/page';
 
 import { BlockId, newId } from './BlockId';
 import { Callout } from './Callout';
+import { NoteMarker, REFRESH_MARKERS } from './NoteMarker';
+import { Toolbar } from './Toolbar';
 import { LinkMenu } from './LinkMenu';
+import { LinkPreview, type LinkTarget } from './LinkPreview';
 import { PageLink } from './PageLink';
+import { TaskLink } from './TaskLink';
 import { SlashMenu } from './SlashMenu';
 import { useLinkMenu } from './useLinkMenu';
 import { useSlashMenu } from './useSlashMenu';
@@ -52,10 +82,25 @@ const SAVE_DELAY_MS = 600;
 export function Editor({
   ownerKind,
   ownerId,
+  subject,
   label,
+  fill = false,
+  onOpenPage,
+  onOpenItem,
+  reveal = null,
 }: {
+  /** A line to bring into view and put the caret on, once the document is open. */
+  reveal?: { blockId: string; text: string } | null;
+  /** Fill the height it is given, for a page with nothing else to do. */
+  fill?: boolean;
+  /** Go to a page, from a link in the text. */
+  onOpenPage?: ((pageId: string) => void) | undefined;
+  /** Go to a task, from a link in the text. */
+  onOpenItem?: ((itemId: string) => void) | undefined;
   ownerKind: string;
   ownerId: string;
+  /** What an email from this document is called. */
+  subject?: string;
   /**
    * The editor's accessible name. TipTap 3.32 declares the editable area a text
    * field, and a text field with no name is announced as nothing at all.
@@ -147,13 +192,16 @@ export function Editor({
       BlockId,
       Callout,
       PageLink,
+      TaskLink,
       Placeholder.configure({
-        placeholder: 'Write something, or press / for a block',
+        placeholder: 'Write something. / for a block, [[ to link a page or a task',
       }),
       TaskList,
       TaskItem.configure({ nested: true }),
       CodeBlockLowlight.configure({ lowlight }),
       TableKit.configure({ table: { resizable: true } }),
+      NamedHighlight,
+      NoteMarker,
       Image.configure({ inline: false }),
       Link.configure({
         openOnClick: false,
@@ -182,21 +230,120 @@ export function Editor({
 
   const slash = useSlashMenu(editor);
   const links = useLinkMenu(editor);
+  const tasks = useItems(null, true);
+  const createPage = useCreatePage();
+
+  /** The link under the pointer or the focus, and where to show what it does. */
+  const frame = useRef<HTMLDivElement>(null);
+  const [previewing, setPreviewing] = useState<{
+    target: LinkTarget;
+    top: number;
+    left: number;
+  } | null>(null);
+
+  const targetAt = useCallback(
+    (element: Element): LinkTarget | null => {
+      const title = element.getAttribute('data-title') ?? element.textContent ?? '';
+      if (element.hasAttribute('data-task-link')) {
+        const id = element.getAttribute('data-item-id');
+        return id === null ? null : { kind: 'task', id, title };
+      }
+      const page = resolve(
+        { pageId: element.getAttribute('data-page-id'), title },
+        pages.data ?? [],
+      );
+      return page === undefined
+        ? { kind: 'missing', title }
+        : { kind: 'page', id: page.id, title: page.title };
+    },
+    [pages.data],
+  );
+
+  const showPreview = (element: Element) => {
+    const target = targetAt(element);
+    const box = frame.current?.getBoundingClientRect();
+    if (target === null || box === undefined) return;
+    const link = element.getBoundingClientRect();
+    setPreviewing({ target, top: link.bottom - box.top + 6, left: link.left - box.left });
+  };
+
+  const follow = (element: Element) => {
+    const target = targetAt(element);
+    if (target === null) return;
+    setPreviewing(null);
+    if (target.kind === 'page') onOpenPage?.(target.id);
+    else if (target.kind === 'task') onOpenItem?.(target.id);
+    else if (onOpenPage !== undefined) {
+      // Pressing a name with no page is asking for that page.
+      const last = (pages.data ?? []).at(-1);
+      createPage.mutate(
+        { title: target.title, position: between(last?.position ?? null, null) },
+        { onSuccess: (page) => onOpenPage(page.id) },
+      );
+    }
+  };
 
   // Load the document once it arrives, and only when it is genuinely different
   // from what is on screen. Setting the content of an editor somebody is typing
   // in moves their cursor to the top.
   useEffect(() => {
-    if (editor === null || blocks.data === undefined || pages.data === undefined) return;
+    // An editor rendered inside Suspense can be destroyed before it is mounted, and
+    // the hook gives us a new one on the next render. This one must not be touched.
+    if (editor === null || editor.isDestroyed) return;
+    if (blocks.data === undefined || pages.data === undefined) return;
     if (stored.current.length > 0) return;
 
     stored.current = blocks.data;
     // A link points at a page, not at a name (ADR-029), so the names it shows
     // are brought up to date as the document opens. This is where a rename
     // somewhere else becomes visible here.
-    const document = refresh(toDocument(blocks.data), pages.data);
+    const document = refresh(toDocument(blocks.data), pages.data, tasks.data ?? []);
     editor.commands.setContent(document as never, { emitUpdate: false });
-  }, [editor, blocks.data, pages.data]);
+  }, [editor, blocks.data, pages.data, tasks.data]);
+
+  // A Follow up line is done when its task is, which the document does not hold: the
+  // editor is told which tasks are finished, and draws the lines again.
+  useEffect(() => {
+    if (editor === null || editor.isDestroyed) return;
+    const finished = new Set(
+      (tasks.data ?? []).filter((task) => task.completedAt !== null).map((task) => task.id),
+    );
+    editor.view.dispatch(editor.state.tr.setMeta(REFRESH_MARKERS, finished));
+  }, [editor, tasks.data]);
+
+  // Go to the line a person asked for: the caret on it, in view, lit for a moment.
+  const revealed = useRef<string | null>(null);
+  useEffect(() => {
+    if (editor === null || editor.isDestroyed || reveal === null) return;
+    if (blocks.data === undefined || stored.current.length === 0) return;
+    const wanted = `${reveal.blockId}:${reveal.text}`;
+    if (revealed.current === wanted) return;
+    let at: number | null = null;
+    editor.state.doc.forEach((top, offset) => {
+      if (at !== null || top.attrs[BLOCK_ID_ATTR] !== reveal.blockId) return;
+      at = offset;
+      top.descendants((node, pos) => {
+        if (node.isTextblock && node.textContent.trim() === reveal.text) {
+          at = offset + 1 + pos;
+          return false;
+        }
+        return true;
+      });
+    });
+    if (at === null) return;
+    revealed.current = wanted;
+    editor
+      .chain()
+      .focus()
+      .setTextSelection(at + 1)
+      .scrollIntoView()
+      .run();
+    const element = editor.view.nodeDOM(at);
+    if (element instanceof HTMLElement) {
+      element.classList.add('note-revealed');
+      setTimeout(() => element.classList.remove('note-revealed'), 2000);
+    }
+  }, [editor, reveal, blocks.data, tasks.data]);
 
   // Flush on the way out. Without this, the last sentence typed before closing
   // the panel is lost with no error and no trace.
@@ -213,10 +360,56 @@ export function Editor({
   }
 
   return (
-    <div className="relative">
-      <EditorContent editor={editor} />
+    <div ref={frame} className={`relative ${fill ? 'tessera-fill' : ''}`}>
+      {editor !== null && (
+        <Toolbar
+          editor={editor}
+          ownerKind={ownerKind}
+          ownerId={ownerId}
+          subject={subject ?? label ?? 'Notes'}
+        />
+      )}
+      {/* Links in the text are found from here rather than by a view per link:
+          a document can hold hundreds, and this is one handler. */}
+      <div
+        onClick={(event) => {
+          const link = (event.target as Element).closest('a[data-page-link], a[data-task-link]');
+          if (link !== null) {
+            event.preventDefault();
+            follow(link);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter') return;
+          const link = (event.target as Element).closest?.('a[data-page-link], a[data-task-link]');
+          if (link !== null && link !== undefined) {
+            event.preventDefault();
+            follow(link);
+          }
+        }}
+        onMouseOver={(event) => {
+          const link = (event.target as Element).closest('a[data-page-link], a[data-task-link]');
+          if (link !== null) showPreview(link);
+          else setPreviewing(null);
+        }}
+        onMouseLeave={() => setPreviewing(null)}
+        onFocus={(event) => {
+          const link = (event.target as Element).closest('a[data-page-link], a[data-task-link]');
+          if (link !== null) showPreview(link);
+        }}
+      >
+        <EditorContent editor={editor} />
+      </div>
+      {previewing !== null && !links.open && (
+        <LinkPreview
+          target={previewing.target}
+          style={{ top: previewing.top, left: previewing.left }}
+        />
+      )}
       {slash.open && editor !== null && <SlashMenu editor={editor} state={slash} />}
-      {links.open && editor !== null && <LinkMenu editor={editor} state={links} />}
+      {links.open && editor !== null && (
+        <LinkMenu editor={editor} state={links} ownerKind={ownerKind} ownerId={ownerId} />
+      )}
 
       <p aria-live="polite" className="mt-3 h-4 text-caption text-fg-tertiary">
         {saving ? 'Saving…' : ''}

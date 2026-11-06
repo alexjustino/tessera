@@ -7,6 +7,7 @@
 
 pub mod accent;
 pub mod capture;
+pub mod email;
 pub mod notify;
 pub mod scheduler;
 pub mod tray;

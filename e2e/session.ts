@@ -78,7 +78,13 @@ function startDriverProcess(dataDir: string): ChildProcess {
       nativeDriver(),
     ],
     {
-      env: { ...process.env, TESSERA_DATA_DIR: dataDir },
+      env: {
+        ...process.env,
+        TESSERA_DATA_DIR: dataDir,
+        // The engine's own profile too: an installed Tessera holds the default
+        // one while it runs, and a second engine on it exits at once.
+        WEBVIEW2_USER_DATA_FOLDER: path.join(dataDir, 'webview'),
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     },
@@ -220,6 +226,17 @@ export interface SessionOptions {
   seedWorkspace?: string;
 }
 
+/** Diagnostics has no place in the rail: it opens from About. */
+export async function openDiagnostics(session: Session): Promise<void> {
+  const { driver } = session;
+  await (await driver.findByXPath('//nav//button[normalize-space(.)="About"]')).click();
+  const open = await driver.waitFor('the way into Diagnostics', () =>
+    driver.findByXPath('//button[normalize-space(.)="Open diagnostics"]'),
+  );
+  await open.click();
+  await driver.waitForText('What Tessera can see of this machine');
+}
+
 export async function startSession(options: SessionOptions = {}): Promise<Session> {
   // A previous file's application may still be going down.
   await stopStrayInstances();
@@ -266,4 +283,23 @@ export async function startSession(options: SessionOptions = {}): Promise<Sessio
     },
   };
   return session;
+}
+
+/**
+ * Make every hour of every day working time, and open the window again so it reads it.
+ *
+ * A test that reserves "the next free time" otherwise depends on when it runs: on a
+ * Friday evening the next free hour is on Monday, off the week on screen, and the
+ * test fails every night and every weekend. Near midnight the next hour can still be
+ * tomorrow; that is the one window this does not close.
+ */
+export async function workEveryHour(session: Session): Promise<void> {
+  const written = await session.driver.executeAsync<unknown>(
+    'const done = arguments[arguments.length - 1]; window.__TAURI_INTERNALS__.invoke("work_hours_set", { hours: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts_minute: 0, ends_minute: 1440 })) }).then(() => done(true), (e) => done(JSON.stringify(e)));',
+  );
+  if (written !== true) throw new Error(`the working hours were not written: ${String(written)}`);
+  await session.restart();
+  await session.driver.waitFor('the opening to go', async () =>
+    (await session.driver.findAll('#opening')).length === 0 ? true : null,
+  );
 }

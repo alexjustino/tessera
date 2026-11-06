@@ -1,4 +1,12 @@
-import { ChevronLeft20Regular, ChevronRight20Regular, Print20Regular } from '@fluentui/react-icons';
+import {
+  CalendarClock16Regular,
+  Checkmark16Regular,
+  ChevronLeft20Regular,
+  ChevronRight20Regular,
+  Print20Regular,
+  Target16Regular,
+  Timer16Regular,
+} from '@fluentui/react-icons';
 import { useMemo, useState, type ReactNode } from 'react';
 
 import { describeError } from '@/data/errors';
@@ -15,22 +23,29 @@ import { addLocalDays, expand, todayIn } from '@/domain/calendar';
 import { formatDuration } from '@/domain/criticalPath';
 import {
   buildReport,
+  daysIn,
   figuresOf,
   periodOf,
   shiftPeriod,
   traceable,
   type PeriodKind,
 } from '@/domain/report';
+import { capacityOf } from '@/domain/capacity';
 import { occurrencesBetween, systemZone } from '@/domain/schedule';
+import { BarList } from '@/ui/BarList';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
+import { ColumnChart } from '@/ui/ColumnChart';
 import { EmptyState } from '@/ui/EmptyState';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
+import { Meter } from '@/ui/Meter';
+import { Page, PageColumns } from '@/ui/Page';
+import { Stat, StatRow } from '@/ui/Stat';
 import { TabStrip } from '@/ui/TabStrip';
 import { useNow } from '@/ui/useNow';
 
-import { describeDay, describePeriod } from './format';
+import { describeDay, describeHours, describePeriod } from './format';
 import { FigureRow } from './FigureRow';
 
 /**
@@ -105,13 +120,47 @@ export function ReportsPage() {
     [period, entries.data, items.data, occurrences, workHours.data, zone, now, daysOff],
   );
 
+  // The period before, for what can be said of it without its calendar.
+  const before = useMemo(
+    () =>
+      buildReport(
+        shiftPeriod(period, -1),
+        {
+          entries: entries.data ?? [],
+          items: items.data ?? [],
+          occurrences: [],
+          hours: workHours.data ?? [],
+          daysOff,
+        },
+        zone,
+        now,
+      ),
+    [period, entries.data, items.data, workHours.data, zone, now, daysOff],
+  );
+
+  /** Tracked time day by day, against the hours each day had. */
+  const byDay = useMemo(() => {
+    const tracked = new Map(report.trackedByDay.map((figure) => [figure.label, figure.value]));
+    return daysIn(period).map((day) => ({
+      id: day,
+      label:
+        period.kind === 'week'
+          ? (describeDay(day).split(' ')[0]?.replace(',', '') ?? day)
+          : String(Number(day.slice(-2))),
+      value: tracked.get(day) ?? 0,
+      text: describeHours(tracked.get(day) ?? 0),
+      current: day === today,
+      ceiling: capacityOf(day, workHours.data ?? [], daysOff),
+    }));
+  }, [report.trackedByDay, period, today, workHours.data, daysOff]);
+
   const failure = entries.error ?? items.error ?? events.error ?? workHours.error;
   const untraceable = figuresOf(report).filter((figure) => !traceable(figure));
   const nothing =
     report.tracked.value === 0 && report.completed.value === 0 && report.reserved.value === 0;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
+    <Page>
       <header className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-title font-semibold text-fg">Reports</h1>
@@ -181,93 +230,182 @@ export function ReportsPage() {
         />
       ) : (
         <>
-          <Card title="Tracked" description="Time recorded by the clock, split at midnight.">
-            <div className="flex flex-col gap-3">
-              {/* The card already says Tracked; the figure says what of it. */}
-              <FigureRow figure={{ ...report.tracked, label: 'Total' }} broken={untraceable} big />
-              {report.trackedByTask.length > 0 && (
-                <Group label="By task">
-                  {report.trackedByTask.map((figure) => (
-                    <FigureRow key={figure.id} figure={figure} broken={untraceable} />
-                  ))}
-                </Group>
-              )}
-              {report.trackedByDay.length > 0 && (
-                <Group label="By day">
-                  {report.trackedByDay.map((figure) => (
-                    <FigureRow
-                      key={figure.id}
-                      figure={{ ...figure, label: describeDay(figure.label) }}
-                      broken={untraceable}
-                    />
-                  ))}
-                </Group>
-              )}
-            </div>
-          </Card>
+          <StatRow label="The period in figures">
+            <Stat
+              testId="report-tracked"
+              label="Tracked"
+              icon={<Timer16Regular />}
+              value={describeHours(report.tracked.value)}
+              note={`${describeHours(before.tracked.value)} the ${kind} before`}
+            />
+            <Stat
+              testId="report-done"
+              label="Finished"
+              icon={<Checkmark16Regular />}
+              value={report.completed.value}
+              tone={report.completed.value > 0 ? 'success' : 'neutral'}
+              note={`${before.completed.value} the ${kind} before`}
+            />
+            <Stat
+              testId="report-reserved"
+              label="Reserved"
+              icon={<CalendarClock16Regular />}
+              value={
+                report.capacity === 0
+                  ? '—'
+                  : `${Math.round((report.reserved.value / report.capacity) * 100)}%`
+              }
+              note={
+                report.capacity === 0
+                  ? 'No working hours'
+                  : `${describeHours(report.reserved.value)} of ${describeHours(report.capacity)}`
+              }
+            />
+            <Stat
+              testId="report-over"
+              label="Over the estimate"
+              icon={<Target16Regular />}
+              value={report.againstEstimate.length === 0 ? '—' : report.overEstimate.value}
+              tone={report.overEstimate.value > 0 ? 'caution' : 'neutral'}
+              note={
+                report.againstEstimate.length === 0
+                  ? 'No estimated task worked on'
+                  : `Of ${report.againstEstimate.length} worked on`
+              }
+            />
+          </StatRow>
 
-          <Card title="Done" description="Tasks completed in the period.">
-            <FigureRow figure={report.completed} broken={untraceable} big />
-          </Card>
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+            <Card title="Tracked each day" description="The line is the working hours the day had.">
+              <ColumnChart label="Time tracked each day" height={128} columns={byDay} />
+            </Card>
+            <Card title="Where the time went">
+              {report.trackedByTask.length === 0 ? (
+                <p className="text-body text-fg-tertiary">Nothing was tracked in this period.</p>
+              ) : (
+                <BarList
+                  label="Time tracked by task"
+                  rows={report.trackedByTask.slice(0, 6).map((figure) => ({
+                    id: figure.id,
+                    label: figure.label,
+                    name: figure.label,
+                    value: figure.value,
+                    text: describeHours(figure.value),
+                  }))}
+                />
+              )}
+            </Card>
+          </div>
 
-          <Card
-            title="Against the estimate"
-            description="For tasks worked on in the period: everything ever tracked, beside what was estimated."
-          >
-            {report.againstEstimate.length === 0 ? (
-              <p className="text-caption text-fg-tertiary">
-                None of the tasks worked on has an estimate, so there is nothing to compare.
-              </p>
-            ) : (
+          <PageColumns>
+            <Card title="Tracked" description="Time recorded by the clock, split at midnight.">
               <div className="flex flex-col gap-3">
-                <FigureRow figure={report.overEstimate} broken={untraceable} big />
-                <ul className="flex flex-col gap-1">
-                  {report.againstEstimate.map((line) => {
-                    const over = line.trackedMinutes > line.estimateMinutes;
-                    return (
-                      <li
-                        key={line.itemId}
-                        className="flex items-center gap-3 text-body text-fg"
-                        data-testid="estimate-line"
-                      >
-                        <span className="min-w-0 flex-1 truncate">{line.title}</span>
-                        <span className="tabular-nums text-fg-secondary">
-                          {formatDuration(line.trackedMinutes)} of{' '}
-                          {formatDuration(line.estimateMinutes)}
-                        </span>
-                        <span
-                          className={[
-                            'w-16 text-right tabular-nums text-caption',
-                            over ? 'text-danger' : 'text-success',
-                          ].join(' ')}
-                        >
-                          {over ? 'over' : 'under'}{' '}
-                          {formatDuration(Math.abs(line.trackedMinutes - line.estimateMinutes))}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
+                {/* The card already says Tracked; the figure says what of it. */}
+                <FigureRow
+                  figure={{ ...report.tracked, label: 'Total' }}
+                  broken={untraceable}
+                  big
+                />
+                {report.trackedByTask.length > 0 && (
+                  <Group label="By task">
+                    {report.trackedByTask.map((figure) => (
+                      <FigureRow key={figure.id} figure={figure} broken={untraceable} />
+                    ))}
+                  </Group>
+                )}
+                {report.trackedByDay.length > 0 && (
+                  <Group label="By day">
+                    {report.trackedByDay.map((figure) => (
+                      <FigureRow
+                        key={figure.id}
+                        figure={{ ...figure, label: describeDay(figure.label) }}
+                        broken={untraceable}
+                      />
+                    ))}
+                  </Group>
+                )}
               </div>
-            )}
-          </Card>
+            </Card>
 
-          <Card
-            title="Reserved"
-            description="What the calendar held, against the working hours the period had."
-          >
-            <div className="flex flex-col gap-2">
-              <FigureRow figure={{ ...report.reserved, label: 'Total' }} broken={untraceable} big />
-              <p className="text-caption text-fg-tertiary" data-testid="capacity">
-                {report.capacity === 0
-                  ? 'No working hours in this period.'
-                  : `${formatDuration(report.reserved.value)} of ${formatDuration(report.capacity)} working time (${Math.round((report.reserved.value / report.capacity) * 100)}%).`}
-              </p>
-            </div>
-          </Card>
+            <Card title="Done" description="Tasks completed in the period.">
+              <FigureRow figure={report.completed} broken={untraceable} big />
+            </Card>
+
+            <Card
+              title="Against the estimate"
+              description="For tasks worked on in the period: everything ever tracked, beside what was estimated."
+            >
+              {report.againstEstimate.length === 0 ? (
+                <p className="text-caption text-fg-tertiary">
+                  None of the tasks worked on has an estimate, so there is nothing to compare.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <FigureRow figure={report.overEstimate} broken={untraceable} big />
+                  <ul className="flex flex-col gap-1">
+                    {report.againstEstimate.map((line) => {
+                      const over = line.trackedMinutes > line.estimateMinutes;
+                      return (
+                        <li
+                          key={line.itemId}
+                          className="flex items-center gap-3 text-body text-fg"
+                          data-testid="estimate-line"
+                        >
+                          <span className="min-w-0 flex-1 truncate">{line.title}</span>
+                          <span className="tabular-nums text-fg-secondary">
+                            {formatDuration(line.trackedMinutes)} of{' '}
+                            {formatDuration(line.estimateMinutes)}
+                          </span>
+                          <span className="hidden w-20 sm:block">
+                            <Meter
+                              value={line.trackedMinutes}
+                              max={Math.max(line.estimateMinutes, line.trackedMinutes)}
+                              label={line.title}
+                              valueText={`${formatDuration(line.trackedMinutes)} of ${formatDuration(line.estimateMinutes)}`}
+                              tone={over ? 'danger' : 'success'}
+                            />
+                          </span>
+                          <span
+                            className={[
+                              'w-24 text-right tabular-nums text-caption whitespace-nowrap',
+                              over ? 'text-danger' : 'text-success',
+                            ].join(' ')}
+                          >
+                            {line.trackedMinutes === line.estimateMinutes
+                              ? 'on it'
+                              : `${over ? 'over' : 'under'} ${formatDuration(
+                                  Math.abs(line.trackedMinutes - line.estimateMinutes),
+                                )}`}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </Card>
+
+            <Card
+              title="Reserved"
+              description="What the calendar held, against the working hours the period had."
+            >
+              <div className="flex flex-col gap-2">
+                <FigureRow
+                  figure={{ ...report.reserved, label: 'Total' }}
+                  broken={untraceable}
+                  big
+                />
+                <p className="text-caption text-fg-tertiary" data-testid="capacity">
+                  {report.capacity === 0
+                    ? 'No working hours in this period.'
+                    : `${formatDuration(report.reserved.value)} of ${formatDuration(report.capacity)} working time (${Math.round((report.reserved.value / report.capacity) * 100)}%).`}
+                </p>
+              </div>
+            </Card>
+          </PageColumns>
         </>
       )}
-    </div>
+    </Page>
   );
 }
 

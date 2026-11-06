@@ -33,8 +33,25 @@ describe('the timeline', () => {
   const openTimeline = async () => {
     const { driver } = session;
     await goTo('Tasks');
-    await (await driver.findByXPath('//*[@role="tab"][normalize-space(.)="Timeline"]')).click();
-    await driver.waitForElement('[role="region"][aria-label="Timeline"]');
+    // Pressing Tasks from Tasks replaces the screen, which opens on its first view: press
+    // the tab until the chart is there and stays there.
+    await driver.waitFor('the timeline', async () => {
+      const tab = await driver.findByXPath('//*[@role="tab"][normalize-space(.)="Timeline"]');
+      await driver.execute('arguments[0].click()', [{ [ELEMENT]: tab.id }]);
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      const chart = await driver.findAll('[role="region"][aria-label="Timeline"]');
+      return chart.length === 1 ? true : null;
+    });
+  };
+
+  /** Open a task from the list, found and pressed in one try so a redraw cannot go between. */
+  const openTask = async (title: string) => {
+    const { driver } = session;
+    await driver.waitFor(`the Open control of ${title}`, async () => {
+      const open = await driver.find(`button[aria-label="Open ${title}"]`);
+      await driver.execute('arguments[0].click()', [{ [ELEMENT]: open.id }]);
+      return true;
+    });
   };
 
   /** What the polite live region last said. */
@@ -69,8 +86,12 @@ describe('the timeline', () => {
   it('is a view of its own, beside the calendar', async () => {
     const { driver } = session;
     await goTo('Tasks');
-    const tabs = await driver.findAll('[role="tab"]');
-    const labels = await Promise.all(tabs.map((tab) => tab.text()));
+    // Asked until it holds still: pressing Tasks from Tasks replaces the screen.
+    const labels = await driver.waitFor('the view tabs', async () => {
+      const tabs = await driver.findAll('[role="tab"]');
+      const read = await Promise.all(tabs.map((tab) => tab.text()));
+      return read.includes('Timeline') ? read : null;
+    });
     expect(labels).toContain('Timeline');
     expect(labels.indexOf('Timeline')).toBeGreaterThan(labels.indexOf('Calendar'));
   });
@@ -94,6 +115,7 @@ describe('the timeline', () => {
 
   it('moves a bar by keyboard, and the dates follow', async () => {
     const { driver } = session;
+    await openTimeline();
     const move = await driver.waitFor('the Move control', () =>
       driver.find('button[aria-label="Move Design it"]'),
     );
@@ -110,10 +132,7 @@ describe('the timeline', () => {
 
     // The task's own due date moved: the list shows it two days on.
     await (await driver.findByXPath('//*[@role="tab"][normalize-space(.)="List"]')).click();
-    const open = await driver.waitFor('the Open control', () =>
-      driver.find('button[aria-label="Open Design it"]'),
-    );
-    await driver.execute('arguments[0].click()', [{ [ELEMENT]: open.id }]);
+    await openTask('Design it');
     const due = await driver.waitForElement('input[aria-label="Due date and time"]');
     const value = String(await due.property('value'));
     expect(value).not.toBe('');
@@ -124,13 +143,15 @@ describe('the timeline', () => {
     const { driver } = session;
     await openTimeline();
     const before = await driver.execute<string>(
-      'return document.querySelectorAll(\'[role="region"][aria-label="Timeline"] div[draggable]\')[0].style.left;',
+      'return document.querySelectorAll(\'[role="region"][aria-label="Timeline"] div[data-bar]\')[0].style.left;',
     );
 
-    const move = await driver.waitFor('the Move control', () =>
-      driver.find('button[aria-label="Move Build it"]'),
-    );
-    await driver.execute('arguments[0].focus()', [{ [ELEMENT]: move.id }]);
+    // Focused inside the wait: pressing Tasks from Tasks replaces the screen.
+    await driver.waitFor('the Move control', async () => {
+      const move = await driver.find('button[aria-label="Move Build it"]');
+      await driver.execute('arguments[0].focus()', [{ [ELEMENT]: move.id }]);
+      return true;
+    });
     await driver.chord(Keys.ENTER);
     await announced('Moving Build it');
     await driver.chord(Keys.ARROW_RIGHT);
@@ -138,7 +159,7 @@ describe('the timeline', () => {
     await announced('Cancelled');
 
     const after = await driver.execute<string>(
-      'return document.querySelectorAll(\'[role="region"][aria-label="Timeline"] div[draggable]\')[0].style.left;',
+      'return document.querySelectorAll(\'[role="region"][aria-label="Timeline"] div[data-bar]\')[0].style.left;',
     );
     expect(after).toBe(before);
   });
@@ -147,10 +168,7 @@ describe('the timeline', () => {
     const { driver } = session;
     // Ship it waits for Build it.
     await (await driver.findByXPath('//*[@role="tab"][normalize-space(.)="List"]')).click();
-    const open = await driver.waitFor('the Open control', () =>
-      driver.find('button[aria-label="Open Ship it"]'),
-    );
-    await driver.execute('arguments[0].click()', [{ [ELEMENT]: open.id }]);
+    await openTask('Ship it');
 
     const select = await driver.waitForElement('select[aria-label="Wait for another task"]');
     const option = await driver.findByXPath(
@@ -183,10 +201,7 @@ describe('the timeline', () => {
   it('a milestone is a point on the chart, not a bar', async () => {
     const { driver } = session;
     await (await driver.findByXPath('//*[@role="tab"][normalize-space(.)="List"]')).click();
-    const open = await driver.waitFor('the Open control', () =>
-      driver.find('button[aria-label="Open Ship it"]'),
-    );
-    await driver.execute('arguments[0].click()', [{ [ELEMENT]: open.id }]);
+    await openTask('Ship it');
     await (await driver.findByXPath('//*[@role="dialog"]//input[@type="checkbox"]')).click();
     await driver.waitForText('A milestone takes no time.');
     await driver.chord(Keys.ESCAPE);

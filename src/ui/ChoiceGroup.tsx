@@ -14,6 +14,7 @@ export function ChoiceGroup<T extends string>({
   onChange,
   labels,
   disabled = false,
+  hideLabel = false,
 }: {
   label: string;
   options: readonly T[];
@@ -22,12 +23,16 @@ export function ChoiceGroup<T extends string>({
   /** Display text per option; the option id is shown, capitalised, without it. */
   labels?: Partial<Record<T, string>>;
   disabled?: boolean;
+  /** The row already says what this is; the name stays for a screen reader. */
+  hideLabel?: boolean;
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="w-28 shrink-0 text-caption font-semibold text-fg-tertiary uppercase">
-        {label}
-      </span>
+      {!hideLabel && (
+        <span className="w-28 shrink-0 text-caption font-semibold text-fg-tertiary uppercase">
+          {label}
+        </span>
+      )}
       <div role="radiogroup" aria-label={label} className="flex gap-1">
         {options.map((option) => (
           <Button

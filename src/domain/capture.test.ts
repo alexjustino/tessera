@@ -215,3 +215,53 @@ describe('parseCapture — assembly', () => {
     expect(again.title).toBe('Pay rent [tomorrow]');
   });
 });
+
+describe('capturing into a list', () => {
+  const LISTS = [
+    { id: 'tasks', name: 'Tasks' },
+    { id: 'w', name: 'Work' },
+    { id: 'h', name: 'Home' },
+    { id: 'ho', name: 'Home office' },
+  ];
+  const into = (text: string) => parseCapture(text, NOW, ZONE, LISTS);
+
+  it('puts the task in the list named with a hash, and takes the name out', () => {
+    const capture = into('Send the report #work tomorrow');
+    expect(capture.listId).toBe('w');
+    expect(capture.title).toBe('Send the report');
+    expect(capture.dueAt).not.toBeNull();
+    expect(capture.chips.map((chip) => chip.kind)).toEqual(['list', 'date']);
+    expect(capture.chips[0]?.label).toBe('Work');
+  });
+
+  it('takes the longest name that is written, whatever its case', () => {
+    expect(into('Fix the printer #HOME OFFICE').listId).toBe('ho');
+    expect(into('Water the plants #home').listId).toBe('h');
+  });
+
+  it('reads a name at the start and before punctuation', () => {
+    expect(into('#work: plan the sprint').listId).toBe('w');
+    expect(into('Call the bank, #home.').listId).toBe('h');
+  });
+
+  // ── Negative cases ─────────────────────────────────────────────────────
+  it('leaves a hash that names no list in the title', () => {
+    const capture = into('Book #42 for the club');
+    expect(capture.listId).toBeNull();
+    expect(capture.title).toBe('Book #42 for the club');
+    expect(capture.chips).toEqual([]);
+  });
+
+  it('does not read a list inside a word, or inside brackets', () => {
+    expect(into('email bob#work please').listId).toBeNull();
+    expect(into('Keep [#work] as written').listId).toBeNull();
+  });
+
+  it('does not read a list that only starts the word', () => {
+    expect(into('Plan #workshop').listId).toBeNull();
+  });
+
+  it('knows no list when it is told of none', () => {
+    expect(parse('Send #work').listId).toBeNull();
+  });
+});

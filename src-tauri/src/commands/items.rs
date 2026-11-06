@@ -6,7 +6,10 @@
 
 use tauri::State;
 
+use crate::db::event_pages;
+use crate::db::lists;
 use crate::db::models::{CaptureRequest, Collection, Item, ItemPlan, ItemSchedule, NewItem};
+use crate::db::replan::{self, ReplanChange, ReplanUndo};
 use crate::db::{items, Db};
 use crate::error::Result;
 
@@ -44,6 +47,111 @@ pub fn items_list(
 ) -> Result<Vec<Item>> {
     let conn = db.0.lock().expect("the database lock was poisoned");
     items::list_items(&conn, collection_id.as_deref(), include_completed)
+}
+
+/// The page of one occurrence of a meeting, made and paired the first time.
+#[tauri::command]
+pub fn meeting_notes_open(
+    db: State<'_, Db>,
+    event_id: String,
+    original_start: String,
+    title: String,
+    position: String,
+) -> Result<MeetingNotes> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    let (page, created) =
+        event_pages::open(&mut conn, &event_id, &original_start, &title, &position)?;
+    Ok(MeetingNotes { page, created })
+}
+
+#[tauri::command]
+pub fn event_pages_list(db: State<'_, Db>) -> Result<Vec<event_pages::EventPage>> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    event_pages::list(&conn)
+}
+
+/// A meeting's page, and whether this press made it.
+#[derive(serde::Serialize)]
+pub struct MeetingNotes {
+    pub page: crate::db::pages::Page,
+    pub created: bool,
+}
+
+/// A new list, set up the way Tasks is (ADR-053).
+#[tauri::command]
+pub fn list_create(db: State<'_, Db>, name: String, position: String) -> Result<Collection> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    lists::create_list(&mut conn, &name, &position)
+}
+
+#[tauri::command]
+pub fn list_rename(db: State<'_, Db>, id: String, name: String) -> Result<Collection> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    lists::rename_list(&conn, &id, &name)
+}
+
+#[tauri::command]
+pub fn list_color(db: State<'_, Db>, id: String, color: Option<String>) -> Result<Collection> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    lists::color_list(&conn, &id, color.as_deref())
+}
+
+#[tauri::command]
+pub fn list_delete(db: State<'_, Db>, id: String) -> Result<()> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    lists::delete_list(&conn, &id)
+}
+
+#[tauri::command]
+pub fn item_move_to_list(
+    db: State<'_, Db>,
+    id: String,
+    collection_id: String,
+    position: String,
+) -> Result<Item> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    lists::move_to_list(&mut conn, &id, &collection_id, &position)
+}
+
+/// Every late task's new date and blocks, in one write; returns the way back.
+#[tauri::command]
+pub fn items_replan(
+    db: State<'_, Db>,
+    calendar_id: String,
+    tz: String,
+    changes: Vec<ReplanChange>,
+) -> Result<ReplanUndo> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    replan::replan(&mut conn, &calendar_id, &tz, &changes)
+}
+
+#[tauri::command]
+pub fn items_replan_undo(db: State<'_, Db>, undo: ReplanUndo) -> Result<()> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    replan::undo_replan(&mut conn, &undo)
+}
+
+#[tauri::command]
+pub fn subtasks_list(db: State<'_, Db>) -> Result<Vec<Item>> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    items::list_subtasks(&conn)
+}
+
+#[tauri::command]
+pub fn subtask_add(
+    db: State<'_, Db>,
+    parent_id: String,
+    title: String,
+    position: String,
+) -> Result<Item> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    items::add_subtask(&mut conn, &parent_id, &title, &position)
+}
+
+#[tauri::command]
+pub fn subtask_promote(db: State<'_, Db>, id: String, position: String) -> Result<Item> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    items::promote_subtask(&conn, &id, &position)
 }
 
 #[tauri::command]

@@ -1,21 +1,29 @@
+import { Suspense } from 'react';
+
 import { Target20Regular } from '@fluentui/react-icons';
 
-import { useSetPropertyValue, useSetSchedule } from '@/data/hooks';
+import { useRenameItem, useSetPropertyValue, useSetSchedule } from '@/data/hooks';
 import { type Timing } from '@/domain/criticalPath';
-import { type Item } from '@/domain/item';
+import { checkTitle, type Item } from '@/domain/item';
 import { type Schedule } from '@/domain/schedule';
 import { type Property, type PropertyValue } from '@/domain/property';
-import { Editor } from '@/features/editor/Editor';
+import { Editor } from '@/app/lazyPages';
+import { Skeleton } from '@/ui/Skeleton';
 
 import { Dependencies } from './Dependencies';
+import { LinkedNotes } from './LinkedNotes';
+import { ListPicker } from './ListPicker';
 import { PlanEditor } from './PlanEditor';
+import { Subtasks } from './Subtasks';
 import { TimeTracker } from './TimeTracker';
+import { Warnings } from './Warnings';
 
 import { ScheduleEditor } from './ScheduleEditor';
 import { PropertyValueEditor } from '@/features/properties/PropertyValueEditor';
 import { Button } from '@/ui/Button';
 import { Drawer } from '@/ui/Drawer';
 import { EmptyState } from '@/ui/EmptyState';
+import { Input } from '@/ui/Input';
 
 /**
  * Everything about one task, editable in place.
@@ -32,6 +40,8 @@ export function TaskDetail({
   values,
   onClose,
   onFocus,
+  onOpenPage,
+  onOpenItem,
 }: {
   task: Item | null;
   /** Every task in the collection — what the dependency picker offers. */
@@ -43,9 +53,14 @@ export function TaskDetail({
   onClose: () => void;
   /** Enter focus mode on this task. */
   onFocus?: ((id: string) => void) | undefined;
+  /** Go to a page about this task. */
+  onOpenPage?: ((pageId: string) => void) | undefined;
+  /** Go to another task, from a link in this one's notes. */
+  onOpenItem?: ((itemId: string) => void) | undefined;
 }) {
   const setValue = useSetPropertyValue();
   const setSchedule = useSetSchedule();
+  const rename = useRenameItem();
   const now = new Date().toISOString();
 
   const commit = (property: Property, value: PropertyValue) => {
@@ -66,6 +81,32 @@ export function TaskDetail({
 
   return (
     <Drawer open={task !== null} title={task?.title ?? ''} onClose={onClose}>
+      {task !== null && (
+        <div className="mb-4">
+          <Input
+            key={task.id}
+            aria-label="Task name"
+            defaultValue={task.title}
+            className="w-full"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur();
+            }}
+            onBlur={(event) => {
+              const result = checkTitle(event.currentTarget.value);
+              // An emptied name goes back: losing the name because a field was
+              // cleared is never what the person meant.
+              if (result.status !== 'ok') {
+                event.currentTarget.value = task.title;
+                return;
+              }
+              if (result.title !== task.title) {
+                rename.mutate({ id: task.id, title: result.title });
+              }
+            }}
+          />
+        </div>
+      )}
+      {task !== null && <ListPicker task={task} />}
       {task !== null && onFocus !== undefined && task.completedAt === null && (
         <div className="mb-4">
           <Button
@@ -80,6 +121,40 @@ export function TaskDetail({
           </Button>
         </div>
       )}
+
+      {task !== null && (
+        <div className="mb-5 border-b border-stroke-subtle pb-4">
+          <Subtasks key={task.id} task={task} siblings={items} />
+        </div>
+      )}
+
+      {task !== null && (
+        <section className="mb-5 border-b border-stroke-subtle pb-3">
+          <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Notes</h3>
+          {/* Keyed on the item, so opening a different task builds a fresh
+              editor rather than pouring one document into another's state. */}
+          <Suspense fallback={<Skeleton />}>
+            <Editor
+              key={task.id}
+              ownerKind="item"
+              ownerId={task.id}
+              label={`Notes on ${task.title}`}
+              subject={task.title}
+              onOpenPage={onOpenPage}
+              onOpenItem={onOpenItem}
+            />
+          </Suspense>
+        </section>
+      )}
+
+      {task !== null && (
+        <p className="mt-6 text-caption text-fg-tertiary">
+          Created {new Date(task.createdAt).toLocaleString()}
+          {task.completedAt !== null &&
+            ` · completed ${new Date(task.completedAt).toLocaleString()}`}
+        </p>
+      )}
+      {task !== null && <LinkedNotes itemId={task.id} title={task.title} onOpenPage={onOpenPage} />}
 
       {task !== null && (
         <section className="mb-5 border-b border-stroke-subtle pb-5">
@@ -116,33 +191,18 @@ export function TaskDetail({
         </dl>
       )}
 
+      {task !== null && (
+        <section className="mb-5 border-b border-stroke-subtle pb-5" aria-label="Warnings">
+          <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Warnings</h3>
+          <Warnings itemId={task.id} dueAt={task.dueAt} />
+        </section>
+      )}
+
       {task !== null && <PlanEditor task={task} timing={timing} />}
 
       {task !== null && <TimeTracker task={task} items={items} />}
 
       {task !== null && <Dependencies task={task} items={items} />}
-
-      {task !== null && (
-        <section className="mt-6 border-t border-stroke-subtle pt-4">
-          <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">Notes</h3>
-          {/* Keyed on the item, so opening a different task builds a fresh
-              editor rather than pouring one document into another's state. */}
-          <Editor
-            key={task.id}
-            ownerKind="item"
-            ownerId={task.id}
-            label={`Notes on ${task.title}`}
-          />
-        </section>
-      )}
-
-      {task !== null && (
-        <p className="mt-6 text-caption text-fg-tertiary">
-          Created {new Date(task.createdAt).toLocaleString()}
-          {task.completedAt !== null &&
-            ` · completed ${new Date(task.completedAt).toLocaleString()}`}
-        </p>
-      )}
     </Drawer>
   );
 }

@@ -151,6 +151,11 @@ describe('the weekly review', () => {
   it('the working week can be said, and the review counts it', async () => {
     const { driver } = session;
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Working time"]',
+      )
+    ).click();
     await driver.waitForText('Working hours');
 
     // Saturday off by default; turning it on adds a day of capacity.

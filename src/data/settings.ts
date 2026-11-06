@@ -12,6 +12,9 @@ interface RawSettings {
   quick_capture_shortcut: string;
   backups_enabled: boolean;
   backups_keep: number;
+  guide_hours_set: boolean;
+  guide_days_off_set: boolean;
+  guide_dismissed: boolean;
 }
 
 function fromRaw(raw: RawSettings): Settings {
@@ -21,6 +24,9 @@ function fromRaw(raw: RawSettings): Settings {
     quickCaptureShortcut: raw.quick_capture_shortcut,
     backupsEnabled: raw.backups_enabled,
     backupsKeep: raw.backups_keep,
+    guideHoursSet: raw.guide_hours_set,
+    guideDaysOffSet: raw.guide_days_off_set,
+    guideDismissed: raw.guide_dismissed,
   });
 }
 
@@ -31,6 +37,9 @@ function toRaw(settings: Settings): RawSettings {
     quick_capture_shortcut: settings.quickCaptureShortcut,
     backups_enabled: settings.backupsEnabled,
     backups_keep: settings.backupsKeep,
+    guide_hours_set: settings.guideHoursSet,
+    guide_days_off_set: settings.guideDaysOffSet,
+    guide_dismissed: settings.guideDismissed,
   };
 }
 

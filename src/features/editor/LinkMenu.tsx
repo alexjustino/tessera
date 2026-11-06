@@ -1,34 +1,72 @@
+import { Circle16Regular, Document16Regular, DocumentAdd16Regular } from '@fluentui/react-icons';
 import type { Editor } from '@tiptap/react';
 import { useCallback, useEffect, useMemo } from 'react';
 
-import { useCreatePage, usePages } from '@/data/hooks';
+import { useCreatePage, useItems, useLinkItemPage, usePages } from '@/data/hooks';
+import { isCompleted, type Item } from '@/domain/item';
 import { between } from '@/domain/ordering';
-import { checkTitle, exactly, suggest, PAGE_LINK, type Page } from '@/domain/page';
+import {
+  checkTitle,
+  exactly,
+  suggest,
+  titleKey,
+  PAGE_LINK,
+  TASK_LINK,
+  type Page,
+} from '@/domain/page';
 
-/** One row of the menu: a page that exists, or the offer to make one. */
-type Choice = { kind: 'page'; page: Page } | { kind: 'create'; title: string };
+import { LinkPreviewBody, type LinkTarget } from './LinkPreview';
+
+/** One row of the menu: a page, a task, or the offer to make a page. */
+type Choice =
+  { kind: 'page'; page: Page } | { kind: 'task'; item: Item } | { kind: 'create'; title: string };
+
+/** How many tasks are offered: the menu is for finding one, not for reading them all. */
+const TASKS_SHOWN = 5;
+
+function tasksMatching(query: string, items: readonly Item[]): Item[] {
+  const key = titleKey(query);
+  return items
+    .filter((item) => !isCompleted(item) && (key === '' || titleKey(item.title).includes(key)))
+    .slice(0, TASKS_SHOWN);
+}
+
+function targetOf(choice: Choice): LinkTarget {
+  if (choice.kind === 'page') {
+    return { kind: 'page', id: choice.page.id, title: choice.page.title };
+  }
+  if (choice.kind === 'task') return { kind: 'task', id: choice.item.id, title: choice.item.title };
+  return { kind: 'missing', title: choice.title };
+}
 
 /**
- * The list of pages offered while `[[` is being typed.
+ * The list offered while `[[` is being typed: pages, tasks, and what each choice
+ * would do, shown before it is chosen.
  *
- * The last row offers to create what has been typed, when no page has that
+ * The last page row offers to create what has been typed, when no page has that
  * name — which is how a wiki is written: you link to the page you mean, and it
  * comes into being because you meant it.
  */
 export function LinkMenu({
   editor,
   state,
+  ownerKind,
+  ownerId,
 }: {
   editor: Editor;
   state: ReturnType<typeof import('./useLinkMenu').useLinkMenu>;
+  ownerKind: string;
+  ownerId: string;
 }) {
   const pages = usePages();
+  const items = useItems(null, true);
   const create = useCreatePage();
+  const pair = useLinkItemPage();
   const { selected, setSelected, close, query, from } = state;
 
   const choices = useMemo<Choice[]>(() => {
     const all = pages.data ?? [];
-    const matches: Choice[] = suggest(query, all).map((page) => ({ kind: 'page', page }));
+    const matches: Choice[] = suggest(query, all, 6).map((page) => ({ kind: 'page', page }));
     const trimmed = query.trim();
     if (
       trimmed !== '' &&
@@ -37,11 +75,14 @@ export function LinkMenu({
     ) {
       matches.push({ kind: 'create', title: trimmed });
     }
+    for (const item of tasksMatching(query, items.data ?? [])) {
+      matches.push({ kind: 'task', item });
+    }
     return matches;
-  }, [pages.data, query]);
+  }, [pages.data, items.data, query]);
 
   const insert = useCallback(
-    (pageId: string | null, title: string) => {
+    (node: { type: string; attrs: Record<string, unknown> }) => {
       // One chain: the typed "[[query" is replaced by the link itself, plus a
       // space, so the sentence carries on where the person was writing.
       const cursor = editor.state.selection.from;
@@ -49,10 +90,7 @@ export function LinkMenu({
         .chain()
         .focus()
         .deleteRange({ from, to: cursor })
-        .insertContent([
-          { type: PAGE_LINK, attrs: { pageId, title } },
-          { type: 'text', text: ' ' },
-        ])
+        .insertContent([node, { type: 'text', text: ' ' }])
         .run();
       close();
     },
@@ -62,7 +100,13 @@ export function LinkMenu({
   const choose = useCallback(
     (choice: Choice) => {
       if (choice.kind === 'page') {
-        insert(choice.page.id, choice.page.title);
+        insert({ type: PAGE_LINK, attrs: { pageId: choice.page.id, title: choice.page.title } });
+        return;
+      }
+      if (choice.kind === 'task') {
+        insert({ type: TASK_LINK, attrs: { itemId: choice.item.id, title: choice.item.title } });
+        // A page that names a task is about that task: the pair is what both show.
+        if (ownerKind === 'page') pair.mutate({ itemId: choice.item.id, pageId: ownerId });
         return;
       }
       // A page made from a link is made now, not on the next save: the link has
@@ -71,14 +115,15 @@ export function LinkMenu({
       create.mutate(
         { title: choice.title, position: between(last?.position ?? null, null) },
         {
-          onSuccess: (page) => insert(page.id, page.title),
+          onSuccess: (page) =>
+            insert({ type: PAGE_LINK, attrs: { pageId: page.id, title: page.title } }),
           // The name was taken between the check and the write: the link is
           // still written, by name, and resolves to whatever now holds it.
-          onError: () => insert(null, choice.title),
+          onError: () => insert({ type: PAGE_LINK, attrs: { pageId: null, title: choice.title } }),
         },
       );
     },
-    [create, insert, pages.data],
+    [create, insert, pages.data, pair, ownerKind, ownerId],
   );
 
   useEffect(() => {
@@ -111,40 +156,67 @@ export function LinkMenu({
 
   if (choices.length === 0) return null;
 
+  const current = choices[selected] ?? choices[0];
+
   return (
     <div
-      role="listbox"
-      aria-label="Link to a page"
       style={{ top: state.coords.top, left: state.coords.left }}
-      className="absolute z-40 max-h-72 w-72 overflow-y-auto rounded-lg border border-stroke bg-flyout p-1 shadow-flyout backdrop-blur-xl"
+      className="absolute z-40 flex w-[34rem] max-w-[90vw] overflow-hidden rounded-lg border border-stroke bg-flyout shadow-flyout backdrop-blur-xl"
     >
-      {choices.map((choice, index) => (
-        <button
-          key={choice.kind === 'page' ? choice.page.id : 'create'}
-          type="button"
-          role="option"
-          aria-selected={index === selected}
-          onMouseEnter={() => setSelected(index)}
-          onMouseDown={(event) => {
-            // The editor must not lose the selection before the click lands.
-            event.preventDefault();
-            choose(choice);
-          }}
-          className={[
-            'flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left',
-            index === selected ? 'bg-card-hover' : '',
-          ].join(' ')}
-        >
-          {choice.kind === 'page' ? (
-            <span className="truncate text-body text-fg">{choice.page.title}</span>
-          ) : (
-            <>
-              <span className="text-caption text-fg-tertiary">New page</span>
-              <span className="truncate text-body text-fg">{choice.title}</span>
-            </>
-          )}
-        </button>
-      ))}
+      <div
+        role="listbox"
+        aria-label="Link to a page or a task"
+        className="max-h-72 w-72 shrink-0 overflow-y-auto border-r border-stroke-subtle p-1"
+      >
+        {choices.map((choice, index) => (
+          <button
+            key={
+              choice.kind === 'page'
+                ? choice.page.id
+                : choice.kind === 'task'
+                  ? choice.item.id
+                  : 'create'
+            }
+            type="button"
+            role="option"
+            aria-selected={index === selected}
+            onMouseEnter={() => setSelected(index)}
+            onMouseDown={(event) => {
+              // The editor must not lose the selection before the click lands.
+              event.preventDefault();
+              choose(choice);
+            }}
+            className={[
+              'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left',
+              index === selected ? 'bg-card-hover' : '',
+            ].join(' ')}
+          >
+            {choice.kind === 'page' ? (
+              <>
+                <Document16Regular aria-hidden="true" className="shrink-0 text-fg-tertiary" />
+                <span className="truncate text-body text-fg">{choice.page.title}</span>
+              </>
+            ) : choice.kind === 'task' ? (
+              <>
+                <Circle16Regular aria-hidden="true" className="shrink-0 text-fg-tertiary" />
+                <span className="min-w-0 flex-1 truncate text-body text-fg">
+                  {choice.item.title}
+                </span>
+                <span className="shrink-0 text-caption text-fg-tertiary">Task</span>
+              </>
+            ) : (
+              <>
+                <DocumentAdd16Regular aria-hidden="true" className="shrink-0 text-fg-tertiary" />
+                <span className="text-caption text-fg-tertiary">New page</span>
+                <span className="truncate text-body text-fg">{choice.title}</span>
+              </>
+            )}
+          </button>
+        ))}
+      </div>
+      <div className="min-w-0 flex-1 p-3" data-testid="link-menu-preview">
+        {current !== undefined && <LinkPreviewBody target={targetOf(current)} />}
+      </div>
     </div>
   );
 }

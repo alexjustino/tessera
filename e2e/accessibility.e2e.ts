@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { openDiagnostics, startSession, workEveryHour, type Session } from './session';
 import { Keys } from './webdriver';
 
 const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
@@ -32,6 +32,9 @@ describe('accessibility', () => {
 
   beforeAll(async () => {
     session = await startSession();
+    // The keyboard reservation lands at the next free time; every hour is working time,
+    // so that is today whatever hour the suite runs.
+    await workEveryHour(session);
     axeSource = await readFile(
       path.join(import.meta.dirname, '..', 'node_modules', 'axe-core', 'axe.min.js'),
       'utf-8',
@@ -95,6 +98,11 @@ describe('accessibility', () => {
 
   const audit = async (screen: string, theme: string): Promise<Violation[]> => {
     const { driver } = session;
+    // The opening fades over the first screen: a contrast read mid-fade is a read of
+    // no colour the product has, and it is hidden from a screen reader anyway.
+    await driver.waitFor('the opening to go', async () =>
+      (await driver.findAll('#opening')).length === 0 ? true : null,
+    );
     await injectAxe();
     await driver.execute('document.documentElement.style.backgroundColor = arguments[0]', [
       MICA[theme === 'dark' ? 'dark' : 'light'],
@@ -144,15 +152,20 @@ describe('accessibility', () => {
     ['light', 'Calendar'],
     ['light', 'Mosaic'],
     ['light', 'Notes'],
+    ['light', 'Goals'],
+    ['light', 'Review'],
     ['light', 'Reports'],
     ['light', 'Settings'],
     ['light', 'Diagnostics'],
     ['light', 'About'],
     ['dark', 'Tasks'],
+    ['dark', 'Today'],
     ['dark', 'Board'],
     ['dark', 'Calendar'],
     ['dark', 'Mosaic'],
     ['dark', 'Notes'],
+    ['dark', 'Goals'],
+    ['dark', 'Review'],
     ['dark', 'Reports'],
     ['dark', 'Settings'],
     ['dark', 'About'],
@@ -161,7 +174,8 @@ describe('accessibility', () => {
       'return document.documentElement.getAttribute("data-theme")',
     );
     if (current !== theme) await setTheme(theme);
-    await goTo(screen);
+    if (screen === 'Diagnostics') await openDiagnostics(session);
+    else await goTo(screen);
     await session.driver.waitFor('screen rendered', async () => {
       const h1 = await session.driver.findAll('h1');
       return h1.length > 0 ? true : null;
@@ -173,6 +187,41 @@ describe('accessibility', () => {
       ),
     ).toEqual([]);
   });
+
+  // Settings shows one section at a time, so each one is its own screen to audit.
+  it.each([
+    ['light', 'Working time'],
+    ['light', 'Backups'],
+    ['light', 'Export and import'],
+    ['light', 'Add from another product'],
+    ['dark', 'Working time'],
+    ['dark', 'Backups'],
+    ['dark', 'Export and import'],
+    ['dark', 'Add from another product'],
+  ] as const)(
+    '%s theme: Settings, %s has no serious or critical violation',
+    async (theme, section) => {
+      const { driver } = session;
+      const current = await driver.execute<string | null>(
+        'return document.documentElement.getAttribute("data-theme")',
+      );
+      if (current !== theme) await setTheme(theme);
+      await goTo('Settings');
+      await (
+        await driver.waitFor('the section', () =>
+          driver.findByXPath(
+            `//nav[@aria-label="Settings sections"]//button[normalize-space(.)="${section}"]`,
+          ),
+        )
+      ).click();
+      const serious = await audit(`Settings ${section}`, theme);
+      expect(
+        serious.map(
+          (v) => `${v.id}: ${v.help} → ${v.nodes.map((n) => n.target.join(' ')).join(' | ')}`,
+        ),
+      ).toEqual([]);
+    },
+  );
 
   it('the open palette and the task detail drawer pass too', async () => {
     const { driver } = session;
@@ -252,10 +301,10 @@ describe('accessibility', () => {
     await driver.execute('arguments[0].focus()', [{ [ELEMENT]: reserve.id }]);
     await driver.chord(Keys.ENTER);
     await announced('Use the arrow keys');
+    // It starts at the first free time, which depends on the hour the suite runs.
     await driver.chord(Keys.ARROW_DOWN);
-    await announced('09:15');
+    await announced(' to ');
     await driver.chord(Keys.ARROW_DOWN);
-    await announced('09:30');
     await driver.chord(Keys.ENTER);
     await announced('Placed Water the plants');
 
@@ -264,7 +313,7 @@ describe('accessibility', () => {
       const boxes = await driver.findAll('article[aria-label^="Water the plants"]');
       return boxes[0] ?? null;
     });
-    expect(await block.attribute('aria-label')).toContain('09:30');
+    expect(await block.attribute('aria-label')).toContain(' to ');
     const panel = await driver.findAll('button[aria-label="Reserve time for Water the plants"]');
     expect(panel.length).toBe(0);
 

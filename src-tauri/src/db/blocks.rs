@@ -13,6 +13,7 @@
 //! `content[0].text` is the editor's business.
 
 use rusqlite::{params, Connection, Row};
+use serde::Serialize;
 
 use super::items::now;
 use super::models::{Block, BlockChanges};
@@ -50,6 +51,45 @@ fn read_block(row: &Row<'_>) -> rusqlite::Result<Block> {
         content: serde_json::from_str(&content)
             .unwrap_or_else(|_| serde_json::json!({ "type": "paragraph" })),
     })
+}
+
+/// A stored block that holds a marked line, and the name of what it belongs to.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct MarkedBlock {
+    pub block_id: String,
+    pub owner_kind: String,
+    pub owner_id: String,
+    pub owner_title: String,
+    pub content: serde_json::Value,
+}
+
+/// Every block with a marker in it, across the workspace.
+///
+/// The host does not read documents (ADR-003), so it only narrows the rows by the
+/// attribute's name, and the domain finds the lines. A row that merely mentions the
+/// word comes back too, and finds no marked line there.
+pub fn marked(conn: &Connection) -> Result<Vec<MarkedBlock>> {
+    let mut statement = conn.prepare(
+        "SELECT b.id, b.owner_kind, b.owner_id, b.content_json,
+                COALESCE(p.title, i.title, e.title, '') AS owner_title
+         FROM block b
+         LEFT JOIN page  p ON b.owner_kind = 'page'  AND p.id = b.owner_id
+         LEFT JOIN item  i ON b.owner_kind = 'item'  AND i.id = b.owner_id
+         LEFT JOIN event e ON b.owner_kind = 'event' AND e.id = b.owner_id
+         WHERE b.content_json LIKE '%\"noteMarker\":\"%'
+         ORDER BY owner_title, b.position",
+    )?;
+    let rows = statement.query_map([], |row| {
+        let content: String = row.get(3)?;
+        Ok(MarkedBlock {
+            block_id: row.get(0)?,
+            owner_kind: row.get(1)?,
+            owner_id: row.get(2)?,
+            owner_title: row.get(4)?,
+            content: serde_json::from_str(&content).unwrap_or(serde_json::Value::Null),
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
 /// One owner's document, in order.
@@ -215,6 +255,34 @@ mod tests {
             updates: vec![],
             deletes: vec![],
         }
+    }
+
+    #[test]
+    fn accepts_a_counter_key_and_sorts_it_after_the_keys_before_it() {
+        // Appends count after a run of `z` (ADR-006), after keys stored without.
+        let mut conn = workspace();
+        let item = an_item(&mut conn);
+
+        apply_changes(
+            &mut conn,
+            "item",
+            &item,
+            creates(&[
+                ("b4", "zb01", "Fourth"),
+                ("b2", "zV", "Second"),
+                ("b3", "za1", "Third"),
+                ("b1", "z", "First"),
+            ]),
+            "First\nSecond\nThird\nFourth",
+            &[],
+        )
+        .expect("apply");
+
+        let blocks = list_blocks(&conn, "item", &item).expect("list");
+        assert_eq!(
+            blocks.iter().map(|b| b.id.as_str()).collect::<Vec<_>>(),
+            ["b1", "b2", "b3", "b4"]
+        );
     }
 
     #[test]

@@ -13,6 +13,12 @@ pub fn blocks_list(db: State<'_, Db>, owner_kind: String, owner_id: String) -> R
     blocks::list_blocks(&conn, &owner_kind, &owner_id)
 }
 
+#[tauri::command]
+pub fn blocks_marked(db: State<'_, Db>) -> Result<Vec<blocks::MarkedBlock>> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    blocks::marked(&conn)
+}
+
 /// Apply a document change set and reindex, in one transaction.
 ///
 /// `plain_text` is the flattened document and `links` are the pages it points

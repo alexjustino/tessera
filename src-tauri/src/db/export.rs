@@ -40,17 +40,20 @@ pub const TABLES: &[&str] = &[
     "tag",
     "item_tag",
     "item_dependency",
+    "section",
     "page",
     "block",
     "page_link",
     "goal",
     "goal_item",
+    "item_page",
     "view",
     "reminder",
     "activity",
     "calendar",
     "event",
     "event_exception",
+    "event_page",
     "time_block",
     "work_hours",
     "day_off",
@@ -84,7 +87,8 @@ pub struct Counts {
 pub fn counts(conn: &Connection) -> Result<Counts> {
     let count = |sql: &str| conn.query_row(sql, [], |r| r.get::<_, i64>(0));
     Ok(Counts {
-        items: count("SELECT count(*) FROM item")?,
+        // Tasks: a subtask is a step inside one (ADR-051).
+        items: count("SELECT count(*) FROM item WHERE parent_item_id IS NULL")?,
         events: count("SELECT count(*) FROM event")?,
         blocks: count("SELECT count(*) FROM block")?,
     })
@@ -373,7 +377,8 @@ pub fn markdown(conn: &Connection) -> Result<String> {
         out.push_str(&format!("\n## {name}\n\n"));
         let mut items = conn.prepare(
             "SELECT id, title, due_at, completed_at, recurrence_rrule
-             FROM item WHERE collection_id = ?1 AND archived_at IS NULL
+             FROM item
+             WHERE collection_id = ?1 AND archived_at IS NULL AND parent_item_id IS NULL
              ORDER BY position",
         )?;
         let rows = items
@@ -415,6 +420,18 @@ pub fn markdown(conn: &Connection) -> Result<String> {
                 out.push_str(&format!(" · {name}: {shown}"));
             }
             out.push('\n');
+
+            let mut steps = conn.prepare(
+                "SELECT title, completed_at FROM item
+                 WHERE parent_item_id = ?1 AND archived_at IS NULL ORDER BY position",
+            )?;
+            for step in steps.query_map(params![id], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?))
+            })? {
+                let (title, done) = step?;
+                let mark = if done.is_some() { "x" } else { " " };
+                out.push_str(&format!("  - [{mark}] {title}\n"));
+            }
 
             let mut blocks = conn.prepare(
                 "SELECT content_json FROM block
@@ -727,6 +744,37 @@ mod tests {
         );
         assert_eq!(block_text("{}"), "");
         assert_eq!(block_text("not json"), "");
+    }
+
+    #[test]
+    fn a_restore_counts_tasks_and_keeps_the_steps_inside_them() {
+        let mut source = workspace();
+        let id = item(&mut source, "Pack");
+        items::add_subtask(&mut source, &id, "Boots", "a").unwrap();
+        let document = export(&source).unwrap();
+
+        let mut target = workspace();
+        let counts = import(&mut target, &document).unwrap();
+
+        assert_eq!(counts.items, 1);
+        let steps = items::list_subtasks(&target).unwrap();
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].parent_item_id.as_deref(), Some(id.as_str()));
+    }
+
+    #[test]
+    fn markdown_lists_a_task_s_steps_under_it_and_not_as_tasks() {
+        let mut conn = workspace();
+        let id = item(&mut conn, "Pack");
+        items::add_subtask(&mut conn, &id, "Boots", "a").unwrap();
+        let done = items::add_subtask(&mut conn, &id, "Rope", "b").unwrap();
+        items::set_completed(&conn, &done.id, true).unwrap();
+
+        let text = markdown(&conn).unwrap();
+        assert!(
+            text.contains("- [ ] Pack\n  - [ ] Boots\n  - [x] Rope\n"),
+            "{text}"
+        );
     }
 
     #[test]

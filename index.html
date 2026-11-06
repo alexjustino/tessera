@@ -4,9 +4,81 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tessera</title>
+    <!--
+      The opening. In the page, because it exists for the moment before anything
+      else has loaded. public/opening.css draws it, src/app/opening.ts takes it away,
+      and it sets the mark from src-tauri/icons/tessera.svg tile by tile.
+    -->
+    <link rel="stylesheet" href="/opening.css" />
   </head>
   <body>
+    <div id="opening" aria-hidden="true" hidden>
+      <svg viewBox="0 0 256 256">
+        <defs>
+          <linearGradient id="opening-ground" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1a8ae0" />
+            <stop offset="1" stop-color="#0060b0" />
+          </linearGradient>
+        </defs>
+        <rect width="256" height="256" rx="56" fill="url(#opening-ground)" />
+        <rect x="56" y="56" width="64" height="64" rx="14" fill="#ffffff" />
+        <rect x="136" y="56" width="64" height="64" rx="14" fill="#ffffff" />
+        <rect x="56" y="136" width="64" height="64" rx="14" fill="#ffffff" />
+        <rect x="142" y="142" width="64" height="64" rx="14" fill="#a6dcff" />
+      </svg>
+      <p class="opening-name">Tessera</p>
+      <p class="opening-greeting" id="opening-greeting"></p>
+    </div>
     <div id="root"></div>
+    <script>
+      // Only the main window opens this way: quick capture has to appear at once.
+      (function () {
+        var element = document.getElementById('opening');
+        var label = '';
+        try {
+          label = window.__TAURI_INTERNALS__.metadata.currentWindow.label;
+        } catch (error) {
+          label = 'main';
+        }
+        if (label !== 'main') {
+          element.remove();
+          return;
+        }
+
+        // Remembered by the application, because the setting itself is still on disk.
+        var stored = null;
+        var opened = null;
+        try {
+          stored = localStorage.getItem('tessera.theme');
+          opened = localStorage.getItem('tessera.opened');
+          localStorage.setItem('tessera.opened', '1');
+        } catch (error) {
+          // A profile that refuses storage opens as it would on a first run.
+        }
+        var dark =
+          stored === 'dark' ||
+          (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) element.classList.add('opening-dark');
+
+        var hour = new Date().getHours();
+        document.getElementById('opening-greeting').textContent =
+          opened === null
+            ? 'Welcome'
+            : hour < 5
+              ? 'Working late'
+              : hour < 12
+                ? 'Good morning'
+                : hour < 18
+                  ? 'Good afternoon'
+                  : 'Good evening';
+        element.hidden = false;
+
+        // If the application never starts, the opening must not sit over the window.
+        setTimeout(function () {
+          element.remove();
+        }, 8000);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -14,7 +14,7 @@ import {
 } from '@/data/hooks';
 import { addLocalDays, todayIn } from '@/domain/calendar';
 import { HORIZON_DAYS, type LedgerInput } from '@/domain/receipt';
-import { systemZone } from '@/domain/schedule';
+import { localPlace, systemZone } from '@/domain/schedule';
 import { minutesOf } from '@/domain/time';
 import { expandEvents } from '@/features/calendar/occurrences';
 
@@ -81,6 +81,7 @@ export function useLedger(now: string): LedgerInput | null {
       goalLinks: goalLinks.data,
       tracked,
       daysOff,
+      minuteNow: localPlace(now, zone).minute,
     };
   }, [
     today,

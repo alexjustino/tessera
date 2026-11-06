@@ -11,11 +11,14 @@ import {
   Search20Regular,
   Settings20Regular,
   TaskListSquareLtr20Regular,
-  Wrench20Regular,
 } from '@fluentui/react-icons';
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
+
+import { INBOX } from '@/domain/lists';
 
 import { Kbd } from '@/ui/Kbd';
+
+import { SidebarLists } from './SidebarLists';
 
 /**
  * The navigation rail.
@@ -57,7 +60,6 @@ const ENTRIES: Entry[] = [
   { id: 'review', label: 'Review', icon: <TaskListLtr20Regular />, ready: true },
   { id: 'reports', label: 'Reports', icon: <DataBarHorizontal20Regular />, ready: true },
   { id: 'settings', label: 'Settings', icon: <Settings20Regular />, ready: true },
-  { id: 'diagnostics', label: 'Diagnostics', icon: <Wrench20Regular />, ready: true },
   { id: 'about', label: 'About', icon: <Info20Regular />, ready: true },
 ];
 
@@ -65,7 +67,16 @@ export function Sidebar({
   active,
   onNavigate,
   onSearch,
+  asks = {},
+  activeListId = null,
+  onOpenList,
 }: {
+  /** The list on screen when Tasks is (ADR-053). */
+  activeListId?: string | null;
+  /** Open one of the person's own lists. */
+  onOpenList?: (id: string) => void;
+  /** A question a destination is waiting on, said on its entry in the rail. */
+  asks?: Partial<Record<Destination, string>>;
   active: Destination;
   onNavigate: (destination: Destination) => void;
   /** Open the command palette. */
@@ -93,28 +104,50 @@ export function Sidebar({
         <Kbd>Ctrl+K</Kbd>
       </button>
       {ENTRIES.map((entry) => {
-        const selected = entry.ready && entry.id === active;
+        // Diagnostics opens from About and has no entry of its own, so About stays lit.
+        const selected =
+          entry.ready &&
+          ((entry.id === active && (entry.id !== 'tasks' || activeListId === INBOX)) ||
+            (entry.id === 'about' && active === 'diagnostics'));
         return (
-          <button
-            key={entry.id}
-            type="button"
-            disabled={!entry.ready}
-            aria-current={selected ? 'page' : undefined}
-            onClick={() => entry.ready && onNavigate(entry.id as Destination)}
-            title={entry.ready ? entry.label : `${entry.label} — not built yet`}
-            className={[
-              'flex h-(--density-row) items-center gap-3 rounded-md px-3 text-body',
-              'transition-colors duration-100 ease-easy',
-              selected ? 'bg-accent-subtle font-semibold text-fg' : 'text-fg-secondary',
-              entry.ready ? 'hover:bg-card-hover' : 'cursor-not-allowed text-fg-disabled',
-            ].join(' ')}
-          >
-            <span aria-hidden="true" className={selected ? 'text-accent' : undefined}>
-              {entry.icon}
-            </span>
-            <span className="truncate">{entry.label}</span>
-            {!entry.ready && <span className="ml-auto text-caption text-fg-disabled">soon</span>}
-          </button>
+          <Fragment key={entry.id}>
+            <button
+              type="button"
+              disabled={!entry.ready}
+              aria-current={selected ? 'page' : undefined}
+              aria-description={asks[entry.id as Destination]}
+              onClick={() => entry.ready && onNavigate(entry.id as Destination)}
+              title={
+                entry.ready
+                  ? (asks[entry.id as Destination] ?? entry.label)
+                  : `${entry.label} — not built yet`
+              }
+              className={[
+                'flex h-(--density-row) items-center gap-3 rounded-md px-3 text-body',
+                'transition-colors duration-100 ease-easy',
+                selected ? 'bg-accent-subtle font-semibold text-fg' : 'text-fg-secondary',
+                entry.ready ? 'hover:bg-card-hover' : 'cursor-not-allowed text-fg-disabled',
+              ].join(' ')}
+            >
+              <span aria-hidden="true" className={selected ? 'text-accent' : undefined}>
+                {entry.icon}
+              </span>
+              <span className="truncate">{entry.label}</span>
+              {asks[entry.id as Destination] !== undefined && (
+                <span
+                  aria-hidden="true"
+                  className="ml-auto size-2 shrink-0 rounded-full bg-accent"
+                />
+              )}
+              {!entry.ready && <span className="ml-auto text-caption text-fg-disabled">soon</span>}
+            </button>
+            {entry.id === 'tasks' && onOpenList !== undefined && (
+              <SidebarLists
+                activeListId={active === 'tasks' ? activeListId : null}
+                onOpenList={onOpenList}
+              />
+            )}
+          </Fragment>
         );
       })}
     </nav>
