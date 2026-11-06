@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Highlighter colours.** Highlight text in yellow, green, blue, pink, orange or purple from the
+  bar, to tell kinds of notes apart. Every colour keeps the text readable, in both themes.
 - **Sections in Notes.** Keep pages in coloured sections, as OneNote does: make a section, give
   it one of nine colours, and the pages you make there stay there. Move a page from its header.
   Pages with no section are in Quick notes, and deleting a section moves its pages back there.

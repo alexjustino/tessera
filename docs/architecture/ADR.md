@@ -1216,3 +1216,18 @@ it", and the links between pages already say what relates to what (ADR-029).
 **Cost accepted.** Sections are ordered as they were made; dragging them into another order, and
 section groups, are left for later. Lists use the same nine colours, so a colour means a thing only
 where the person decides it does.
+
+## ADR-058 — A highlight keeps its colour by name, and the theme paints it {#adr-058}
+
+**Context.** The owner's fourth look asked for colours to mark and categorise things in notes, as a
+highlighter pen does.
+
+**Decision.** TipTap's highlight is used with colours, and its colour attribute is kept as one of the
+names in `src/domain/colors.ts` (`data-color="green"`), never as a colour value. The stylesheet paints
+each name as 30% of that colour's token behind the text, so a highlight follows the theme and the
+paper, and `tokens.test.ts` holds that body text stays at 4.5:1 on every highlight, on a card, in both
+themes. A highlight with no name, from before this change or from Ctrl+Shift+H, is yellow. The bar's
+Highlight is a picker with the six bright colours and "No highlight".
+
+**Cost accepted.** An email draft (ADR-042) carries the highlight as a mark without its colour, because
+the colour lives in Tessera's stylesheet; a mail program shows its own highlight, or none.

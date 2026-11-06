@@ -1,6 +1,29 @@
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Image from '@tiptap/extension-image';
 import Highlight from '@tiptap/extension-highlight';
+
+import { isColor } from '@/domain/colors';
+
+/**
+ * A highlight in one of the named colours. The colour is kept by name and painted by
+ * the stylesheet from the theme's tokens, so it reads in both themes and on paper; an
+ * inline colour would be the same in the dark as in the light.
+ */
+const NamedHighlight = Highlight.extend({
+  addAttributes() {
+    return {
+      color: {
+        default: null,
+        parseHTML: (element) => {
+          const value = element.getAttribute('data-color');
+          return isColor(value) ? value : null;
+        },
+        renderHTML: (attributes) =>
+          isColor(attributes.color) ? { 'data-color': attributes.color as string } : {},
+      },
+    };
+  },
+}).configure({ multicolor: true });
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { TableKit } from '@tiptap/extension-table';
@@ -177,7 +200,7 @@ export function Editor({
       TaskItem.configure({ nested: true }),
       CodeBlockLowlight.configure({ lowlight }),
       TableKit.configure({ table: { resizable: true } }),
-      Highlight,
+      NamedHighlight,
       NoteMarker,
       Image.configure({ inline: false }),
       Link.configure({

@@ -4,7 +4,6 @@ import {
   Code20Regular,
   DocumentLink20Regular,
   Flag20Regular,
-  Highlight20Regular,
   Info20Regular,
   Link20Regular,
   Table20Regular,
@@ -21,6 +20,7 @@ import {
 import { useEditorState, type Editor as TipTapEditor } from '@tiptap/react';
 import { useState, type ReactNode } from 'react';
 
+import { HIGHLIGHTS } from '@/domain/colors';
 import { checkLink } from '@/domain/document';
 import { MARKER_ATTR, MARKERS, type MarkerId } from '@/domain/markers';
 import { Button } from '@/ui/Button';
@@ -87,7 +87,9 @@ export function Toolbar({
       italic: current.isActive('italic'),
       underline: current.isActive('underline'),
       strike: current.isActive('strike'),
-      highlight: current.isActive('highlight'),
+      highlight: current.isActive('highlight')
+        ? ((current.getAttributes('highlight').color as string | null) ?? 'yellow')
+        : '',
       bullets: current.isActive('bulletList'),
       numbers: current.isActive('orderedList'),
       todo: current.isActive('taskList'),
@@ -201,12 +203,25 @@ export function Toolbar({
           () => chain().toggleStrike().run(),
           state.strike,
         )}
-        {button(
-          'Highlight',
-          <Highlight20Regular />,
-          () => chain().toggleHighlight().run(),
-          state.highlight,
-        )}
+        <div className="w-28 shrink-0">
+          <Select
+            aria-label="Highlight"
+            title="Highlight the selection, in a colour that says what it is"
+            value={state.highlight}
+            onChange={(event) => {
+              const color = event.target.value;
+              if (color === '') chain().unsetHighlight().run();
+              else chain().setHighlight({ color }).run();
+            }}
+          >
+            <option value="">No highlight</option>
+            {HIGHLIGHTS.map((color) => (
+              <option key={color.id} value={color.id}>
+                {color.label}
+              </option>
+            ))}
+          </Select>
+        </div>
         <Divider />
         {button(
           'Bulleted list',
