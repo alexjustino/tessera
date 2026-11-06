@@ -16,6 +16,7 @@ import {
   useEvents,
   useStartTimer,
   useStopTimer,
+  useSubtasks,
   useTimeEntries,
 } from '@/data/hooks';
 import { suggestPlan } from '@/domain/autoPlan';
@@ -23,6 +24,7 @@ import { addLocalDays, todayIn } from '@/domain/calendar';
 import type { Item } from '@/domain/item';
 import { pickNow, type NowPick } from '@/domain/now';
 import { systemZone } from '@/domain/schedule';
+import { nextStep, progressOf, subtasksByParent } from '@/domain/subtasks';
 import { expandEvents } from '@/features/calendar/occurrences';
 import { useLedger } from '@/features/receipt/useLedger';
 import { describeDay, describeHours } from '@/features/reports/format';
@@ -91,6 +93,7 @@ export function NowCard({
   const start = useStartTimer();
   const stop = useStopTimer();
   const reserve = useCreateTimeBlock();
+  const subtasks = useSubtasks();
 
   const pick = useMemo(
     () =>
@@ -110,6 +113,9 @@ export function NowCard({
   const itemId =
     pick.kind === 'suggested' ? pick.suggestion.itemId : pick.kind === 'event' ? null : pick.itemId;
   const busy = start.isPending || stop.isPending || reserve.isPending;
+  const steps = itemId === null ? [] : (subtasksByParent(subtasks.data ?? []).get(itemId) ?? []);
+  const step = nextStep(steps);
+  const progress = progressOf(steps);
 
   return (
     <section
@@ -131,6 +137,11 @@ export function NowCard({
           {head}
         </p>
         <p className="text-caption text-fg-secondary">{line}</p>
+        {step !== null && (
+          <p className="truncate text-caption text-fg-secondary" data-testid="now-step">
+            Next step, {progress.done + 1} of {progress.total}: {step.title}
+          </p>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-1">
         {pick.kind === 'running' ? (

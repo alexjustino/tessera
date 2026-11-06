@@ -431,3 +431,41 @@ describe('reconciling with the properties already here', () => {
     expect(reconcile(plan, SEEDED)).toBe(plan);
   });
 });
+
+describe('a subtask in a Tessera export', () => {
+  const exported = (items: Array<Record<string, unknown>>) => ({
+    format: 'tessera-export',
+    tables: {
+      collection: [{ id: 'tasks', name: 'Tasks' }],
+      item: items.map((row) => ({ collection_id: 'tasks', ...row })),
+    },
+  });
+
+  it('comes in as a line of its task, in order, with its tick', () => {
+    const plan = fromTesseraExport(
+      exported([
+        { id: 'p', title: 'Pack' },
+        { id: 's2', title: 'Rope', parent_item_id: 'p', position: 'b', completed_at: 'now' },
+        { id: 's1', title: 'Boots', parent_item_id: 'p', position: 'a' },
+      ]),
+    );
+    expect(plan?.tasks.map((task) => task.title)).toEqual(['Pack']);
+    const list = plan?.tasks[0]?.blocks?.[0]?.content as {
+      content: Array<{
+        attrs: { checked: boolean };
+        content: Array<{ content: Array<{ text: string }> }>;
+      }>;
+    };
+    expect(list.content.map((line) => line.content[0]?.content[0]?.text)).toEqual([
+      'Boots',
+      'Rope',
+    ]);
+    expect(list.content.map((line) => line.attrs.checked)).toEqual([false, true]);
+  });
+
+  // ── Negative case ──────────────────────────────────────────────────────
+  it('keeps as a task one whose parent the file does not hold, rather than losing it', () => {
+    const plan = fromTesseraExport(exported([{ id: 's', title: 'Lost', parent_item_id: 'gone' }]));
+    expect(plan?.tasks.map((task) => task.title)).toEqual(['Lost']);
+  });
+});

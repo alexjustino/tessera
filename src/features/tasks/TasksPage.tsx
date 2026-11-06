@@ -21,6 +21,7 @@ import {
   useRenameItem,
   useSetItemCompleted,
   useSetSchedule,
+  useSubtasks,
   useMoveOnBoard,
   useSetPropertyValue,
   useTimeEntries,
@@ -39,6 +40,7 @@ import type { Property, PropertyValue } from '@/domain/property';
 import { EMPTY_QUERY, flatten, run, type Query, type Row } from '@/domain/query';
 import { inSlice, type Slice } from '@/domain/overview';
 import { todayMarkOf, type TodayMark } from '@/domain/pulse';
+import { progressOf, subtasksByParent, type Progress } from '@/domain/subtasks';
 import { dueForToday } from '@/domain/today';
 import { BoardView, CalendarView, TableView, TimelineView } from '@/app/lazyPages';
 import { CaptureLine } from '@/features/capture/CaptureLine';
@@ -275,6 +277,16 @@ export function TasksPage({
   );
 
   const pulse = usePulse(items.data ?? []);
+
+  // How far along each task's subtasks are, for its row and its card.
+  const subtasks = useSubtasks();
+  const stepsOf = useMemo(() => {
+    const found = new Map<string, Progress>();
+    for (const [parent, steps] of subtasksByParent(subtasks.data ?? [])) {
+      found.set(parent, progressOf(steps));
+    }
+    return found;
+  }, [subtasks.data]);
 
   // Which pages are applied to each task, for its row and its card to say so.
   const pages = usePages();
@@ -601,6 +613,7 @@ export function TasksPage({
                   board={board}
                   marks={marks}
                   notesOf={notesOf}
+                  stepsOf={stepsOf}
                   onOpenPage={onOpenPage}
                   onQueryChange={(nextQuery, nextBoard) => {
                     setDraftQuery(nextQuery);
@@ -624,6 +637,7 @@ export function TasksPage({
                   groups={result.groups}
                   grouped={query.groupBy !== null}
                   notesOf={notesOf}
+                  stepsOf={stepsOf}
                   onOpenPage={onOpenPage}
                   blockedIds={blockedIds}
                   criticalIds={criticalIds}

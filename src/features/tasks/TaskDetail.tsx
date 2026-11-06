@@ -13,6 +13,7 @@ import { Skeleton } from '@/ui/Skeleton';
 import { Dependencies } from './Dependencies';
 import { LinkedNotes } from './LinkedNotes';
 import { PlanEditor } from './PlanEditor';
+import { Subtasks } from './Subtasks';
 import { TimeTracker } from './TimeTracker';
 import { Warnings } from './Warnings';
 
@@ -116,6 +117,12 @@ export function TaskDetail({
           >
             Focus on this
           </Button>
+        </div>
+      )}
+
+      {task !== null && (
+        <div className="mb-5 border-b border-stroke-subtle pb-4">
+          <Subtasks key={task.id} task={task} siblings={items} />
         </div>
       )}
 
