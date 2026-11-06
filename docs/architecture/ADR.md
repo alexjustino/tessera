@@ -1231,3 +1231,17 @@ Highlight is a picker with the six bright colours and "No highlight".
 
 **Cost accepted.** An email draft (ADR-042) carries the highlight as a mark without its colour, because
 the colour lives in Tessera's stylesheet; a mail program shows its own highlight, or none.
+
+## ADR-059 — A list explains itself where it is made, and wears a colour {#adr-059}
+
+**Context.** In the fourth look the owner did not understand what New list was for, and took it for a
+way to make tags. A feature a person has to guess at is not finished.
+
+**Decision.** The line that makes a list says, in one sentence, what a list is: a kind of work kept
+apart, with its own board, while Today still shows everything due. An empty list says the same and
+how to fill it, writing `#name` included (ADR-055). `collection.color`, unused since migration 001, now
+holds one of the nine colours of ADR-057, kept to that list by the host. A new list takes the least
+used one, the rail draws it beside the name, and Today's chip carries it. The list's page changes it.
+
+**Cost accepted.** A list is still not a tag: a task is in one list. Tags, many to one task, remain a
+separate idea the product does not have yet.

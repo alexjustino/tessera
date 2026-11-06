@@ -257,6 +257,11 @@ of a week that slipped. Each lands as its own slice, with its own proof.
   thing it marks. The colour is kept by name and painted from the theme, and the text stays
   readable on every one, in both themes.
 
+- **Lists that say what they are, in colour** (ADR-059). The line that makes a list
+  explains it in a sentence, and an empty list says how to fill it, `#name` included. A new
+  list takes a colour of its own, from the same nine as sections, shown beside it in the
+  rail and beside its name on Today; Colour on the list's page changes it.
+
 #### Deferred out of lists, and why
 
 - **Ordering lists by dragging, colours and icons.** The rail shows them in the order
