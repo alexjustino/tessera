@@ -199,6 +199,31 @@ What 1.3 deliberately does not add: a scheduler that places work by itself; a
 habit score or a productivity grade (the ledger states facts, it does not
 judge); attention, energy or anything that is not time; sync.
 
+### Next line — the steps (in progress)
+
+Two things a person asked for after using 1.4 every day: a task's steps, and a way out
+of a week that slipped. Each lands as its own slice, with its own proof.
+
+- **Subtasks** (ADR-051). The steps inside a task: typed one after another, or pasted
+  as a list, ticked, put in order by pointer or keyboard, and made a task of their own
+  when they turn out to be work. The task's row and card say how far along it is, Now
+  names the next step, and Focus shows the steps to tick. When the last is ticked the
+  task is offered its finish, never given it. A repeating task starts its steps again.
+  A step is not a task: lists, the score, the plan and every figure count tasks.
+  Search finds a step and opens its task; Markdown prints steps under their task; the
+  import door brings them in as the task's checklist.
+- **Replan in one press** (to come). Every late task moved to the next free time, the
+  date with it, shown beforehand and undone in one press.
+
+#### Deferred out of subtasks, and why
+
+- **Dates, estimates and the clock on a step.** Each would make a step a second kind of
+  task, and every figure would have to choose which to count. The task carries them.
+- **Steps inside steps.** One level keeps a task readable at a glance and the count
+  honest. The host refuses a deeper one.
+- **Steps in templates.** A template stamps tasks; stamping their steps is a change to
+  ADR-033's shape, and belongs with it.
+
 ## 3. Architecture
 
 ```

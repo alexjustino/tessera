@@ -30,7 +30,7 @@ calls a board and what Notion calls a database.
 | `workspace`           | one row: name, settings, `schema_version`               |
 | `collection`          | a list / board / database                               |
 | `property`            | a typed field declared on a collection                  |
-| `item`                | a unit of work, optionally nested under another         |
+| `item`                | a task, or one step inside a task (one level, ADR-051)  |
 | `item_property_value` | the entity-attribute-value store for property values    |
 | `tag`, `item_tag`     | global labels                                           |
 | `block`               | the document, for an item, an event or a page           |

@@ -1055,3 +1055,28 @@ by the program that receives it. Formatting is the point of the feature.
 **Cost accepted.** A draft is a copy of somebody's notes in a temporary folder until the next draft
 clears anything over a day old. What a `.eml` opens as depends on the person's mail program: Outlook
 honours `X-Unsent`, and others may show it read-only or not open it at all.
+
+## ADR-051 — A step is less than a task, and every count goes on counting tasks {#adr-051}
+
+**Context.** The owner asked for subtasks. `item.parent_item_id` has existed since migration 001,
+unused, so the store already allows a tree. The question is what a child is.
+
+**Decision.** A subtask is an `item` with a parent, one level deep: it has a name, a place in the
+order and a tick, and nothing else the screens offer. `items_list` returns only items without a
+parent, so the plan, the score, Today, the overview, reports and goals keep counting what they
+counted. Steps come from their own command, `subtasks_list`, and the screens join them to their task
+by id. The host refuses a step under a step. Completing an occurrence of a repeating task clears its
+steps' ticks; completing the last one leaves them. A search hit on a step names the task. Markdown
+prints steps indented under their task, and the import door turns them into the task's checklist,
+because it adds tasks and has no parent to point at. Ticking the last step offers to finish the task
+and never does it: a person may have something left that is not written down.
+
+**Why not a checklist inside the task's notes.** A checklist in a document cannot be counted on a
+row without reading every document, cannot be reordered by a handle, and cannot become a task.
+
+**Why not a full task under a task.** Dates, estimates and time on a child would make every figure
+decide whether to count the parent, the children or both, and two honest answers would disagree.
+
+**Cost accepted.** No migration, so a 1.4 workspace reads the same, but an older Tessera given a
+newer workspace would show steps as tasks. A step made into a task keeps its tick and gains nothing
+else; the person gives it a date if it needs one.
