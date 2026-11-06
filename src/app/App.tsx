@@ -18,9 +18,10 @@ import { closeOpening } from '@/app/opening';
 import { applyAccent, applyDensity, applyTheme } from '@/app/theme';
 import { WORKSPACE_CHANGED, showCapture } from '@/data/capture';
 import { pauseReminders, resumeReminders } from '@/data/reminders';
-import { useSaveSettings, useSettings } from '@/data/hooks';
+import { useItems, useSaveSettings, useSettings } from '@/data/hooks';
 import { fetchAccentRamp } from '@/data/system';
 import { settingsAsk } from '@/domain/gettingStarted';
+import { INBOX } from '@/domain/lists';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
 import type { SettingsCard } from '@/features/guide/GettingStarted';
 import { CommandPalette } from '@/features/palette/CommandPalette';
@@ -50,6 +51,9 @@ interface Focus {
  */
 export function App() {
   const [destination, setDestination] = useState<Destination>('tasks');
+  /** The list Tasks and the Board show (ADR-053). */
+  const [listId, setListId] = useState<string>(INBOX);
+  const everything = useItems(null, true);
   const [settingsCard, setSettingsCard] = useState<SettingsCard | null>(null);
   const [focus, setFocus] = useState<Focus>({ itemId: null, nonce: 0 });
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -129,6 +133,8 @@ export function App() {
     // rather than flashing an empty shape.
     startTransition(() => {
       setSettingsCard(null);
+      // Tasks in the rail is the inbox; a list of one's own is opened from under it.
+      if (next === 'tasks') setListId(INBOX);
       setDestination(next);
       setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
     });
@@ -140,10 +146,25 @@ export function App() {
     setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
   }, []);
 
-  const openItem = useCallback((itemId: string) => {
-    setDestination('tasks');
-    setFocus((current) => ({ itemId, nonce: current.nonce + 1 }));
+  const openList = useCallback((id: string) => {
+    startTransition(() => {
+      setSettingsCard(null);
+      setListId(id);
+      setDestination('tasks');
+      setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
+    });
   }, []);
+
+  // A task opens in its own list, wherever it was found.
+  const openItem = useCallback(
+    (itemId: string) => {
+      const found = everything.data?.find((item) => item.id === itemId);
+      setListId(found?.collectionId ?? INBOX);
+      setDestination('tasks');
+      setFocus((current) => ({ itemId, nonce: current.nonce + 1 }));
+    },
+    [everything.data],
+  );
 
   const openPage = useCallback((pageId: string) => {
     setOpenPageId(pageId);
@@ -196,7 +217,7 @@ export function App() {
     [go, saveSettings, settings.data],
   );
 
-  const pageKey = `${destination}:${focus.nonce}`;
+  const pageKey = `${destination}:${listId}:${focus.nonce}`;
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg">
@@ -216,6 +237,8 @@ export function App() {
             onNavigate={go}
             onSearch={() => setPaletteOpen(true)}
             asks={settingsQuestion === null ? {} : { settings: settingsQuestion }}
+            activeListId={listId}
+            onOpenList={openList}
           />
           <main className="min-w-0 flex-1 overflow-y-auto bg-layer">
             <ErrorBoundary key={pageKey}>
@@ -225,6 +248,8 @@ export function App() {
                 {destination === 'tasks' && (
                   <TasksPage
                     key={pageKey}
+                    collectionId={listId}
+                    onListDeleted={() => go('tasks')}
                     initialDetailId={focus.itemId}
                     onFocus={setFocused}
                     onOpenSettings={openSettings}
@@ -245,6 +270,7 @@ export function App() {
                   <TasksPage
                     key={pageKey}
                     place="board"
+                    collectionId={listId}
                     onFocus={setFocused}
                     onOpenPage={openPage}
                   />

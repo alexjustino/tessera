@@ -1254,3 +1254,32 @@ blocks that do not match them. ADR-040's warnings follow the date inside the sam
 without any work being done. The score (ADR-045) counts what was delivered, and a moved date is not
 that. The card says plainly what it moved. Undo lives with the card that made the change and is gone
 once the person leaves the screen.
+
+## ADR-053 — A list is a collection set up like Tasks, and every count reads all of them {#adr-053}
+
+**Context.** The owner asked for more than one list. The `collection` table has existed since
+migration 001 and the import door has written new collections since 1.2, but the screens only ever
+showed `tasks`, so an imported board was reachable only by the import's own undo.
+
+**Decision.** A list is a collection. A new one copies how Tasks is set up: every property, under new
+ids, and every view of Tasks, with each reference to a Tasks property in a view's configuration
+rewritten to the new list's own, so its board groups by its own Status. Tasks is the inbox: quick
+capture writes there, it cannot be deleted, and the rail names it on its own entry, with the
+person's lists under it. Tasks and the Board show one list; Today, the plan, the score and every
+figure read all of them. A row from another list on Today says which, and shows no inline property
+of the inbox, because a property is its own list's. Moving a task takes its subtasks with it, and
+each value goes to the target's property with the same key and type, or is dropped, because a value
+on a property the list does not have would be shown nowhere. A task found elsewhere opens in its own
+list. No migration.
+
+**Why delete only when empty.** `item.collection_id` cascades: deleting a collection deletes its
+tasks. The host refuses a list that holds anything, finished tasks included, and the page says what
+is in the way instead of offering a confirmation that would destroy work.
+
+**Why copy and not share properties.** Sharing would need a property that belongs to no collection,
+which every query and the import door's reconcile (ADR-027) would have to learn. A copy keeps the
+model as it is, at the cost that a property added to Tasks later does not appear in lists made
+before it.
+
+**Cost accepted.** On Today, a task from another list shows its title, date and list, not its Status
+or Priority; those are edited in its panel or its list.

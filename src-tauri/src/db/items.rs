@@ -56,7 +56,7 @@ fn clean_title(title: &str) -> Result<String> {
 /// produces keys lives in `src/domain/ordering.ts` and stays there. The host
 /// only refuses a value that could not have come from it, so a bug upstream
 /// surfaces as an error rather than as a list that silently sorts wrong.
-fn check_position(position: &str) -> Result<()> {
+pub(crate) fn check_position(position: &str) -> Result<()> {
     if position.is_empty() {
         return Err(Error::InvalidInput("an order key cannot be empty"));
     }

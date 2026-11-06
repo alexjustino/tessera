@@ -14,6 +14,7 @@ pub mod goals;
 pub mod importing;
 pub mod item_pages;
 pub mod items;
+pub mod lists;
 pub mod migrations;
 pub mod models;
 pub mod pages;
