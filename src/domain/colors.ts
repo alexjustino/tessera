@@ -44,6 +44,15 @@ export const SWATCH: Record<ColorId, string> = {
   gray: 'bg-tag-gray',
 };
 
+/**
+ * The colours text can be highlighted in, as a highlighter pen: the bright ones of the
+ * nine. Drawn as a tint behind the text, so the text keeps its own colour and stays
+ * readable on every one (`tokens.test.ts`).
+ */
+const HIGHLIGHT_IDS: readonly ColorId[] = ['yellow', 'green', 'blue', 'pink', 'orange', 'purple'];
+
+export const HIGHLIGHTS = COLORS.filter((color) => HIGHLIGHT_IDS.includes(color.id));
+
 /** The colour after the last one used, so a new section is told apart by default. */
 export function nextColor(used: readonly (string | null)[]): ColorId {
   const counts = new Map<ColorId, number>(COLORS.map((color) => [color.id, 0]));
