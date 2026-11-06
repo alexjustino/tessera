@@ -1136,3 +1136,20 @@ before it.
 
 **Cost accepted.** On Today, a task from another list shows its title, date and list, not its Status
 or Priority; those are edited in its panel or its list.
+
+## ADR-055 — A `#name` on the capture line is a list only when a list has that name {#adr-055}
+
+**Context.** ADR-053 left capturing into a list for later, because a hash is also how people write
+numbers and tags.
+
+**Decision.** `parseCapture` takes the person's lists. A `#` at the start of the line or after a space,
+followed by a list's name, whatever its case, and then the end, a space or punctuation, is that list.
+The longest name written wins, so `#home office` is not `#home`. It is read last, so it claims nothing
+another phrase claimed, and never inside brackets. The chip reads "In Work". Any other `#word` stays
+in the title, for the same reason a reminder with no date does: a chip that does nothing is a lie.
+The task lands after the target list's last task, with the target list's own Priority property,
+read from the host when the list is not the one on screen. The palette lists Go to for each list.
+
+**Cost accepted.** A list renamed to a word people write with a hash, `#1` say, starts taking that
+word out of titles. The chip shows it before the task is written, and removing the chip keeps the
+word.
