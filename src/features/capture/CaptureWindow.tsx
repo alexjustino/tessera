@@ -7,7 +7,14 @@ import mark from '@/assets/mark.svg';
 import { applyAccent } from '@/app/theme';
 import { CAPTURE_SHOWN, hideCapture } from '@/data/capture';
 import { describeError } from '@/data/errors';
-import { useCaptureItem, useCaptureStatus, useItems, useProperties } from '@/data/hooks';
+import {
+  useCaptureItem,
+  useCaptureStatus,
+  useCollections,
+  useItems,
+  useProperties,
+} from '@/data/hooks';
+import { landingIn } from '@/data/items';
 import { fetchAccentRamp } from '@/data/system';
 import type { Capture } from '@/domain/capture';
 import { positionForNewItem } from '@/domain/item';
@@ -40,6 +47,7 @@ export function CaptureWindow() {
   const linger = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const items = useItems(COLLECTION, true);
+  const collections = useCollections();
   const properties = useProperties(COLLECTION);
   const status = useCaptureStatus();
   const capture = useCaptureItem();
@@ -102,22 +110,33 @@ export function CaptureWindow() {
   }, []);
 
   const submit = (parsed: Capture) => {
-    capture.mutate(
-      {
-        collectionId: COLLECTION,
-        position: positionForNewItem(items.data ?? []),
-        capture: parsed,
-        priorityPropertyId,
-      },
-      {
-        onSuccess: (item) => {
-          setValue('');
-          setAdded({ title: item.title, dueAt: item.dueAt });
-          announce(`Added ${item.title} to Tasks`);
-          linger.current = setTimeout(() => void hideCapture(), LINGER_MS);
+    const target = parsed.listId ?? COLLECTION;
+    const where = (collections.data ?? []).find((list) => list.id === target)?.name ?? 'Tasks';
+    const write = (position: string, priority: string | null) =>
+      capture.mutate(
+        {
+          collectionId: target,
+          position,
+          capture: parsed,
+          priorityPropertyId: priority,
         },
-      },
-    );
+        {
+          onSuccess: (item) => {
+            setValue('');
+            setAdded({ title: item.title, dueAt: item.dueAt });
+            announce(`Added ${item.title} to ${where}`);
+            linger.current = setTimeout(() => void hideCapture(), LINGER_MS);
+          },
+        },
+      );
+    if (target === COLLECTION) {
+      write(positionForNewItem(items.data ?? []), priorityPropertyId);
+    } else {
+      void landingIn(target).then(
+        (landing) => write(landing.position, landing.priorityPropertyId),
+        () => write(positionForNewItem([]), null),
+      );
+    }
   };
 
   return (

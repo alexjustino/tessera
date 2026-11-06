@@ -2,6 +2,7 @@ import { Dismiss12Regular } from '@fluentui/react-icons';
 import { useMemo, type FormEvent } from 'react';
 
 import { parseCapture, withoutChip, type Capture, type Chip as ParsedChip } from '@/domain/capture';
+import { useCollections } from '@/data/hooks';
 import { checkTitle } from '@/domain/item';
 import { systemZone } from '@/domain/schedule';
 import { Chip } from '@/ui/Chip';
@@ -43,10 +44,12 @@ export function CaptureLine({
 }) {
   // `now` is read at render: the chips must say "Today" for today, and a line
   // left open across midnight re-labels itself on the next keystroke.
+  const collections = useCollections();
   const capture = useMemo(
-    () => parseCapture(value, new Date().toISOString(), systemZone()),
-    [value],
+    () => parseCapture(value, new Date().toISOString(), systemZone(), collections.data ?? []),
+    [value, collections.data],
   );
+  const manyLists = (collections.data ?? []).length > 1;
   const check = checkTitle(capture.title);
   const ready = check.status === 'ok' && !disabled;
 
@@ -117,6 +120,12 @@ export function CaptureLine({
           <span className="text-fg-secondary">in 3 days</span> ·{' '}
           <span className="text-fg-secondary">!high</span> ·{' '}
           <span className="text-fg-secondary">remind me 15m before</span>
+          {manyLists && (
+            <>
+              {' '}
+              · <span className="text-fg-secondary">#list</span>
+            </>
+          )}
         </p>
       )}
     </div>
@@ -129,6 +138,7 @@ const KIND_LABEL: Record<ParsedChip['kind'], string> = {
   repeat: 'Repeat',
   priority: 'Priority',
   remind: 'Remind',
+  list: 'In',
 };
 
 function toneOf(chip: ParsedChip, capture: Capture): ChipTone {
