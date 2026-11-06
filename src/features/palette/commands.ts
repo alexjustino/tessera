@@ -16,7 +16,9 @@ export type CommandId =
   | 'reminders.resume'
   | 'theme.system'
   | 'theme.light'
-  | 'theme.dark';
+  | 'theme.dark'
+  /** Go to one of the person's own lists (ADR-053). */
+  | `list.${string}`;
 
 export interface PaletteCommand extends Command {
   id: CommandId;

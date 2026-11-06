@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   meeting and its day, ready with when it is and headings for notes, decisions and follow-ups.
   The same press finds the page again, and each week of a repeating meeting has its own. A
   follow-up written there becomes a task paired with the page. Adds migration 021.
+- **Capture into a list.** Write `#work` on the capture line, or in quick capture, and the task
+  goes to Work; a chip says so before it is added. A `#` that names no list stays in the title.
+  Search or run a command offers Go to for each list.
 - **Lists.** Make a list from the rail, under Tasks, and keep work apart: each list has its own
   tasks, board and properties, set up the way Tasks is. Move a task to another list from its
   panel, and its subtasks and values go with it. Today still shows everything due, from every
