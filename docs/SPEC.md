@@ -240,6 +240,11 @@ of a week that slipped. Each lands as its own slice, with its own proof.
   the quick-capture window included, sends the task to Work, and a chip says so before
   anything is written; the task lands after that list's last, with that list's Priority.
   A `#word` that names no list stays in the title. The palette offers Go to for each list.
+- **Marked lines that know when they are done** (ADR-056). A To do line carries a tick
+  where it is written, and ticking it is saved with the page. A Follow up line remembers
+  the task it became, and is drawn done once that task is finished. Marked lines shows
+  which are done, and pressing a line goes to that line in its page, with the caret on it.
+  A Question, an Important line and a Decision are never done.
 
 #### Deferred out of lists, and why
 

@@ -23,6 +23,12 @@ export const MARKERS: ReadonlyArray<{ id: MarkerId; label: string }> = [
 /** The attribute a marked line carries. */
 export const MARKER_ATTR = 'noteMarker';
 
+/** A To do line that was ticked. */
+export const DONE_ATTR = 'noteDone';
+
+/** The task a Follow up line became, so the line can say when it is done. */
+export const TASK_ATTR = 'noteTask';
+
 export function isMarker(value: unknown): value is MarkerId {
   return MARKERS.some((marker) => marker.id === value);
 }
@@ -43,7 +49,13 @@ export interface MarkedBlock {
 export interface MarkedLine {
   /** Unique within the result: a block can hold several marked lines. */
   key: string;
+  /** The stored block the line is in, so the line can be found again. */
+  blockId: string;
   marker: MarkerId;
+  /** Ticked, for a To do line. */
+  done: boolean;
+  /** The task a Follow up line became. */
+  taskId: string | null;
   text: string;
   ownerKind: MarkedBlock['ownerKind'];
   ownerId: string;
@@ -66,9 +78,13 @@ export function markedLines(blocks: readonly MarkedBlock[]): MarkedLine[] {
         const text = textOf(node).trim();
         // A marker left on an empty line has nothing to say.
         if (text !== '') {
+          const task = node.attrs?.[TASK_ATTR];
           lines.push({
             key: `${block.blockId}:${index}`,
+            blockId: block.blockId,
             marker,
+            done: node.attrs?.[DONE_ATTR] === true,
+            taskId: typeof task === 'string' ? task : null,
             text,
             ownerKind: block.ownerKind,
             ownerId: block.ownerId,
@@ -82,6 +98,19 @@ export function markedLines(blocks: readonly MarkedBlock[]): MarkedLine[] {
     walk(block.content);
   }
   return lines;
+}
+
+/**
+ * Whether a line's work is done: a To do that was ticked, or a Follow up whose task
+ * was finished. Nothing else is ever done; a Question stays a question.
+ */
+export function isLineDone(
+  line: { marker: MarkerId; done: boolean; taskId: string | null },
+  finished: ReadonlySet<string>,
+): boolean {
+  if (line.marker === 'todo') return line.done;
+  if (line.marker === 'followup') return line.taskId !== null && finished.has(line.taskId);
+  return false;
 }
 
 /** The lines under their markers, in the markers' order, leaving out the empty ones. */

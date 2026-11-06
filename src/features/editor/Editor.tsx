@@ -19,13 +19,14 @@ import {
   toDocument,
   type Block,
   type DocJSON,
+  BLOCK_ID_ATTR,
 } from '@/domain/document';
 import { between } from '@/domain/ordering';
 import { refresh, resolve, targetsOf, type Page as PageRow } from '@/domain/page';
 
 import { BlockId, newId } from './BlockId';
 import { Callout } from './Callout';
-import { NoteMarker } from './NoteMarker';
+import { NoteMarker, REFRESH_MARKERS } from './NoteMarker';
 import { Toolbar } from './Toolbar';
 import { LinkMenu } from './LinkMenu';
 import { LinkPreview, type LinkTarget } from './LinkPreview';
@@ -63,7 +64,10 @@ export function Editor({
   fill = false,
   onOpenPage,
   onOpenItem,
+  reveal = null,
 }: {
+  /** A line to bring into view and put the caret on, once the document is open. */
+  reveal?: { blockId: string; text: string } | null;
   /** Fill the height it is given, for a page with nothing else to do. */
   fill?: boolean;
   /** Go to a page, from a link in the text. */
@@ -273,6 +277,50 @@ export function Editor({
     const document = refresh(toDocument(blocks.data), pages.data, tasks.data ?? []);
     editor.commands.setContent(document as never, { emitUpdate: false });
   }, [editor, blocks.data, pages.data, tasks.data]);
+
+  // A Follow up line is done when its task is, which the document does not hold: the
+  // editor is told which tasks are finished, and draws the lines again.
+  useEffect(() => {
+    if (editor === null || editor.isDestroyed) return;
+    const finished = new Set(
+      (tasks.data ?? []).filter((task) => task.completedAt !== null).map((task) => task.id),
+    );
+    editor.view.dispatch(editor.state.tr.setMeta(REFRESH_MARKERS, finished));
+  }, [editor, tasks.data]);
+
+  // Go to the line a person asked for: the caret on it, in view, lit for a moment.
+  const revealed = useRef<string | null>(null);
+  useEffect(() => {
+    if (editor === null || editor.isDestroyed || reveal === null) return;
+    if (blocks.data === undefined || stored.current.length === 0) return;
+    const wanted = `${reveal.blockId}:${reveal.text}`;
+    if (revealed.current === wanted) return;
+    let at: number | null = null;
+    editor.state.doc.forEach((top, offset) => {
+      if (at !== null || top.attrs[BLOCK_ID_ATTR] !== reveal.blockId) return;
+      at = offset;
+      top.descendants((node, pos) => {
+        if (node.isTextblock && node.textContent.trim() === reveal.text) {
+          at = offset + 1 + pos;
+          return false;
+        }
+        return true;
+      });
+    });
+    if (at === null) return;
+    revealed.current = wanted;
+    editor
+      .chain()
+      .focus()
+      .setTextSelection(at + 1)
+      .scrollIntoView()
+      .run();
+    const element = editor.view.nodeDOM(at);
+    if (element instanceof HTMLElement) {
+      element.classList.add('note-revealed');
+      setTimeout(() => element.classList.remove('note-revealed'), 2000);
+    }
+  }, [editor, reveal, blocks.data, tasks.data]);
 
   // Flush on the way out. Without this, the last sentence typed before closing
   // the panel is lost with no error and no trace.

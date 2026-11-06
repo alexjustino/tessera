@@ -1174,3 +1174,24 @@ read from the host when the list is not the one on screen. The palette lists Go 
 **Cost accepted.** A list renamed to a word people write with a hash, `#1` say, starts taking that
 word out of titles. The chip shows it before the task is written, and removing the chip keeps the
 word.
+
+## ADR-056 — A To do is ticked on the line; a Follow up is done by its task {#adr-056}
+
+**Context.** 1.4 left three things about markers for later: a tick on To do, a Follow up line that
+says when its task is finished, and Marked lines going to the exact line. The owner chose them before
+the candidate's UAT.
+
+**Decision.** Two attributes join the marker on a line: `noteDone`, set by the
+tick a To do line carries, and `noteTask`, the task a Follow up line became, written when the
+follow-up is made. The tick is a widget the editor draws, and pressing it is an edit saved like any
+other. A Follow up line's done is not stored: the editor is told which tasks are finished and draws
+the line struck. `isLineDone` in `src/domain/markers.ts` is the one rule, used by the editor and by
+Marked lines alike. Marked lines carries each line's block, and pressing one opens the page with the
+caret on that line, lit for a moment. A task's notes open the task, as before.
+
+**Why not store the Follow up's done.** The task is where it is finished, on a board, in Focus or on
+Today. A copy on the line would be a second answer that goes stale the first time the task is
+reopened.
+
+**Cost accepted.** A Follow up made before this change knows no task, and stays undone until it is
+marked again. Changing a line's marker clears what belonged to the old one.
