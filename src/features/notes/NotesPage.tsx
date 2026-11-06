@@ -1,6 +1,8 @@
 import {
+  Add16Regular,
   Add20Regular,
   Delete20Regular,
+  Edit16Regular,
   Rename20Regular,
   TagMultiple20Regular,
   TaskListSquareLtr16Regular,
@@ -8,7 +10,17 @@ import {
 import { Suspense, useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
-import { useCreatePage, useDeletePage, useItemPages, usePages, useRenamePage } from '@/data/hooks';
+import {
+  useCreatePage,
+  useDeletePage,
+  useFilePage,
+  useItemPages,
+  usePages,
+  useRenamePage,
+  useSections,
+} from '@/data/hooks';
+import { SWATCH } from '@/domain/colors';
+import { orderedSections, pageCounts, pagesIn, QUICK_NOTES, type Section } from '@/domain/sections';
 import { between } from '@/domain/ordering';
 import { checkTitle, titleKey, UNTITLED, type Page } from '@/domain/page';
 import { Editor } from '@/app/lazyPages';
@@ -16,12 +28,14 @@ import { AppliedTasks } from './AppliedTasks';
 import { MeetingLine } from './MeetingLine';
 import { Connections } from './Connections';
 import { MarkedLines } from './MarkedLines';
+import { SectionDialog } from './SectionDialog';
 import { Button } from '@/ui/Button';
 import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { EmptyState } from '@/ui/EmptyState';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { Input } from '@/ui/Input';
+import { Select } from '@/ui/Select';
 import { Skeleton } from '@/ui/Skeleton';
 import { announce } from '@/ui/announce';
 
@@ -43,6 +57,8 @@ export function NotesPage({
   onOpenItem?: (itemId: string) => void;
 }) {
   const pages = usePages();
+  const sections = useSections();
+  const filePage = useFilePage();
   const create = useCreatePage();
   const rename = useRenamePage();
   const remove = useDeletePage();
@@ -54,6 +70,10 @@ export function NotesPage({
   const [confirming, setConfirming] = useState(false);
   const [filter, setFilter] = useState('');
   const [showMarked, setShowMarked] = useState(false);
+  /** The section chosen in the list; undefined follows the open page's. */
+  const [chosenSection, setChosenSection] = useState<string | null | undefined>(undefined);
+  /** The section being made (null) or changed, while its dialog is open. */
+  const [sectionDialog, setSectionDialog] = useState<{ editing: Section | null } | null>(null);
 
   const all = useMemo(() => pages.data ?? [], [pages.data]);
   const pairs = useItemPages();
@@ -68,7 +88,14 @@ export function NotesPage({
   // person chose, and the list decides what that means now. Nothing chosen, or
   // a page deleted from under them, falls back to the first one — without an
   // effect that would render once against a page that is gone.
-  const open = all.find((page) => page.id === openId) ?? all[0] ?? null;
+  const ordered = useMemo(() => orderedSections(sections.data ?? []), [sections.data]);
+  const counts = useMemo(() => pageCounts(all), [all]);
+  const chosen = all.find((page) => page.id === openId);
+  const currentSection = chosenSection !== undefined ? chosenSection : (chosen?.sectionId ?? null);
+  const open =
+    chosen !== undefined && (chosenSection === undefined || chosen.sectionId === currentSection)
+      ? chosen
+      : (pagesIn(all, currentSection)[0] ?? null);
 
   const openPage = (pageId: string) => {
     setOpenId(pageId);
@@ -78,8 +105,16 @@ export function NotesPage({
 
   const shown = useMemo(() => {
     const key = titleKey(filter);
-    return key === '' ? all : all.filter((page) => titleKey(page.title).includes(key));
-  }, [all, filter]);
+    // Finding looks in every section; otherwise the list is the section's.
+    return key === ''
+      ? pagesIn(all, currentSection)
+      : all.filter((page) => titleKey(page.title).includes(key));
+  }, [all, filter, currentSection]);
+
+  const sectionColorOf = (sectionId: string | null) => {
+    const color = ordered.find((section) => section.id === sectionId)?.color;
+    return color ? SWATCH[color] : null;
+  };
 
   const others = useMemo(() => all.filter((page) => page.id !== open?.id), [all, open?.id]);
   const complaint = draftTitle === null ? null : checkTitle(draftTitle, others);
@@ -95,6 +130,11 @@ export function NotesPage({
       { title, position: between(all.at(-1)?.position ?? null, null) },
       {
         onSuccess: (page) => {
+          // A new page is made where the person is: in the section on screen.
+          if (currentSection !== null) {
+            filePage.mutate({ id: page.id, sectionId: currentSection });
+          }
+          setChosenSection(currentSection);
           setOpenId(page.id);
           setDraftTitle(page.title);
           setShowMarked(false);
@@ -153,7 +193,76 @@ export function NotesPage({
           Marked lines
         </button>
 
-        <ul className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+        <div className="flex items-center justify-between px-2 pt-1">
+          <h2 className="text-caption font-semibold text-fg-tertiary uppercase">Sections</h2>
+          <IconButton
+            label="New section"
+            icon={<Add16Regular />}
+            onClick={() => setSectionDialog({ editing: null })}
+          />
+        </div>
+        <ul aria-label="Sections" className="flex flex-col gap-0.5">
+          {[null, ...ordered].map((section) => {
+            const id = section?.id ?? null;
+            const selected = !showMarked && filter === '' && id === currentSection;
+            const name = section?.name ?? QUICK_NOTES;
+            const count = counts.get(id ?? '') ?? 0;
+            return (
+              <li key={id ?? 'quick'} className="group flex items-center gap-1">
+                <button
+                  type="button"
+                  data-section={id ?? 'quick'}
+                  aria-current={selected ? 'true' : undefined}
+                  aria-label={`${name}, ${count} ${count === 1 ? 'page' : 'pages'}`}
+                  onClick={() => {
+                    setChosenSection(id);
+                    setOpenId(pagesIn(all, id)[0]?.id ?? null);
+                    setFilter('');
+                    setDraftTitle(null);
+                    setShowMarked(false);
+                  }}
+                  className={[
+                    'flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-body',
+                    selected
+                      ? 'bg-card-hover font-semibold text-fg'
+                      : 'text-fg-secondary hover:bg-card-hover',
+                  ].join(' ')}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={[
+                      'h-4 w-1.5 shrink-0 rounded-full',
+                      section?.color
+                        ? SWATCH[section.color]
+                        : 'border border-dashed border-stroke-strong',
+                    ].join(' ')}
+                  />
+                  <span className="min-w-0 flex-1 truncate">{name}</span>
+                  <span aria-hidden="true" className="text-caption tabular-nums text-fg-tertiary">
+                    {count}
+                  </span>
+                </button>
+                {section !== null && (
+                  <IconButton
+                    label={`Edit ${section.name}`}
+                    icon={<Edit16Regular />}
+                    onClick={() => setSectionDialog({ editing: section })}
+                  />
+                )}
+              </li>
+            );
+          })}
+        </ul>
+
+        <h2 className="px-2 pt-2 text-caption font-semibold text-fg-tertiary uppercase">
+          {filter === '' ? 'Pages' : 'Found'}
+        </h2>
+        <ul aria-label="Pages" className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+          {shown.length === 0 && filter === '' && (
+            <li className="px-2 py-1 text-caption text-fg-tertiary">
+              No pages here yet. The + above makes one.
+            </li>
+          )}
           {shown.map((page) => (
             <li key={page.id}>
               <button
@@ -162,6 +271,7 @@ export function NotesPage({
                 aria-current={!showMarked && page.id === open?.id ? 'true' : undefined}
                 onClick={() => {
                   setOpenId(page.id);
+                  setChosenSection(page.sectionId);
                   setDraftTitle(null);
                   setShowMarked(false);
                 }}
@@ -172,6 +282,15 @@ export function NotesPage({
                     : 'text-fg-secondary',
                 ].join(' ')}
               >
+                {filter !== '' && (
+                  <span
+                    aria-hidden="true"
+                    className={[
+                      'size-2 shrink-0 rounded-full',
+                      sectionColorOf(page.sectionId) ?? 'border border-stroke-strong',
+                    ].join(' ')}
+                  />
+                )}
                 <span className="min-w-0 flex-1 truncate">{page.title}</span>
                 {(appliedTo.get(page.id) ?? 0) > 0 && (
                   <span
@@ -257,6 +376,35 @@ export function NotesPage({
                     </p>
                   )}
                 </div>
+                <label className="flex items-center gap-1 text-caption text-fg-secondary">
+                  <span className="sr-only">Section of {open.title}</span>
+                  <Select
+                    aria-label={`Section of ${open.title}`}
+                    value={open.sectionId ?? ''}
+                    className="w-40"
+                    onChange={(event) => {
+                      const target = event.target.value === '' ? null : event.target.value;
+                      filePage.mutate(
+                        { id: open.id, sectionId: target },
+                        {
+                          onSuccess: () => {
+                            setChosenSection(target);
+                            announce(
+                              `Moved ${open.title} to ${ordered.find((one) => one.id === target)?.name ?? QUICK_NOTES}`,
+                            );
+                          },
+                        },
+                      );
+                    }}
+                  >
+                    <option value="">{QUICK_NOTES}</option>
+                    {ordered.map((section) => (
+                      <option key={section.id} value={section.id}>
+                        {section.name}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
                 <IconButton
                   label={`Rename ${open.title}`}
                   icon={<Rename20Regular />}
@@ -326,6 +474,24 @@ export function NotesPage({
         The page and what is written in it are removed. Links to it stay where they are, and point
         at nothing until a page of that name exists again.
       </ConfirmDialog>
+      {sectionDialog !== null && (
+        <SectionDialog
+          editing={sectionDialog.editing}
+          pagesInIt={
+            sectionDialog.editing === null ? 0 : (counts.get(sectionDialog.editing.id) ?? 0)
+          }
+          onClose={() => setSectionDialog(null)}
+          onSaved={(section) => {
+            setSectionDialog(null);
+            setChosenSection(section.id);
+            setShowMarked(false);
+          }}
+          onDeleted={() => {
+            setSectionDialog(null);
+            setChosenSection(null);
+          }}
+        />
+      )}
     </div>
   );
 }
