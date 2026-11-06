@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Lists in colour, and explained.** Making a list now says what a list is for, an empty list
+  says how to fill it, and every list wears a colour, in the rail and on Today. Change it with
+  Colour on the list's page.
 - **Highlighter colours.** Highlight text in yellow, green, blue, pink, orange or purple from the
   bar, to tell kinds of notes apart. Every colour keeps the text readable, in both themes.
 - **Sections in Notes.** Keep pages in coloured sections, as OneNote does: make a section, give

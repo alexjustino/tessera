@@ -1,11 +1,13 @@
-import { Delete20Regular, Rename20Regular } from '@fluentui/react-icons';
+import { Color20Regular, Delete20Regular, Rename20Regular } from '@fluentui/react-icons';
 import { useState } from 'react';
 
 import { describeError } from '@/data/errors';
-import { useCollections, useDeleteList, useRenameList } from '@/data/hooks';
+import { useCollections, useColorList, useDeleteList, useRenameList } from '@/data/hooks';
+import { colorLabel, isColor } from '@/domain/colors';
 import type { Collection } from '@/domain/item';
 import { checkListName } from '@/domain/lists';
 import { Button } from '@/ui/Button';
+import { ColorPicker } from '@/ui/ColorPicker';
 import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { InfoBar } from '@/ui/InfoBar';
 import { Input } from '@/ui/Input';
@@ -31,6 +33,8 @@ export function ListActions({
   const collections = useCollections();
   const rename = useRenameList();
   const remove = useDeleteList();
+  const colour = useColorList();
+  const [colouring, setColouring] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState(list.name);
   const [problem, setProblem] = useState<string | null>(null);
@@ -101,6 +105,14 @@ export function ListActions({
       )}
       <Button
         appearance="subtle"
+        icon={<Color20Regular />}
+        aria-expanded={colouring}
+        onClick={() => setColouring((open) => !open)}
+      >
+        Colour
+      </Button>
+      <Button
+        appearance="subtle"
         icon={<Delete20Regular />}
         onClick={() => {
           if (held > 0) {
@@ -114,6 +126,20 @@ export function ListActions({
       >
         Delete list
       </Button>
+      {colouring && (
+        <div className="w-full basis-full">
+          <ColorPicker
+            label={`Colour of ${list.name}`}
+            value={isColor(list.color) ? list.color : null}
+            onChange={(color) =>
+              colour.mutate(
+                { id: list.id, color },
+                { onSuccess: () => announce(`${list.name} is ${colorLabel(color).toLowerCase()}`) },
+              )
+            }
+          />
+        </div>
+      )}
       {problem !== null && (
         <div className="w-full basis-full" role="alert">
           <InfoBar severity="caution" title="Not yet">

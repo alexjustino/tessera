@@ -148,6 +148,21 @@ pub fn create_list(conn: &mut Connection, name: &str, position: &str) -> Result<
     get_list(conn, &id)
 }
 
+/// Give a list one of the nine colours, or none.
+pub fn color_list(conn: &Connection, id: &str, color: Option<&str>) -> Result<Collection> {
+    get_list(conn, id)?;
+    if let Some(name) = color {
+        if !super::sections::COLORS.contains(&name) {
+            return Err(Error::InvalidInput("that is not one of the colours"));
+        }
+    }
+    conn.execute(
+        "UPDATE collection SET color = ?2, updated_at = ?3 WHERE id = ?1",
+        params![id, color, now()],
+    )?;
+    get_list(conn, id)
+}
+
 pub fn rename_list(conn: &Connection, id: &str, name: &str) -> Result<Collection> {
     get_list(conn, id)?;
     let name = clean_name(conn, name, Some(id))?;
@@ -323,6 +338,36 @@ mod tests {
         let config = board.config.to_string();
         assert!(config.contains(&status), "{config}");
         assert!(!config.contains("tasks.status"), "{config}");
+    }
+
+    #[test]
+    fn colours_a_list_and_takes_it_off() {
+        let mut conn = workspace();
+        let list = create_list(&mut conn, "Work", "W").unwrap();
+        assert_eq!(
+            color_list(&conn, &list.id, Some("teal"))
+                .unwrap()
+                .color
+                .as_deref(),
+            Some("teal")
+        );
+        assert_eq!(color_list(&conn, &list.id, None).unwrap().color, None);
+        // Tasks can wear one too.
+        assert!(color_list(&conn, INBOX, Some("blue")).is_ok());
+    }
+
+    #[test]
+    fn refuses_a_colour_not_on_the_list() {
+        let mut conn = workspace();
+        let list = create_list(&mut conn, "Work", "W").unwrap();
+        assert!(matches!(
+            color_list(&conn, &list.id, Some("#00ff00")),
+            Err(Error::InvalidInput(_))
+        ));
+        assert!(matches!(
+            color_list(&conn, "gone", Some("teal")),
+            Err(Error::NotFound)
+        ));
     }
 
     #[test]

@@ -2,8 +2,16 @@ import { Add16Regular, TextBulletListLtr20Regular } from '@fluentui/react-icons'
 import { useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
-import { useCollections, useCreateList, useItems } from '@/data/hooks';
-import { checkListName, INBOX, openByList, orderedLists, positionForNewList } from '@/domain/lists';
+import { useCollections, useColorList, useCreateList, useItems } from '@/data/hooks';
+import { isColor, nextColor, SWATCH } from '@/domain/colors';
+import {
+  checkListName,
+  INBOX,
+  openByList,
+  orderedLists,
+  positionForNewList,
+  WHAT_A_LIST_IS,
+} from '@/domain/lists';
 import { Input } from '@/ui/Input';
 import { announce } from '@/ui/announce';
 
@@ -24,6 +32,7 @@ export function SidebarLists({
   const collections = useCollections();
   const items = useItems(null, false);
   const create = useCreateList();
+  const colour = useColorList();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
@@ -42,6 +51,8 @@ export function SidebarLists({
       { name: result.name, position: positionForNewList(lists) },
       {
         onSuccess: (list) => {
+          // A new list is told apart from the others by a colour of its own.
+          colour.mutate({ id: list.id, color: nextColor(lists.map((one) => one.color)) });
           setAdding(false);
           setDraft('');
           setProblem(null);
@@ -73,8 +84,12 @@ export function SidebarLists({
               selected ? 'bg-accent-subtle font-semibold text-fg' : 'text-fg-secondary',
             ].join(' ')}
           >
-            <span aria-hidden="true" className={selected ? 'text-accent' : undefined}>
-              <TextBulletListLtr20Regular />
+            <span aria-hidden="true" className="grid w-5 shrink-0 place-items-center">
+              {isColor(list.color) ? (
+                <span className={`size-2.5 rounded-full ${SWATCH[list.color]}`} />
+              ) : (
+                <TextBulletListLtr20Regular className={selected ? 'text-accent' : ''} />
+              )}
             </span>
             <span className="min-w-0 flex-1 truncate text-left">{list.name}</span>
             {count > 0 && (
@@ -120,15 +135,18 @@ export function SidebarLists({
               }
             }}
           />
-          {problem !== null && (
+          {problem !== null ? (
             <p role="alert" className="px-1 text-caption text-danger">
               {problem}
             </p>
+          ) : (
+            <p className="px-1 text-caption text-fg-secondary">{WHAT_A_LIST_IS}</p>
           )}
         </form>
       ) : (
         <button
           type="button"
+          title={WHAT_A_LIST_IS}
           onClick={() => setAdding(true)}
           className={[
             'flex h-(--density-row) items-center gap-3 rounded-md px-3 text-body text-fg-secondary',
