@@ -108,6 +108,14 @@ describe('markers', () => {
     await (await driver.findByXPath('//aside//button[contains(@aria-label, "Open ")]')).click();
     const line = await driver.waitForElement('.tessera-prose [data-note-marker="question"]');
     await line.click();
+    // The shortcut acts on the line the caret is in: wait for the caret to be there.
+    await driver.waitFor('the caret on the line', async () =>
+      (await driver.execute<boolean>(
+        'const n = window.getSelection()?.anchorNode; return !!(n && (n.nodeType === 3 ? n.parentElement : n)?.closest("[data-note-marker=question]"));',
+      ))
+        ? true
+        : null,
+    );
     await driver.chord(Keys.CONTROL, '3');
     await driver.waitFor('the marker gone', async () =>
       (await driver.findAll('.tessera-prose [data-note-marker="question"]')).length === 0

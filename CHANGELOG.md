@@ -27,15 +27,27 @@ slipped put right in one press and undone in one more, and more than one list, w
 the capture line to reach one. Notes caught up too: a meeting's notes one press from its event,
 a tick on a To do, and a Follow up that is struck through when its task is done.
 
+The fourth look asked for a notebook and for colour: pages in coloured sections, as OneNote keeps
+them, a highlighter in six colours, and lists that say what they are and wear a colour of their own.
+
 ### Migrations
 
 This release adds migrations **019** (`goal.ongoing`, a goal with no finish line), **020**
-(`item_page`, a task and a page paired by a person) and **021** (`event_page`, a meeting and its
-notes). Forward-only. A 1.3.0 workspace, schema
+(`item_page`, a task and a page paired by a person), **021** (`event_page`, a meeting and its
+notes) and **022** (`section`, with `page.section_id`). Forward-only. A 1.3.0 workspace, schema
 version 18, is migrated on first start.
 
 ### Added
 
+- **Lists in colour, and explained.** Making a list now says what a list is for, an empty list
+  says how to fill it, and every list wears a colour, in the rail and on Today. Change it with
+  Colour on the list's page.
+- **Highlighter colours.** Highlight text in yellow, green, blue, pink, orange or purple from the
+  bar, to tell kinds of notes apart. Every colour keeps the text readable, in both themes.
+- **Sections in Notes.** Keep pages in coloured sections, as OneNote does: make a section, give
+  it one of nine colours, and the pages you make there stay there. Move a page from its header.
+  Pages with no section are in Quick notes, and deleting a section moves its pages back there.
+  Adds migration 022.
 - **Meeting notes.** Press Meeting notes on an event to open its notes: a page named for the
   meeting and its day, ready with when it is and headings for notes, decisions and follow-ups.
   The same press finds the page again, and each week of a repeating meeting has its own. A

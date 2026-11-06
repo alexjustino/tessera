@@ -285,6 +285,22 @@ its own proof.
   which are done, and pressing a line goes to that line in its page, with the caret on it.
   A Question, an Important line and a Decision are never done.
 
+- **A notebook in sections** (ADR-057). Notes keeps pages in sections, as OneNote does:
+  each section has a name and one of nine named colours, and holds its own pages. A new page
+  is made in the section on screen; a page moves to another from its own header. A page in
+  no section is in Quick notes, and finding a page looks in every section. Deleting a
+  section sends its pages back to Quick notes and deletes none.
+
+- **Highlighter colours** (ADR-058). The bar's Highlight picks one of six colours,
+  yellow, green, blue, pink, orange and purple, or none, so a highlight can say what kind of
+  thing it marks. The colour is kept by name and painted from the theme, and the text stays
+  readable on every one, in both themes.
+
+- **Lists that say what they are, in colour** (ADR-059). The line that makes a list
+  explains it in a sentence, and an empty list says how to fill it, `#name` included. A new
+  list takes a colour of its own, from the same nine as sections, shown beside it in the
+  rail and beside its name on Today; Colour on the list's page changes it.
+
 #### Deferred out of lists, and why
 
 - **Ordering lists by dragging, colours and icons.** The rail shows them in the order

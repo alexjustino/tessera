@@ -4,7 +4,9 @@
 
 import { invoke } from '@tauri-apps/api/core';
 
+import { isColor, type ColorId } from '@/domain/colors';
 import type { Backlink, Page } from '@/domain/page';
+import type { Section } from '@/domain/sections';
 
 interface RawPage {
   id: string;
@@ -12,6 +14,52 @@ interface RawPage {
   position: string;
   created_at: string;
   updated_at: string;
+  section_id: string | null;
+}
+
+interface RawSection {
+  id: string;
+  name: string;
+  color: string | null;
+  position: string;
+}
+
+function toSection(raw: RawSection): Section {
+  return {
+    id: raw.id,
+    name: raw.name,
+    color: isColor(raw.color) ? raw.color : null,
+    position: raw.position,
+  };
+}
+
+export async function listSections(): Promise<Section[]> {
+  return (await invoke<RawSection[]>('sections_list')).map(toSection);
+}
+
+export async function createSection(input: {
+  name: string;
+  color: ColorId | null;
+  position: string;
+}): Promise<Section> {
+  return toSection(await invoke<RawSection>('section_create', input));
+}
+
+export async function updateSection(input: {
+  id: string;
+  name: string;
+  color: ColorId | null;
+}): Promise<Section> {
+  return toSection(await invoke<RawSection>('section_update', input));
+}
+
+export async function deleteSection(id: string): Promise<void> {
+  await invoke('section_delete', { id });
+}
+
+/** File a page in a section, or in Quick notes with null. */
+export async function filePage(id: string, sectionId: string | null): Promise<StoredPage> {
+  return toPage(await invoke<RawPage>('page_file', { id, sectionId }));
 }
 
 interface RawBacklink {
@@ -23,6 +71,8 @@ interface RawBacklink {
 /** A page, and the order key the list keeps it in. */
 export interface StoredPage extends Page {
   position: string;
+  /** The section it is filed in; null is Quick notes. */
+  sectionId: string | null;
 }
 
 function toPage(raw: RawPage): StoredPage {
@@ -31,6 +81,7 @@ function toPage(raw: RawPage): StoredPage {
     title: raw.title,
     position: raw.position,
     updatedAt: raw.updated_at,
+    sectionId: raw.section_id,
   };
 }
 

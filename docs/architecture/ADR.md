@@ -1342,3 +1342,53 @@ reopened.
 
 **Cost accepted.** A Follow up made before this change knows no task, and stays undone until it is
 marked again. Changing a line's marker clears what belonged to the old one.
+
+## ADR-057 — Pages are filed in coloured sections, and Quick notes is where none is {#adr-057}
+
+**Context.** The owner's fourth look asked for the notebook OneNote has: add a section, add a page in
+it, and colour to tell things apart.
+
+**Decision.** Migration 022 adds `section (id, name, color, position)` and `page.section_id`, `ON DELETE
+SET NULL`. A page is in one section or none; none is Quick notes, which is not a row and so can never
+be renamed, recoloured or deleted, and no section may take its name. A colour is one of nine named ones
+(`src/domain/colors.ts`), kept to that list by the host, and drawn as a mark beside the name, each at
+least 3:1 on a card in both themes (`tokens.test.ts`). A new section takes the least used colour. The
+list shows the sections, then the pages of the one chosen; finding a page looks in all of them and
+shows each one's colour. A new page is made in the section on screen. Deleting a section sends its
+pages back to Quick notes, and the dialog says so before the press.
+
+**Why a page is in at most one section.** A page in two places is two answers to "where did I put
+it", and the links between pages already say what relates to what (ADR-029).
+
+**Cost accepted.** Sections are ordered as they were made; dragging them into another order, and
+section groups, are left for later. Lists use the same nine colours, so a colour means a thing only
+where the person decides it does.
+
+## ADR-058 — A highlight keeps its colour by name, and the theme paints it {#adr-058}
+
+**Context.** The owner's fourth look asked for colours to mark and categorise things in notes, as a
+highlighter pen does.
+
+**Decision.** TipTap's highlight is used with colours, and its colour attribute is kept as one of the
+names in `src/domain/colors.ts` (`data-color="green"`), never as a colour value. The stylesheet paints
+each name as 30% of that colour's token behind the text, so a highlight follows the theme and the
+paper, and `tokens.test.ts` holds that body text stays at 4.5:1 on every highlight, on a card, in both
+themes. A highlight with no name, from before this change or from Ctrl+Shift+H, is yellow. The bar's
+Highlight is a picker with the six bright colours and "No highlight".
+
+**Cost accepted.** An email draft (ADR-042) carries the highlight as a mark without its colour, because
+the colour lives in Tessera's stylesheet; a mail program shows its own highlight, or none.
+
+## ADR-059 — A list explains itself where it is made, and wears a colour {#adr-059}
+
+**Context.** In the fourth look the owner did not understand what New list was for, and took it for a
+way to make tags. A feature a person has to guess at is not finished.
+
+**Decision.** The line that makes a list says, in one sentence, what a list is: a kind of work kept
+apart, with its own board, while Today still shows everything due. An empty list says the same and
+how to fill it, writing `#name` included (ADR-055). `collection.color`, unused since migration 001, now
+holds one of the nine colours of ADR-057, kept to that list by the host. A new list takes the least
+used one, the rail draws it beside the name, and Today's chip carries it. The list's page changes it.
+
+**Cost accepted.** A list is still not a tag: a task is in one list. Tags, many to one task, remain a
+separate idea the product does not have yet.

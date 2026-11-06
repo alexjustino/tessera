@@ -104,6 +104,10 @@ export async function renameList(id: string, name: string): Promise<Collection> 
   return toCollection(await invoke<RawCollection>('list_rename', { id, name }));
 }
 
+export async function colorList(id: string, color: string | null): Promise<Collection> {
+  return toCollection(await invoke<RawCollection>('list_color', { id, color }));
+}
+
 export async function deleteList(id: string): Promise<void> {
   await invoke('list_delete', { id });
 }

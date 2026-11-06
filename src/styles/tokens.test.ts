@@ -195,6 +195,34 @@ describe('tokens', () => {
       }
     });
 
+    it('a section or list colour is visible on a card, the only mark it makes', () => {
+      const card = surface(theme, '--surface-card');
+      for (const name of [
+        'red',
+        'orange',
+        'yellow',
+        'green',
+        'teal',
+        'blue',
+        'purple',
+        'pink',
+        'gray',
+      ]) {
+        const ratio = contrast(parse(theme.tokens[`--tag-${name}`] ?? '#fff'), card);
+        expect(ratio, `${name}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(3);
+      }
+    });
+
+    it('text reads on every highlight colour, laid on a card', () => {
+      const card = surface(theme, '--surface-card');
+      for (const name of ['yellow', 'green', 'blue', 'pink', 'orange', 'purple']) {
+        const tint = { ...parse(theme.tokens[`--tag-${name}`] ?? '#000'), a: 0.3 };
+        const behind = over(tint, card);
+        const ratio = contrast(parse(theme.tokens['--fg-primary'] ?? '#000'), behind);
+        expect(ratio, `${name}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+
     it('control outlines and the focus ring are visible', () => {
       const card = surface(theme, '--surface-card');
       text('--stroke-strong', card, 3, 'strong stroke on card');

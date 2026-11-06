@@ -85,6 +85,14 @@ export function useRenameList() {
   });
 }
 
+export function useColorList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({
+    mutationFn: ({ id, color }: { id: string; color: string | null }) => api.colorList(id, color),
+    onSuccess: invalidate,
+  });
+}
+
 export function useDeleteList() {
   const invalidate = useInvalidateLists();
   return useMutation({ mutationFn: (id: string) => api.deleteList(id), onSuccess: invalidate });
@@ -1010,6 +1018,43 @@ export function useOpenMeetingNotes() {
       void client.invalidateQueries({ queryKey: ['backlinks'] });
       void client.invalidateQueries({ queryKey: ['blocks'] });
     },
+  });
+}
+
+export function useSections() {
+  return useQuery({ queryKey: ['sections'], queryFn: pageApi.listSections });
+}
+
+/** Sections and the pages filed in them are read again together. */
+function useInvalidateNotebook() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: ['sections'] });
+    void client.invalidateQueries({ queryKey: pageKeys.all });
+  };
+}
+
+export function useCreateSection() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({ mutationFn: pageApi.createSection, onSuccess: invalidate });
+}
+
+export function useUpdateSection() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({ mutationFn: pageApi.updateSection, onSuccess: invalidate });
+}
+
+export function useDeleteSection() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({ mutationFn: pageApi.deleteSection, onSuccess: invalidate });
+}
+
+export function useFilePage() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({
+    mutationFn: ({ id, sectionId }: { id: string; sectionId: string | null }) =>
+      pageApi.filePage(id, sectionId),
+    onSuccess: invalidate,
   });
 }
 

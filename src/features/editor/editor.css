@@ -259,10 +259,34 @@
 }
 
 .tessera-prose mark {
-  background: color-mix(in srgb, var(--color-caution) 35%, transparent);
+  background: color-mix(in srgb, var(--tag-yellow) 30%, transparent);
   color: inherit;
   border-radius: 2px;
   padding: 0 1px;
+}
+
+.tessera-prose mark[data-color='yellow'] {
+  background: color-mix(in srgb, var(--tag-yellow) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='green'] {
+  background: color-mix(in srgb, var(--tag-green) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='blue'] {
+  background: color-mix(in srgb, var(--tag-blue) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='pink'] {
+  background: color-mix(in srgb, var(--tag-pink) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='orange'] {
+  background: color-mix(in srgb, var(--tag-orange) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='purple'] {
+  background: color-mix(in srgb, var(--tag-purple) 30%, transparent);
 }
 
 /* A marked line says what it is in a word, never by colour alone. */

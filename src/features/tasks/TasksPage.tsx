@@ -36,7 +36,7 @@ import { runningEntry } from '@/domain/time';
 import type { Capture } from '@/domain/capture';
 import { landingIn } from '@/data/items';
 import { positionForNewItem } from '@/domain/item';
-import { INBOX } from '@/domain/lists';
+import { INBOX, WHAT_A_LIST_IS } from '@/domain/lists';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
 import type { Page as NotesPage } from '@/domain/page';
 import type { Property, PropertyValue } from '@/domain/property';
@@ -156,6 +156,10 @@ export function TasksPage({
   const list = (collections.data ?? []).find((candidate) => candidate.id === collectionId);
   const listNames = useMemo(
     () => new Map((collections.data ?? []).map((candidate) => [candidate.id, candidate.name])),
+    [collections.data],
+  );
+  const listColors = useMemo(
+    () => new Map((collections.data ?? []).map((candidate) => [candidate.id, candidate.color])),
     [collections.data],
   );
 
@@ -636,8 +640,16 @@ export function TasksPage({
               ) : (items.data ?? []).length === 0 ? (
                 <EmptyState
                   icon={<TaskListSquareLtr24Regular />}
-                  title="Nothing here yet"
-                  description="Everything you write is stored on this machine, in a file you own. Type above to add the first task."
+                  title={
+                    list !== undefined && collectionId !== INBOX
+                      ? `${list.name} is empty`
+                      : 'Nothing here yet'
+                  }
+                  description={
+                    list !== undefined && collectionId !== INBOX
+                      ? `${WHAT_A_LIST_IS} Type above to add a task to ${list.name}, or write #${list.name.toLowerCase()} on any capture line.`
+                      : 'Everything you write is stored on this machine, in a file you own. Type above to add the first task.'
+                  }
                 />
               ) : result.matched === 0 && place === 'today' ? (
                 <EmptyState
@@ -706,6 +718,7 @@ export function TasksPage({
               ) : (
                 <ListView
                   listNameOf={place === 'today' ? listNames : undefined}
+                  listColorOf={place === 'today' ? listColors : undefined}
                   groups={result.groups}
                   grouped={query.groupBy !== null}
                   notesOf={notesOf}
