@@ -91,6 +91,12 @@ pub fn list_rename(db: State<'_, Db>, id: String, name: String) -> Result<Collec
 }
 
 #[tauri::command]
+pub fn list_color(db: State<'_, Db>, id: String, color: Option<String>) -> Result<Collection> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    lists::color_list(&conn, &id, color.as_deref())
+}
+
+#[tauri::command]
 pub fn list_delete(db: State<'_, Db>, id: String) -> Result<()> {
     let conn = db.0.lock().expect("the database lock was poisoned");
     lists::delete_list(&conn, &id)

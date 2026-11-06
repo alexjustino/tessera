@@ -160,6 +160,7 @@ pub fn run() {
             commands::items::list_create,
             commands::items::list_rename,
             commands::items::list_delete,
+            commands::items::list_color,
             commands::items::item_move_to_list,
             commands::items::items_list,
             commands::items::items_replan,

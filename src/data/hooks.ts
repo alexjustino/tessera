@@ -85,6 +85,14 @@ export function useRenameList() {
   });
 }
 
+export function useColorList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({
+    mutationFn: ({ id, color }: { id: string; color: string | null }) => api.colorList(id, color),
+    onSuccess: invalidate,
+  });
+}
+
 export function useDeleteList() {
   const invalidate = useInvalidateLists();
   return useMutation({ mutationFn: (id: string) => api.deleteList(id), onSuccess: invalidate });
