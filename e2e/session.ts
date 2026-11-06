@@ -284,3 +284,22 @@ export async function startSession(options: SessionOptions = {}): Promise<Sessio
   };
   return session;
 }
+
+/**
+ * Make every hour of every day working time, and open the window again so it reads it.
+ *
+ * A test that reserves "the next free time" otherwise depends on when it runs: on a
+ * Friday evening the next free hour is on Monday, off the week on screen, and the
+ * test fails every night and every weekend. Near midnight the next hour can still be
+ * tomorrow; that is the one window this does not close.
+ */
+export async function workEveryHour(session: Session): Promise<void> {
+  const written = await session.driver.executeAsync<unknown>(
+    'const done = arguments[arguments.length - 1]; window.__TAURI_INTERNALS__.invoke("work_hours_set", { hours: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts_minute: 0, ends_minute: 1440 })) }).then(() => done(true), (e) => done(JSON.stringify(e)));',
+  );
+  if (written !== true) throw new Error(`the working hours were not written: ${String(written)}`);
+  await session.restart();
+  await session.driver.waitFor('the opening to go', async () =>
+    (await session.driver.findAll('#opening')).length === 0 ? true : null,
+  );
+}

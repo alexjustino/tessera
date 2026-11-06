@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { startSession, workEveryHour, type Session } from './session';
 import { Keys } from './webdriver';
 
 interface Box {
@@ -79,17 +79,8 @@ describe('moving things on the calendar', () => {
       await input.sendKeys(`${title}${Keys.ENTER}`);
       await driver.waitForText(title);
     }
-    // Every hour of every day is working time, so a reservation lands on the day this
-    // runs. With an office week, a Friday afternoon sends the second block to Monday,
-    // the calendar follows it there, and the first one is no longer on screen.
-    await driver.executeAsync(
-      'const done = arguments[arguments.length - 1]; window.__TAURI_INTERNALS__.invoke("work_hours_set", { hours: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts_minute: 0, ends_minute: 1440 })) }).then(() => done(true), (e) => done(String(e)));',
-    );
-    // The hours were written behind the window's back: open it again to read them.
-    await session.restart();
-    await session.driver.waitFor('the opening to go', async () =>
-      (await session.driver.findAll('#opening')).length === 0 ? true : null,
-    );
+    // Every hour is working time, so a reservation lands on the day this runs.
+    await workEveryHour(session);
     await (
       await session.driver.findByXPath('//nav//button[normalize-space(.)="Calendar"]')
     ).click();
@@ -118,12 +109,15 @@ describe('moving things on the calendar', () => {
     await scrollIntoView('First job');
     const before = await waitForBox('First job');
     const from = middle(before);
-    const to = { x: from.x, y: from.y + 150 };
+    // Down when there is room below, up when the block sits near the window's foot.
+    const room = await driver.execute<number>('return window.innerHeight');
+    const step = from.y + 160 < room - 10 ? 1 : -1;
+    const to = { x: from.x, y: from.y + 150 * step };
 
     await driver.pointer([
       { type: 'move', x: from.x, y: from.y },
       { type: 'down' },
-      { type: 'move', x: from.x, y: from.y + 60 },
+      { type: 'move', x: from.x, y: from.y + 60 * step },
       { type: 'move', x: to.x, y: to.y },
     ]);
     const landing = await driver.waitForElement('[data-testid="landing"]');
