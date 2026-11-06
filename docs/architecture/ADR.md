@@ -1195,3 +1195,24 @@ reopened.
 
 **Cost accepted.** A Follow up made before this change knows no task, and stays undone until it is
 marked again. Changing a line's marker clears what belonged to the old one.
+
+## ADR-057 — Pages are filed in coloured sections, and Quick notes is where none is {#adr-057}
+
+**Context.** The owner's fourth look asked for the notebook OneNote has: add a section, add a page in
+it, and colour to tell things apart.
+
+**Decision.** Migration 022 adds `section (id, name, color, position)` and `page.section_id`, `ON DELETE
+SET NULL`. A page is in one section or none; none is Quick notes, which is not a row and so can never
+be renamed, recoloured or deleted, and no section may take its name. A colour is one of nine named ones
+(`src/domain/colors.ts`), kept to that list by the host, and drawn as a mark beside the name, each at
+least 3:1 on a card in both themes (`tokens.test.ts`). A new section takes the least used colour. The
+list shows the sections, then the pages of the one chosen; finding a page looks in all of them and
+shows each one's colour. A new page is made in the section on screen. Deleting a section sends its
+pages back to Quick notes, and the dialog says so before the press.
+
+**Why a page is in at most one section.** A page in two places is two answers to "where did I put
+it", and the links between pages already say what relates to what (ADR-029).
+
+**Cost accepted.** Sections are ordered as they were made; dragging them into another order, and
+section groups, are left for later. Lists use the same nine colours, so a colour means a thing only
+where the person decides it does.
