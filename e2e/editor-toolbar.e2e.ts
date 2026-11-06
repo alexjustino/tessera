@@ -3,6 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startSession, type Session } from './session';
 import { Keys } from './webdriver';
 
+const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
+
 /**
  * The formatting bar over a page of notes: it is there without being asked for,
  * it acts on what is selected, and what it does survives a restart.
@@ -49,7 +51,6 @@ describe('the formatting bar', () => {
       ['Bold', 'strong'],
       ['Italic', 'em'],
       ['Underline', 'u'],
-      ['Highlight', 'mark'],
     ] as const) {
       await press(label);
       await driver.waitFor(`${label} applied`, async () =>
@@ -58,6 +59,28 @@ describe('the formatting bar', () => {
     }
     const bold = await driver.find('button[aria-label="Bold"]');
     expect(await bold.attribute('aria-pressed')).toBe('true');
+  });
+
+  it('highlights in a colour, by its name', async () => {
+    const { driver } = session;
+    await selectAll();
+    const highlight = await driver.find('[role="toolbar"] select[aria-label="Highlight"]');
+    await driver.execute(
+      'const s = arguments[0]; s.value = "green"; s.dispatchEvent(new Event("change", { bubbles: true }));',
+      [{ [ELEMENT]: highlight.id }],
+    );
+    await driver.waitFor('a green highlight', async () =>
+      (await html()).includes('<mark data-color="green"') ? true : null,
+    );
+    expect(await highlight.property('value')).toBe('green');
+    // The opening fades over the first screen; the picture waits for it to go.
+    await driver.waitFor('the opening to go', async () =>
+      (await driver.findAll('#opening')).length === 0 ? true : null,
+    );
+    // Off the selection, so the picture shows the colour and not the selection's.
+    await (await prose()).click();
+    await driver.chord(Keys.END);
+    await session.screenshot('editor-highlight');
   });
 
   it('turns the line into a list', async () => {
@@ -80,6 +103,8 @@ describe('the formatting bar', () => {
     const text = await html();
     expect(text).toContain('<strong');
     expect(text).toContain('<ul');
+    // The colour is kept by name, so it comes back as the same colour.
+    expect(text).toContain('<mark data-color="green"');
   });
 
   // ── Negative case ──────────────────────────────────────────────────────
