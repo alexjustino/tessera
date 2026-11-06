@@ -89,6 +89,15 @@ version 18, is migrated on first start.
 
 ### Changed
 
+- **The Board starts with the cards that have no status.** The column is called "No status" and
+  comes first, because it is where new cards land; at the far end of a wide board it was off the
+  screen and the board looked empty.
+- **The getting-started guide stays on Today and Tasks.** A list of your own opens on its tasks.
+- **Charts name every few weeks, not every one**, so the dates read instead of "Aug …", and a
+  bar's figure is never cut short.
+- **Smaller fixes.** The highlight picker is wide enough to read, and "under 1h 30m" stays on one
+  line in Reports.
+
 - **Diagnostics moved into About.** It serves someone looking into a problem, not the day's
   work, so it left the rail. About opens it, it has a way back, and the palette still goes
   straight to it.
