@@ -174,6 +174,10 @@ export function App() {
 
   const runCommand = useCallback(
     (id: CommandId) => {
+      if (id.startsWith('list.')) {
+        openList(id.slice('list.'.length));
+        return;
+      }
       switch (id) {
         case 'go.today':
         case 'go.tasks':
@@ -214,7 +218,7 @@ export function App() {
         }
       }
     },
-    [go, saveSettings, settings.data],
+    [go, openList, saveSettings, settings.data],
   );
 
   const pageKey = `${destination}:${listId}:${focus.nonce}`;
