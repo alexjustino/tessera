@@ -51,6 +51,7 @@ import { ListView } from '@/features/views/ListView';
 import { QueryBar } from '@/features/views/QueryBar';
 import { ComingUp } from './ComingUp';
 import { NowCard } from './NowCard';
+import { ReplanCard } from './ReplanCard';
 import { TasksOverview } from './TasksOverview';
 import { FinishedToday, TodayAgenda, TodayOverview } from './TodayOverview';
 import { usePulse } from './usePulse';
@@ -530,6 +531,7 @@ export function TasksPage({
         {place === 'today' && items.isSuccess && (
           <div className="mb-4 flex flex-col gap-3">
             <NowCard items={items.data} onFocus={onFocus} onOpen={setDetailId} />
+            <ReplanCard />
             <TodayOverview pulse={pulse} />
           </div>
         )}
