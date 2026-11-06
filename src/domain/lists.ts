@@ -12,6 +12,10 @@
 import type { Collection, Item } from './item';
 import { between, sortByKey } from './ordering';
 
+/** What a list is, in a sentence, where one is made. */
+export const WHAT_A_LIST_IS =
+  'A list keeps one kind of work apart, like Work, Home or a project, with its own board. Today still shows what is due from every list.';
+
 /** The list every workspace starts with. Quick capture writes here. */
 export const INBOX = 'tasks';
 

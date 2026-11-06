@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import { checkTitle, type Item } from '@/domain/item';
 import type { Page } from '@/domain/page';
+import { isColor, SWATCH } from '@/domain/colors';
 import { INBOX } from '@/domain/lists';
 import type { Progress } from '@/domain/subtasks';
 import { NotesChip } from '@/features/notes/NotesChip';
@@ -36,6 +37,7 @@ export function ListView({
   stepsOf,
   notesOf,
   listNameOf,
+  listColorOf,
   onOpenPage,
   groups,
   grouped,
@@ -56,6 +58,8 @@ export function ListView({
   notesOf?: ReadonlyMap<string, readonly Page[]>;
   /** Where a row comes from more than one list, each list's name by its id. */
   listNameOf?: ReadonlyMap<string, string> | undefined;
+  /** And each list's colour, when it has one. */
+  listColorOf?: ReadonlyMap<string, string | null> | undefined;
   onOpenPage?: ((pageId: string) => void) | undefined;
   groups: readonly Group[];
   grouped: boolean;
@@ -110,6 +114,7 @@ export function ListView({
                       ? undefined
                       : listNameOf?.get(row.item.collectionId)
                   }
+                  listColor={listColorOf?.get(row.item.collectionId) ?? null}
                   values={row.values}
                   onToggle={(completed) => onToggle(row, completed)}
                   onRename={(title) => onRename(row, title)}
@@ -128,6 +133,7 @@ export function ListView({
 
 function TaskRow({
   listName,
+  listColor = null,
   steps,
   notes,
   onOpenPage,
@@ -146,6 +152,8 @@ function TaskRow({
 }: {
   /** The list it lives in, said where rows from several lists meet. */
   listName?: string | undefined;
+  /** That list's colour, beside its name. */
+  listColor?: string | null;
   /** How far along its subtasks are. */
   steps?: Progress | undefined;
   /** The pages applied to this task. */
@@ -228,6 +236,9 @@ function TaskRow({
       {listName !== undefined && (
         <span data-task-list={listName} className="shrink-0">
           <Chip tone="neutral" title={`In ${listName}`}>
+            {isColor(listColor) && (
+              <span aria-hidden="true" className={`size-2 rounded-full ${SWATCH[listColor]}`} />
+            )}
             {listName}
           </Chip>
         </span>
