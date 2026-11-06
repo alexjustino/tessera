@@ -252,6 +252,11 @@ of a week that slipped. Each lands as its own slice, with its own proof.
   no section is in Quick notes, and finding a page looks in every section. Deleting a
   section sends its pages back to Quick notes and deletes none.
 
+- **Highlighter colours** (ADR-058). The bar's Highlight picks one of six colours,
+  yellow, green, blue, pink, orange and purple, or none, so a highlight can say what kind of
+  thing it marks. The colour is kept by name and painted from the theme, and the text stays
+  readable on every one, in both themes.
+
 #### Deferred out of lists, and why
 
 - **Ordering lists by dragging, colours and icons.** The rail shows them in the order
