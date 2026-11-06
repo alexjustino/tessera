@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 import { checkTitle, type Item } from '@/domain/item';
 import type { Page } from '@/domain/page';
+import { INBOX } from '@/domain/lists';
 import type { Progress } from '@/domain/subtasks';
 import { NotesChip } from '@/features/notes/NotesChip';
 import { StepsChip } from '@/features/tasks/StepsChip';
@@ -34,6 +35,7 @@ const NO_NOTES: readonly Page[] = [];
 export function ListView({
   stepsOf,
   notesOf,
+  listNameOf,
   onOpenPage,
   groups,
   grouped,
@@ -52,6 +54,8 @@ export function ListView({
   stepsOf?: ReadonlyMap<string, Progress>;
   /** The pages applied to each task, by the task's id. */
   notesOf?: ReadonlyMap<string, readonly Page[]>;
+  /** Where a row comes from more than one list, each list's name by its id. */
+  listNameOf?: ReadonlyMap<string, string> | undefined;
   onOpenPage?: ((pageId: string) => void) | undefined;
   groups: readonly Group[];
   grouped: boolean;
@@ -97,7 +101,15 @@ export function ListView({
                   critical={criticalIds.has(row.item.id)}
                   milestone={milestoneIds.has(row.item.id)}
                   timing={timingId === row.item.id}
-                  properties={inlineProperties}
+                  // A property is its own list's: a row from another list shows none.
+                  properties={inlineProperties.filter(
+                    (property) => property.collectionId === row.item.collectionId,
+                  )}
+                  listName={
+                    row.item.collectionId === INBOX
+                      ? undefined
+                      : listNameOf?.get(row.item.collectionId)
+                  }
                   values={row.values}
                   onToggle={(completed) => onToggle(row, completed)}
                   onRename={(title) => onRename(row, title)}
@@ -115,6 +127,7 @@ export function ListView({
 }
 
 function TaskRow({
+  listName,
   steps,
   notes,
   onOpenPage,
@@ -131,6 +144,8 @@ function TaskRow({
   onOpen,
   onSetValue,
 }: {
+  /** The list it lives in, said where rows from several lists meet. */
+  listName?: string | undefined;
   /** How far along its subtasks are. */
   steps?: Progress | undefined;
   /** The pages applied to this task. */
@@ -209,6 +224,14 @@ function TaskRow({
       <DueChip task={task} />
 
       <StepsChip progress={steps} />
+
+      {listName !== undefined && (
+        <span data-task-list={listName} className="shrink-0">
+          <Chip tone="neutral" title={`In ${listName}`}>
+            {listName}
+          </Chip>
+        </span>
+      )}
 
       {notes.length > 0 && <NotesChip notes={notes} onOpenPage={onOpenPage} />}
 
