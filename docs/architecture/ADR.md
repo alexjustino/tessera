@@ -1080,3 +1080,30 @@ decide whether to count the parent, the children or both, and two honest answers
 **Cost accepted.** No migration, so a 1.4 workspace reads the same, but an older Tessera given a
 newer workspace would show steps as tasks. A step made into a task keeps its tick and gains nothing
 else; the person gives it a date if it needs one.
+
+## ADR-052 — Late work is replanned in one write, shown first, and undone in one press {#adr-052}
+
+**Context.** The owner asked for a way out of a week that slipped without a date and a reservation
+per task. ADR-046 says the calendar suggests and never writes on its own.
+
+**Decision.** `src/domain/replan.ts` works out, on every read, where each late task would go: the
+planner of ADR-046 run over the late tasks alone, so they take the next free working time before
+anything else. Each new date is the day the last block ends, at the time of day it was set for when
+that is still after the block. A reminder moves by as much as its date. The card shows all of it and
+writes nothing. The press sends the changes to `items_replan`, which writes every date and every
+block in one transaction and hands back the dates as they were and the blocks it made.
+`items_replan_undo` takes that back. A block or a task deleted in the meantime is passed over, and
+everything else is restored exactly. The host refuses a task finished since the plan was worked out,
+or a repeating one, and then writes nothing at all.
+
+**Left alone, and named.** A repeating task, because its date moves the series. A task waiting on open
+work that is not late, because planning it first would put it before what it waits on, and the same
+goes for what waits on it. A task no free time in three weeks can hold.
+
+**Why one transaction.** Half a replan is worse than none: some dates moved and others not, with
+blocks that do not match them. ADR-040's warnings follow the date inside the same write.
+
+**Cost accepted.** Moving a date clears a task from Late, so a replan raises the score of the day
+without any work being done. The score (ADR-045) counts what was delivered, and a moved date is not
+that. The card says plainly what it moved. Undo lives with the card that made the change and is gone
+once the person leaves the screen.
