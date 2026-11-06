@@ -1245,3 +1245,16 @@ used one, the rail draws it beside the name, and Today's chip carries it. The li
 
 **Cost accepted.** A list is still not a tag: a task is in one list. Tags, many to one task, remain a
 separate idea the product does not have yet.
+
+## ADR-060 — A board starts with the column that has no value {#adr-060}
+
+**Context.** A tour of every screen with a lived-in workspace (`e2e/tour.e2e.ts`) showed a board that
+looked empty: the cards were in "No value", the last column, off the right edge of the screen. A new
+card has no status, so it always lands there.
+
+**Decision.** `toColumns` puts the column with no value first and names it after the field it groups
+by, "No status". The query engine's groups keep their order, so a list grouped by a field is
+unchanged; only the board, where the first column is the one in view, reorders.
+
+**Cost accepted.** A board whose cards all have a status shows an empty first column, which is still
+where a card is dropped to clear its status (the reason the column always exists).

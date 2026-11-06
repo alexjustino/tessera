@@ -133,15 +133,18 @@ export function BoardView({
   /** Only dims the rest: hiding cards would leave a drop with the wrong neighbours. */
   const [spotlight, setSpotlight] = useState(false);
 
-  const columns = useMemo(() => toColumns(groups, board), [groups, board]);
-  const shown = cardProperties(board, properties);
-
   // Bound to a local so the narrowing survives the second access.
   const groupBy = query.groupBy;
   const groupProperty =
     groupBy?.kind === 'property'
       ? (properties.find((p) => p.id === groupBy.propertyId) ?? null)
       : null;
+
+  const columns = useMemo(
+    () => toColumns(groups, board, groupProperty?.name ?? null),
+    [groups, board, groupProperty?.name],
+  );
+  const shown = cardProperties(board, properties);
 
   const sensors = useSensors(
     // A small distance before a drag begins, so clicking a card to open it is

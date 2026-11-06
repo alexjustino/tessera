@@ -20,6 +20,14 @@ export interface Column {
  * a table a screen reader gets and in the tooltip, so a value is never only a
  * height (design system: a chart says what it left out).
  */
+/** Up to this many columns, each is named. */
+const LABEL_EVERY_FROM = 8;
+
+/** Name every nth column so about six names fit. */
+function labelStep(count: number): number {
+  return Math.ceil(count / 6);
+}
+
 export function ColumnChart({
   columns,
   label,
@@ -59,7 +67,7 @@ export function ColumnChart({
                 />
               )}
               {labelled && (
-                <span className="mb-0.5 max-w-full truncate text-caption text-fg-secondary">
+                <span className="mb-0.5 text-caption whitespace-nowrap text-fg-secondary">
                   {column.text}
                 </span>
               )}
@@ -78,15 +86,24 @@ export function ColumnChart({
         })}
       </div>
       <div aria-hidden="true" className="mt-1 flex gap-1">
-        {columns.map((column) => (
+        {columns.map((column, index) => (
           <span
             key={column.id}
             className={[
-              'min-w-0 flex-1 truncate text-center text-caption',
+              'min-w-0 flex-1 text-center text-caption whitespace-nowrap',
               column.current === true ? 'font-semibold text-fg' : 'text-fg-tertiary',
             ].join(' ')}
           >
-            {column.label}
+            {/* Many columns: every few is named, and the current one always. A row of
+                names cut to "Aug ..." says nothing. */}
+            {columns.length <= LABEL_EVERY_FROM ||
+            column.current === true ||
+            (index % labelStep(columns.length) === 0 &&
+              !columns
+                .slice(index + 1, index + labelStep(columns.length))
+                .some((next) => next.current === true))
+              ? column.label
+              : ''}
           </span>
         ))}
       </div>

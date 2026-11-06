@@ -203,7 +203,7 @@ export function Toolbar({
           () => chain().toggleStrike().run(),
           state.strike,
         )}
-        <div className="w-28 shrink-0">
+        <div className="w-36 shrink-0">
           <Select
             aria-label="Highlight"
             title="Highlight the selection, in a colour that says what it is"
