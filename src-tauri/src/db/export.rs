@@ -40,6 +40,7 @@ pub const TABLES: &[&str] = &[
     "tag",
     "item_tag",
     "item_dependency",
+    "section",
     "page",
     "block",
     "page_link",
