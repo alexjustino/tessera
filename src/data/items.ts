@@ -76,6 +76,28 @@ export async function listCollections(): Promise<Collection[]> {
   return raw.map(toCollection);
 }
 
+/** A new list, set up the way Tasks is (ADR-053). */
+export async function createList(name: string, position: string): Promise<Collection> {
+  return toCollection(await invoke<RawCollection>('list_create', { name, position }));
+}
+
+export async function renameList(id: string, name: string): Promise<Collection> {
+  return toCollection(await invoke<RawCollection>('list_rename', { id, name }));
+}
+
+export async function deleteList(id: string): Promise<void> {
+  await invoke('list_delete', { id });
+}
+
+/** Move a task and its subtasks to another list, its values with it where they fit. */
+export async function moveToList(
+  id: string,
+  collectionId: string,
+  position: string,
+): Promise<Item> {
+  return toItem(await invoke<RawItem>('item_move_to_list', { id, collectionId, position }));
+}
+
 export async function listItems(
   collectionId: string | null,
   includeCompleted: boolean,

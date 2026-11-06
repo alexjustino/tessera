@@ -221,6 +221,25 @@ of a week that slipped. Each lands as its own slice, with its own proof.
   and takes every block away. A repeating task, a task waiting on work that is not late,
   and a task with no room in three weeks are left as they are, and named.
 
+- **Lists** (ADR-053). More than one place to keep tasks. A list is made from the rail,
+  under Tasks, and lands on screen. It starts set up the way Tasks is: the same properties
+  and views, its board grouping by its own Status. Tasks is the inbox, where quick capture
+  writes, and stays. A task moves between lists from its panel, with its subtasks, and its
+  values go where the target has the same property. Today, the plan, the score, Reports,
+  Goals and Focus read every list; a row from another list says which on Today. Finding a
+  task opens it in its own list. A list is renamed from its page, and deleted only once it
+  is empty.
+
+#### Deferred out of lists, and why
+
+- **Ordering lists by dragging, colours and icons.** The rail shows them in the order
+  they were made. Worth doing with the rail's own keyboard model, not bolted on.
+- **Capturing into a list by name** (`#work` on the capture line). The grammar change
+  needs its own negative cases: a hash is also how people write numbers and tags.
+- **Archiving a list.** A list with work in it is kept or emptied; an archived list whose
+  tasks still count on Today would be a list that is and is not there.
+- **Lists in templates and the palette's Go to.** Additive, and better with the above.
+
 #### Deferred out of subtasks, and why
 
 - **Dates, estimates and the clock on a step.** Each would make a step a second kind of

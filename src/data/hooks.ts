@@ -55,6 +55,56 @@ export function useCollections() {
   return useQuery({ queryKey: keys.collections, queryFn: api.listCollections });
 }
 
+/** A list's properties and views are made with it, so all three are read again. */
+function useInvalidateLists() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: keys.collections });
+    void client.invalidateQueries({ queryKey: ['properties'] });
+    void client.invalidateQueries({ queryKey: ['property-values'] });
+    void client.invalidateQueries({ queryKey: ['views'] });
+    void client.invalidateQueries({ queryKey: ['items'] });
+  };
+}
+
+export function useCreateList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({
+    mutationFn: ({ name, position }: { name: string; position: string }) =>
+      api.createList(name, position),
+    onSuccess: invalidate,
+  });
+}
+
+export function useRenameList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.renameList(id, name),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({ mutationFn: (id: string) => api.deleteList(id), onSuccess: invalidate });
+}
+
+export function useMoveToList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({
+    mutationFn: ({
+      id,
+      collectionId,
+      position,
+    }: {
+      id: string;
+      collectionId: string;
+      position: string;
+    }) => api.moveToList(id, collectionId, position),
+    onSuccess: invalidate,
+  });
+}
+
 export function useItems(collectionId: string | null, includeCompleted: boolean) {
   return useQuery({
     queryKey: keys.items(collectionId, includeCompleted),

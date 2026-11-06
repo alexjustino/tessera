@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Lists.** Make a list from the rail, under Tasks, and keep work apart: each list has its own
+  tasks, board and properties, set up the way Tasks is. Move a task to another list from its
+  panel, and its subtasks and values go with it. Today still shows everything due, from every
+  list, and says which list each task is in. A list is renamed from its page, and deleted only
+  once it is empty.
 - **Replan in one press.** When work is late, Today and the Calendar list where each late task
   would go and its new date, before anything changes. One press gives every late task the next
   free time and moves its date there, all at once. Undo puts every date back and takes every

@@ -10,6 +10,7 @@ import { Suspense, useCallback, useMemo, useState } from 'react';
 import { describeError } from '@/data/errors';
 import {
   useCaptureItem,
+  useCollections,
   useCompleteOccurrence,
   useDependencies,
   useDeleteItem,
@@ -34,6 +35,7 @@ import { isBlocked } from '@/domain/graph';
 import { runningEntry } from '@/domain/time';
 import type { Capture } from '@/domain/capture';
 import { positionForNewItem } from '@/domain/item';
+import { INBOX } from '@/domain/lists';
 import { nextOccurrence, systemZone } from '@/domain/schedule';
 import type { Page as NotesPage } from '@/domain/page';
 import type { Property, PropertyValue } from '@/domain/property';
@@ -50,6 +52,7 @@ import { Skeleton } from '@/ui/Skeleton';
 import { ListView } from '@/features/views/ListView';
 import { QueryBar } from '@/features/views/QueryBar';
 import { ComingUp } from './ComingUp';
+import { ListActions } from './ListActions';
 import { NowCard } from './NowCard';
 import { ReplanCard } from './ReplanCard';
 import { TasksOverview } from './TasksOverview';
@@ -67,7 +70,6 @@ import { TaskDetail } from './TaskDetail';
 import { TemplatesDialog } from './TemplatesDialog';
 
 /** The collection seeded by migration 002. */
-const COLLECTION = 'tasks';
 
 /**
  * How many properties are edited straight from a list row.
@@ -88,7 +90,7 @@ const PLACES: Record<TasksPlace, { title: string; viewId: string | null; say: st
   today: {
     title: 'Today',
     viewId: 'view.today',
-    say: 'What is due today or already late. Everything else stays in Tasks.',
+    say: 'What is due today or already late, from every list. Everything else stays in its list.',
   },
   board: { title: 'Board', viewId: 'tasks.board', say: null },
   calendar: { title: 'Calendar', viewId: 'view.calendar', say: null },
@@ -97,8 +99,14 @@ const PLACES: Record<TasksPlace, { title: string; viewId: string | null; say: st
 /** Views with a place of their own in the rail: a second way in only confused the two. */
 const RAIL_VIEWS = new Set(['view.today', 'tasks.board', 'view.calendar']);
 
+/** A list's board is the Board in the rail, whichever list it belongs to. */
+const railView = (view: { id: string; kind: string }) =>
+  RAIL_VIEWS.has(view.id) || view.kind === 'board';
+
 export function TasksPage({
   place = 'tasks',
+  collectionId = INBOX,
+  onListDeleted,
   initialDetailId = null,
   onFocus,
   onShowAll,
@@ -107,6 +115,10 @@ export function TasksPage({
 }: {
   /** Which place in the rail this is. */
   place?: TasksPlace;
+  /** The list shown on Tasks and on the Board (ADR-053). Today reads every list. */
+  collectionId?: string;
+  /** Go somewhere else once the list on screen has been deleted. */
+  onListDeleted?: () => void;
   /** Go to the whole list, from a place that shows part of it. */
   onShowAll?: () => void;
   /** Go to a page, from a task it is about. */
@@ -132,10 +144,19 @@ export function TasksPage({
   /** The part of the list a figure in the overview was pressed for. */
   const [slice, setSlice] = useState<Slice | null>(null);
 
-  const items = useItems(COLLECTION, true);
-  const properties = useProperties(COLLECTION);
-  const values = usePropertyValues(COLLECTION);
-  const views = useViews(COLLECTION);
+  // Today is across every list; Tasks and the Board show one. Properties and views are
+  // a list's own, so Today reads the inbox's and a row from another list shows none.
+  const items = useItems(place === 'today' ? null : collectionId, true);
+  const shapeOf = place === 'today' ? INBOX : collectionId;
+  const properties = useProperties(shapeOf);
+  const values = usePropertyValues(shapeOf);
+  const views = useViews(shapeOf);
+  const collections = useCollections();
+  const list = (collections.data ?? []).find((candidate) => candidate.id === collectionId);
+  const listNames = useMemo(
+    () => new Map((collections.data ?? []).map((candidate) => [candidate.id, candidate.name])),
+    [collections.data],
+  );
 
   const create = useCaptureItem();
   const setCompleted = useSetItemCompleted();
@@ -149,12 +170,20 @@ export function TasksPage({
 
   const view = useMemo(() => {
     const all = views.data ?? [];
+    // Every list has a board of its own, made with it; the Board shows the list's.
+    if (place === 'board') {
+      return (
+        all.find(
+          (candidate) => candidate.kind === 'board' && candidate.collectionId === collectionId,
+        ) ?? null
+      );
+    }
     return (
       all.find((candidate) => candidate.id === activeViewId) ??
-      all.find((candidate) => !RAIL_VIEWS.has(candidate.id)) ??
+      all.find((candidate) => !railView(candidate)) ??
       null
     );
-  }, [views.data, activeViewId]);
+  }, [views.data, activeViewId, place, collectionId]);
 
   const query = draftQuery ?? view?.query ?? EMPTY_QUERY;
   const board = draftBoard ?? view?.board ?? EMPTY_BOARD_CONFIG;
@@ -199,6 +228,10 @@ export function TasksPage({
     () => (items.data ?? []).find((item) => item.id === detailId) ?? null,
     [items.data, detailId],
   );
+  // The detail edits the task's own list's properties, which on Today may be another's.
+  const detailShape = detailTask?.collectionId ?? shapeOf;
+  const detailProperties = useProperties(detailShape);
+  const detailValues = usePropertyValues(detailShape);
 
   /**
    * The plan over this collection: how long it takes, what decides the end.
@@ -251,8 +284,12 @@ export function TasksPage({
     (capture: Capture) => {
       create.mutate(
         {
-          collectionId: COLLECTION,
-          position: positionForNewItem(items.data ?? []),
+          collectionId: place === 'today' ? INBOX : collectionId,
+          position: positionForNewItem(
+            (items.data ?? []).filter(
+              (item) => item.collectionId === (place === 'today' ? INBOX : collectionId),
+            ),
+          ),
           // Typed on Today, with no date of its own: today is what was meant, and
           // anything else would vanish from the screen it was just typed on.
           capture:
@@ -274,7 +311,7 @@ export function TasksPage({
         },
       );
     },
-    [create, items.data, priorityPropertyId, place],
+    [create, items.data, priorityPropertyId, place, collectionId],
   );
 
   const pulse = usePulse(items.data ?? []);
@@ -376,7 +413,13 @@ export function TasksPage({
     <Page className="h-full">
       <header className="flex items-baseline justify-between gap-4">
         <div>
-          <h1 className="text-title font-semibold text-fg">{PLACES[place].title}</h1>
+          <h1 className="text-title font-semibold text-fg">
+            {place === 'tasks' && list !== undefined
+              ? list.name
+              : place === 'board' && list !== undefined && collectionId !== INBOX
+                ? `Board · ${list.name}`
+                : PLACES[place].title}
+          </h1>
           {PLACES[place].say !== null && (
             <p className="mt-1 text-body text-fg-secondary">{PLACES[place].say}</p>
           )}
@@ -402,6 +445,13 @@ export function TasksPage({
           >
             Print
           </Button>
+          {place === 'tasks' && list !== undefined && collectionId !== INBOX && (
+            <ListActions
+              list={list}
+              held={(items.data ?? []).length}
+              onDeleted={() => onListDeleted?.()}
+            />
+          )}
           {/* Ways to shape the whole list, so they live where the whole list is. */}
           {place !== 'today' && place !== 'calendar' && (
             <>
@@ -475,7 +525,7 @@ export function TasksPage({
         <div className="print-hide">
           <TabStrip
             tabs={(views.data ?? [])
-              .filter((candidate) => !RAIL_VIEWS.has(candidate.id))
+              .filter((candidate) => !railView(candidate))
               .map((candidate) => ({
                 id: candidate.id,
                 label: candidate.name,
@@ -636,6 +686,7 @@ export function TasksPage({
                 />
               ) : (
                 <ListView
+                  listNameOf={place === 'today' ? listNames : undefined}
                   groups={result.groups}
                   grouped={query.groupBy !== null}
                   notesOf={notesOf}
@@ -672,7 +723,7 @@ export function TasksPage({
       <TemplatesDialog
         open={templatesOpen}
         onClose={() => setTemplatesOpen(false)}
-        collectionId={COLLECTION}
+        collectionId={collectionId}
         shown={flatten(result).map((row) => row.item)}
         all={items.data ?? []}
         edges={dependencies.data ?? []}
@@ -681,7 +732,7 @@ export function TasksPage({
       <PropertyManager
         open={managingProperties}
         onClose={() => setManagingProperties(false)}
-        collectionId={COLLECTION}
+        collectionId={collectionId}
         properties={properties.data ?? []}
       />
 
@@ -689,8 +740,8 @@ export function TasksPage({
         task={detailTask}
         items={items.data ?? []}
         timing={detailTask ? planned.timing.get(detailTask.id) : undefined}
-        properties={properties.data ?? []}
-        values={detailTask ? (values.data?.[detailTask.id] ?? {}) : {}}
+        properties={detailProperties.data ?? []}
+        values={detailTask ? (detailValues.data?.[detailTask.id] ?? {}) : {}}
         onClose={() => setDetailId(null)}
         onFocus={onFocus}
         onOpenPage={onOpenPage}

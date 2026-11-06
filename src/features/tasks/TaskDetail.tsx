@@ -12,6 +12,7 @@ import { Skeleton } from '@/ui/Skeleton';
 
 import { Dependencies } from './Dependencies';
 import { LinkedNotes } from './LinkedNotes';
+import { ListPicker } from './ListPicker';
 import { PlanEditor } from './PlanEditor';
 import { Subtasks } from './Subtasks';
 import { TimeTracker } from './TimeTracker';
@@ -105,6 +106,7 @@ export function TaskDetail({
           />
         </div>
       )}
+      {task !== null && <ListPicker task={task} />}
       {task !== null && onFocus !== undefined && task.completedAt === null && (
         <div className="mb-4">
           <Button

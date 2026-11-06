@@ -69,7 +69,7 @@ export function ComingUp({
           <p className="text-caption text-fg-tertiary">
             {undated === 0
               ? 'Every open task has a date.'
-              : `${undated} open task${undated === 1 ? ' has' : 's have'} no date, so ${undated === 1 ? 'it stays' : 'they stay'} in Tasks.`}
+              : `${undated} open task${undated === 1 ? ' has' : 's have'} no date, so ${undated === 1 ? 'it stays' : 'they stay'} off Today.`}
           </p>
           {onShowAll !== undefined && (
             <Button appearance="subtle" onClick={onShowAll}>
