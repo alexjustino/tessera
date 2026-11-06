@@ -20,7 +20,9 @@ interface Box {
  * and it never worked from a mouse. A test that dispatched the events by hand passed
  * all the same. That is what this file is for.
  *
- * It reads where things are from the screen, so it does not depend on the day it runs.
+ * It reads where things are from the screen, and makes every hour working time, so it
+ * does not depend on the day or the hour it runs (late at night, near midnight, the
+ * second block can still land the next day).
  */
 describe('moving things on the calendar', () => {
   let session: Session;
@@ -77,9 +79,24 @@ describe('moving things on the calendar', () => {
       await input.sendKeys(`${title}${Keys.ENTER}`);
       await driver.waitForText(title);
     }
-    await (await driver.findByXPath('//nav//button[normalize-space(.)="Calendar"]')).click();
-    await driver.waitForElement('[data-testid="plan-summary"]');
-    await (await driver.findByXPath('//button[normalize-space(.)="Hide suggestions"]')).click();
+    // Every hour of every day is working time, so a reservation lands on the day this
+    // runs. With an office week, a Friday afternoon sends the second block to Monday,
+    // the calendar follows it there, and the first one is no longer on screen.
+    await driver.executeAsync(
+      'const done = arguments[arguments.length - 1]; window.__TAURI_INTERNALS__.invoke("work_hours_set", { hours: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts_minute: 0, ends_minute: 1440 })) }).then(() => done(true), (e) => done(String(e)));',
+    );
+    // The hours were written behind the window's back: open it again to read them.
+    await session.restart();
+    await session.driver.waitFor('the opening to go', async () =>
+      (await session.driver.findAll('#opening')).length === 0 ? true : null,
+    );
+    await (
+      await session.driver.findByXPath('//nav//button[normalize-space(.)="Calendar"]')
+    ).click();
+    await session.driver.waitForElement('[data-testid="plan-summary"]');
+    await (
+      await session.driver.findByXPath('//button[normalize-space(.)="Hide suggestions"]')
+    ).click();
   });
 
   afterAll(async () => {
@@ -243,10 +260,13 @@ describe('moving things on the calendar', () => {
     await scrollIntoView('First job');
     const before = await waitForBox('First job');
     const from = middle(before);
+    // Down when there is room below, up when the block sits near the window's foot.
+    const room = await driver.execute<number>('return window.innerHeight');
+    const to = from.y + 80 < room - 10 ? from.y + 80 : from.y - 80;
     await driver.pointer([
       { type: 'move', x: from.x, y: from.y },
       { type: 'down' },
-      { type: 'move', x: from.x, y: from.y + 80 },
+      { type: 'move', x: from.x, y: to },
     ]);
     await driver.waitForElement('[data-testid="landing"]');
     await driver.chord(Keys.ESCAPE);
