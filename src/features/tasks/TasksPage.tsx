@@ -595,11 +595,13 @@ export function TasksPage({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {/* Inside what scrolls: above it, the guide would squeeze the list to nothing. */}
-        {(place === 'tasks' || place === 'today') && items.isSuccess && (
-          <div className="mb-3">
-            <GettingStarted items={items.data} onOpenSettings={onOpenSettings} />
-          </div>
-        )}
+        {/* Today and the inbox carry the guide; a list of one's own is about its work. */}
+        {(place === 'today' || (place === 'tasks' && collectionId === INBOX)) &&
+          items.isSuccess && (
+            <div className="mb-3">
+              <GettingStarted items={items.data} onOpenSettings={onOpenSettings} />
+            </div>
+          )}
         {place === 'today' && items.isSuccess && (
           <div className="mb-4 flex flex-col gap-3">
             <NowCard items={items.data} onFocus={onFocus} onOpen={setDetailId} />
