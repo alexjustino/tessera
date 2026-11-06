@@ -262,7 +262,10 @@ describe('a calendar file', () => {
 
     await goTo('Calendar');
     await goToWeekOf('2026-11-17');
-    expect(await standUps()).toHaveLength(0);
+    // The week is read again after the undo; until it is, the old occurrences are drawn.
+    await driver.waitFor('the stand-ups gone', async () =>
+      (await standUps()).length === 0 ? true : null,
+    );
     await driver.chord(Keys.ESCAPE);
   });
 });
