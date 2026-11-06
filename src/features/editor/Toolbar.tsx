@@ -30,7 +30,7 @@ import { Select } from '@/ui/Select';
 
 import { EmailButton } from './EmailButton';
 import { FollowUp } from './FollowUp';
-import { setMarker } from './NoteMarker';
+import { markFollowUp, setMarker } from './NoteMarker';
 
 const STYLES = [
   { id: 'paragraph', label: 'Text' },
@@ -270,9 +270,9 @@ export function Toolbar({
           title={following}
           ownerKind={ownerKind}
           ownerId={ownerId}
-          onDone={(made) => {
+          onDone={(taskId) => {
             setFollowing(null);
-            if (made) setMarker(editor, 'followup');
+            if (taskId !== null) markFollowUp(editor, taskId);
             editor.commands.focus();
           }}
         />

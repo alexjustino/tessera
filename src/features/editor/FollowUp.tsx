@@ -23,8 +23,8 @@ export function FollowUp({
   title: string;
   ownerKind: string;
   ownerId: string;
-  /** Finished, and whether a task was made. */
-  onDone: (made: boolean) => void;
+  /** Finished: the task made, or null when none was. */
+  onDone: (taskId: string | null) => void;
 }) {
   const items = useItems(null, true);
   const create = useCaptureItem();
@@ -55,7 +55,7 @@ export function FollowUp({
         onSuccess: (item) => {
           if (ownerKind === 'page') link.mutate({ itemId: item.id, pageId: ownerId });
           announce(`Follow-up added: ${item.title}`);
-          onDone(true);
+          onDone(item.id);
         },
       },
     );
@@ -87,7 +87,7 @@ export function FollowUp({
       <Button type="submit" disabled={create.isPending || name.trim() === '' || due === ''}>
         Add follow-up
       </Button>
-      <Button appearance="subtle" onClick={() => onDone(false)}>
+      <Button appearance="subtle" onClick={() => onDone(null)}>
         Cancel
       </Button>
     </form>
