@@ -16,6 +16,7 @@
  *             daily · weekly · monthly · yearly
  *   priority  !urgent !high !medium !low  or  !1 !2 !3 !4
  *   reminder  remind me · remind me 15m before · remind 1h before · remind 1d before
+ *   list      #work · #home office — the name of one of the person's lists (ADR-053)
  *
  * Resolution rules, all of them visible in the tests:
  * - a date without a time is due at the end of that day (23:59 local), so it
@@ -25,7 +26,9 @@
  * - a weekday means the coming one, never today; "next" changes nothing;
  * - a repeat with no date is anchored on today (or the coming weekday);
  * - a reminder needs a date to be relative to — with none, the words stay in
- *   the title, because a chip that does nothing is a lie.
+ *   the title, because a chip that does nothing is a lie;
+ * - a `#word` is a list only when a list has that name, longest name first and
+ *   whatever its case; any other `#word` is part of the title, for the same reason.
  *
  * Pure: `now` and the zone come in as arguments (ADR-003, ADR-013).
  */
@@ -46,7 +49,7 @@ import {
 
 import { asInstant, asWallClock } from './schedule';
 
-export type ChipKind = 'date' | 'time' | 'repeat' | 'priority' | 'remind';
+export type ChipKind = 'date' | 'time' | 'repeat' | 'priority' | 'remind' | 'list';
 
 export interface Chip {
   kind: ChipKind;
@@ -67,7 +70,38 @@ export interface Capture {
   remindAt: string | null;
   rule: string | null;
   priority: Priority | null;
+  /** The list named with `#`, when one was. */
+  listId: string | null;
   chips: readonly Chip[];
+}
+
+/** What the parser needs to know of a list. */
+export interface ListName {
+  id: string;
+  name: string;
+}
+
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** `#name` for the longest list name that is written there and not taken. */
+function listIn(
+  text: string,
+  lists: readonly ListName[],
+  taken: readonly Span[],
+): (Span & { list: ListName; text: string }) | null {
+  const longestFirst = [...lists].sort((a, b) => b.name.length - a.name.length);
+  for (const list of longestFirst) {
+    const name = list.name.trim();
+    if (name === '') continue;
+    const pattern = new RegExp(`(^|\\s)(#${escape(name)})(?=$|[\\s.,;:!?)])`, 'giu');
+    for (let m = pattern.exec(text); m !== null; m = pattern.exec(text)) {
+      const start = m.index + (m[1]?.length ?? 0);
+      const end = start + (m[2]?.length ?? 0);
+      if (taken.some((span) => start < span.end && span.start < end)) continue;
+      return { start, end, list, text: text.slice(start, end) };
+    }
+  }
+  return null;
 }
 
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -486,7 +520,12 @@ function chip(kind: ChipKind, phrase: Phrase, label: string): Chip {
 const PROTECTED = /\[[^\]]*\]/g;
 
 /** Parse one line. `now` is a UTC instant; `zone` an IANA name. */
-export function parseCapture(text: string, now: string, zone: string): Capture {
+export function parseCapture(
+  text: string,
+  now: string,
+  zone: string,
+  lists: readonly ListName[] = [],
+): Capture {
   // Spans no pattern may claim. Bracketed text is protected but not removed.
   const taken: Span[] = [];
   for (let m = PROTECTED.exec(text); m !== null; m = PROTECTED.exec(text)) {
@@ -550,6 +589,19 @@ export function parseCapture(text: string, now: string, zone: string): Capture {
     }
   }
 
+  // A list goes last: it claims a `#name` only where no other phrase did.
+  const list = listIn(text, lists, taken);
+  if (list) {
+    taken.push(list);
+    chips.push({
+      kind: 'list',
+      text: list.text,
+      label: list.list.name,
+      start: list.start,
+      end: list.end,
+    });
+  }
+
   chips.sort((a, b) => a.start - b.start);
 
   return {
@@ -558,6 +610,7 @@ export function parseCapture(text: string, now: string, zone: string): Capture {
     remindAt: remindWall ? asInstant(remindWall, zone) : null,
     rule: repeat?.rule ?? null,
     priority: priority?.level ?? null,
+    listId: list?.list.id ?? null,
     chips,
   };
 }
