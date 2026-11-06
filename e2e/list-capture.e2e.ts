@@ -96,6 +96,28 @@ describe('capturing into a list', () => {
     await driver.waitFor('the row', () => driver.find('button[aria-label="Open Draft the plan"]'));
   });
 
+  it('quick capture sends it to the list too', async () => {
+    const { driver } = session;
+    const main = await driver.windowHandle();
+    await invoke('capture_show');
+    const handles = await driver.waitFor('the capture window', async () => {
+      const found = await driver.windowHandles();
+      return found.length >= 2 ? found : null;
+    });
+    await driver.switchTo(handles.find((handle) => handle !== main) ?? '');
+    const input = await driver.waitForElement('input[aria-label="Quick capture"]');
+    await input.sendKeys('Book the venue #work');
+    await driver.waitForText('Work');
+    await input.sendKeys(Keys.ENTER);
+    await driver.waitForText('Added');
+    await driver.switchTo(main);
+    const task = await driver.waitFor(
+      'the task',
+      async () => (await all()).find((item) => item.title === 'Book the venue') ?? null,
+    );
+    expect(task.collection_id).toBe(workId);
+  });
+
   // ── Negative cases ─────────────────────────────────────────────────────
   it('a hash that names no list stays in the title, in the list on screen', async () => {
     const { driver } = session;
@@ -110,9 +132,9 @@ describe('capturing into a list', () => {
   });
 
   it('with only Tasks, the line does not mention lists', async () => {
-    await invoke('item_delete', {
-      id: (await all()).find((item) => item.title === 'Draft the plan')?.id,
-    });
+    for (const item of await all()) {
+      if (item.collection_id === workId) await invoke('item_delete', { id: item.id });
+    }
     await invoke('list_delete', { id: workId });
     await session.restart();
     await settled();
