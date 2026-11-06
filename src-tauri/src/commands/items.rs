@@ -6,6 +6,7 @@
 
 use tauri::State;
 
+use crate::db::lists;
 use crate::db::models::{CaptureRequest, Collection, Item, ItemPlan, ItemSchedule, NewItem};
 use crate::db::replan::{self, ReplanChange, ReplanUndo};
 use crate::db::{items, Db};
@@ -45,6 +46,36 @@ pub fn items_list(
 ) -> Result<Vec<Item>> {
     let conn = db.0.lock().expect("the database lock was poisoned");
     items::list_items(&conn, collection_id.as_deref(), include_completed)
+}
+
+/// A new list, set up the way Tasks is (ADR-053).
+#[tauri::command]
+pub fn list_create(db: State<'_, Db>, name: String, position: String) -> Result<Collection> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    lists::create_list(&mut conn, &name, &position)
+}
+
+#[tauri::command]
+pub fn list_rename(db: State<'_, Db>, id: String, name: String) -> Result<Collection> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    lists::rename_list(&conn, &id, &name)
+}
+
+#[tauri::command]
+pub fn list_delete(db: State<'_, Db>, id: String) -> Result<()> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    lists::delete_list(&conn, &id)
+}
+
+#[tauri::command]
+pub fn item_move_to_list(
+    db: State<'_, Db>,
+    id: String,
+    collection_id: String,
+    position: String,
+) -> Result<Item> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    lists::move_to_list(&mut conn, &id, &collection_id, &position)
 }
 
 /// Every late task's new date and blocks, in one write; returns the way back.
