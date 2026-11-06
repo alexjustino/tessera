@@ -68,6 +68,7 @@ import {
 import { optionsOf } from '@/domain/property';
 import { systemZone } from '@/domain/schedule';
 import { useLedger } from '@/features/receipt/useLedger';
+import { ReplanCard } from '@/features/tasks/ReplanCard';
 import { describeHours } from '@/features/reports/format';
 import { Button } from '@/ui/Button';
 import { IconButton } from '@/ui/IconButton';
@@ -717,6 +718,7 @@ export function CalendarView({
             if (scale === 'year') setScale('week');
           }}
         />
+        <ReplanCard compact />
         {plan !== null && <PlanSummary plan={plan} />}
         <UnscheduledPanel
           items={waiting}

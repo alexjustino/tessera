@@ -490,6 +490,17 @@ export function useSetException() {
   return useMutation({ mutationFn: calendarApi.setException, onSuccess: invalidate });
 }
 
+/** Dates and blocks together, so both the tasks and the calendar refresh. */
+export function useReplan() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: api.replanItems, onSuccess: invalidate });
+}
+
+export function useUndoReplan() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: api.undoReplan, onSuccess: invalidate });
+}
+
 export function useCreateTimeBlock() {
   const invalidate = useInvalidateCalendar();
   return useMutation({ mutationFn: calendarApi.createTimeBlock, onSuccess: invalidate });

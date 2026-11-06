@@ -7,6 +7,7 @@
 use tauri::State;
 
 use crate::db::models::{CaptureRequest, Collection, Item, ItemPlan, ItemSchedule, NewItem};
+use crate::db::replan::{self, ReplanChange, ReplanUndo};
 use crate::db::{items, Db};
 use crate::error::Result;
 
@@ -44,6 +45,24 @@ pub fn items_list(
 ) -> Result<Vec<Item>> {
     let conn = db.0.lock().expect("the database lock was poisoned");
     items::list_items(&conn, collection_id.as_deref(), include_completed)
+}
+
+/// Every late task's new date and blocks, in one write; returns the way back.
+#[tauri::command]
+pub fn items_replan(
+    db: State<'_, Db>,
+    calendar_id: String,
+    tz: String,
+    changes: Vec<ReplanChange>,
+) -> Result<ReplanUndo> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    replan::replan(&mut conn, &calendar_id, &tz, &changes)
+}
+
+#[tauri::command]
+pub fn items_replan_undo(db: State<'_, Db>, undo: ReplanUndo) -> Result<()> {
+    let mut conn = db.0.lock().expect("the database lock was poisoned");
+    replan::undo_replan(&mut conn, &undo)
 }
 
 #[tauri::command]
