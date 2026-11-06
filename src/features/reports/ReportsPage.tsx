@@ -367,7 +367,7 @@ export function ReportsPage() {
                           </span>
                           <span
                             className={[
-                              'w-16 text-right tabular-nums text-caption',
+                              'w-24 text-right tabular-nums text-caption whitespace-nowrap',
                               over ? 'text-danger' : 'text-success',
                             ].join(' ')}
                           >
