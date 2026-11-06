@@ -155,6 +155,8 @@ pub fn run() {
             commands::data::import_json,
             commands::items::item_capture,
             commands::items::collections_list,
+            commands::items::meeting_notes_open,
+            commands::items::event_pages_list,
             commands::items::list_create,
             commands::items::list_rename,
             commands::items::list_delete,

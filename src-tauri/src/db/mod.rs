@@ -9,6 +9,7 @@ pub mod blocks;
 pub mod calendar;
 pub mod days_off;
 pub mod dependencies;
+pub mod event_pages;
 pub mod export;
 pub mod goals;
 pub mod importing;
