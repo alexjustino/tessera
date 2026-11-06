@@ -28,7 +28,9 @@ describe('shell', () => {
 
   it('lists every destination, all of them built', async () => {
     const { driver } = session;
-    const buttons = await driver.findAll('nav[aria-label="Main"] button');
+    // The person's lists and "New list" sit in a group of their own under Tasks (ADR-053);
+    // the destinations are everything else.
+    const buttons = await driver.findAll('nav[aria-label="Main"] > button');
     const labels = await Promise.all(buttons.map((b) => b.text()));
     expect(labels.map((l) => l.split('\n')[0])).toEqual([
       'Search',
@@ -46,6 +48,10 @@ describe('shell', () => {
     ]);
     const disabled = await driver.findAll('nav[aria-label="Main"] button[disabled]');
     expect(disabled.length).toBe(0);
+    const lists = await driver.findAll(
+      'nav[aria-label="Main"] [role="group"][aria-label="Lists"] button',
+    );
+    expect(await Promise.all(lists.map((b) => b.text()))).toEqual(['New list']);
   });
 
   it.each([
