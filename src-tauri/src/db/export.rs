@@ -52,6 +52,7 @@ pub const TABLES: &[&str] = &[
     "calendar",
     "event",
     "event_exception",
+    "event_page",
     "time_block",
     "work_hours",
     "day_off",

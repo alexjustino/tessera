@@ -1136,3 +1136,24 @@ before it.
 
 **Cost accepted.** On Today, a task from another list shows its title, date and list, not its Status
 or Priority; those are edited in its panel or its list.
+
+## ADR-054 — A meeting's notes are a page paired with one occurrence {#adr-054}
+
+**Context.** 1.4 left "meeting notes started from an event" for later. The owner chose it before the
+UAT of the candidate.
+
+**Decision.** Migration 021 adds `event_page (event_id, original_start, page_id)`. The pair names an
+occurrence by the start the series gave it, the same key an exception uses, so a weekly meeting has a
+page for each week and moving one occurrence keeps its notes. Meeting notes, in an event's editor,
+calls `meeting_notes_open`: the pair's page when there is one; otherwise a page named "Meeting — Mon,
+Nov 9", or the page of that name when one exists, paired. A new page is written its opening lines by
+the client, through the same change set the editor uses: when and where, then Notes, Decisions and
+Follow-ups. The page says which meeting it holds the notes of. Time reserved for a task offers no
+meeting notes. Either side going removes the pair, and nothing else, as with `item_page` (ADR-041).
+
+**Why not a link in the page's text.** The press has to find the page again from the event, and a
+link a person can delete without meaning to would make the press make a second page.
+
+**Cost accepted.** Making the page and pairing it are two writes: a failure between them leaves a page
+with the meeting's name and no pair. The next press finds it by name and pairs it, so nothing is lost
+and nothing is made twice. Location is not shown yet: events are made without one today.

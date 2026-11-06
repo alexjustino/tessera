@@ -40,6 +40,8 @@ calls a board and what Notion calls a database.
 | `search_fts`          | FTS5 over titles and flattened block text               |
 | `item_dependency`     | one edge of the graph: this task waits for that one     |
 | `time_entry`          | an interval on a task; a null end is a running timer    |
+| `item_page`           | a task and a page a person paired (ADR-041)             |
+| `event_page`          | an occurrence of a meeting and its notes (ADR-054)      |
 
 Arriving with the calendar slice: `calendar`, `event`, `event_exception`, `time_block`,
 `work_hours`. Arriving later: `page`.

@@ -230,6 +230,13 @@ of a week that slipped. Each lands as its own slice, with its own proof.
   task opens it in its own list. A list is renamed from its page, and deleted only once it
   is empty.
 
+- **Meeting notes** (ADR-054). An event on the calendar opens its notes in one press:
+  a page named for the meeting and its day, made the first time with when it is and three
+  headings, Notes, Decisions and Follow-ups, and found by the same press every time after.
+  Each occurrence of a repeating meeting has a page of its own. The page says which meeting
+  it holds the notes of. A follow-up written there is a task paired with the page, as from
+  any page. Time reserved for a task offers no meeting notes: the task has its own.
+
 #### Deferred out of lists, and why
 
 - **Ordering lists by dragging, colours and icons.** The rail shows them in the order
