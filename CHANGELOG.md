@@ -22,6 +22,9 @@ The first look at this candidate sent it back for more, and it came back with fi
 leads with a score whose sum you can read, the calendar suggests your work and lets you move
 it, the Mosaic is a wall of your goals, and links in your notes finally go somewhere.
 
+The third look asked for more structure, and got it: the steps inside a task, a week that
+slipped put right in one press and undone in one more, and more than one list.
+
 ### Migrations
 
 This release adds migrations **019** (`goal.ongoing`, a goal with no finish line) and **020**
