@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { startSession, workEveryHour, type Session } from './session';
 import { Keys } from './webdriver';
 
 const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
@@ -16,6 +16,8 @@ describe('using the mosaic', () => {
 
   beforeAll(async () => {
     session = await startSession();
+    // A free hour this week exists whatever hour the suite runs.
+    await workEveryHour(session);
     const { driver } = session;
     const input = await driver.waitForElement('input[placeholder^="Add a task"]');
     await input.sendKeys(`Size me${Keys.ENTER}`);
