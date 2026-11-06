@@ -9,7 +9,9 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import type { Capture } from '@/domain/capture';
-import type { Collection, Item } from '@/domain/item';
+import { positionForNewItem, type Collection, type Item } from '@/domain/item';
+
+import { listProperties } from './properties';
 import type { PropertyValue } from '@/domain/property';
 import type { Schedule } from '@/domain/schedule';
 
@@ -74,6 +76,23 @@ function toCollection(raw: RawCollection): Collection {
 export async function listCollections(): Promise<Collection[]> {
   const raw = await invoke<RawCollection[]>('collections_list');
   return raw.map(toCollection);
+}
+
+/**
+ * Where a task captured into another list lands: after that list's last task, with
+ * that list's own Priority, because a property belongs to its list (ADR-053).
+ */
+export async function landingIn(
+  collectionId: string,
+): Promise<{ position: string; priorityPropertyId: string | null }> {
+  const [items, properties] = await Promise.all([
+    listItems(collectionId, true),
+    listProperties(collectionId),
+  ]);
+  return {
+    position: positionForNewItem(items),
+    priorityPropertyId: properties.find((property) => property.type === 'priority')?.id ?? null,
+  };
 }
 
 /** A new list, set up the way Tasks is (ADR-053). */
