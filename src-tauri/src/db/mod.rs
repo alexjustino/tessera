@@ -19,6 +19,7 @@ pub mod models;
 pub mod pages;
 pub mod properties;
 pub mod reminders;
+pub mod replan;
 pub mod search;
 pub mod settings;
 pub mod templates;

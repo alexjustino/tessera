@@ -156,6 +156,8 @@ pub fn run() {
             commands::items::item_capture,
             commands::items::collections_list,
             commands::items::items_list,
+            commands::items::items_replan,
+            commands::items::items_replan_undo,
             commands::items::subtasks_list,
             commands::items::subtask_add,
             commands::items::subtask_promote,
