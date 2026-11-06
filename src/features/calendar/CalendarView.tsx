@@ -33,6 +33,9 @@ import {
   usePropertyValues,
   useTimeBlockedItems,
   useWorkHours,
+  useEventPages,
+  useOpenMeetingNotes,
+  usePages,
 } from '@/data/hooks';
 import {
   blockLength,
@@ -65,6 +68,8 @@ import {
   placeOf,
   type MoveBounds,
 } from '@/domain/moveByKeys';
+import { notesTitle } from '@/domain/meetingNotes';
+import { between, sortByKey } from '@/domain/ordering';
 import { optionsOf } from '@/domain/property';
 import { systemZone } from '@/domain/schedule';
 import { useLedger } from '@/features/receipt/useLedger';
@@ -147,11 +152,17 @@ interface Carrying {
 export function CalendarView({
   unscheduled,
   onOpenItem,
+  onOpenPage,
 }: {
   unscheduled: Item[];
   onOpenItem: (item: Item) => void;
+  /** Go to a page: a meeting's notes, once opened from its event. */
+  onOpenPage?: ((pageId: string) => void) | undefined;
 }) {
   const zone = systemZone();
+  const eventPages = useEventPages();
+  const openNotes = useOpenMeetingNotes();
+  const pages = usePages();
   const now = useNow(60_000);
 
   const [scale, setScale] = useState<CalendarScale>('week');
@@ -769,6 +780,45 @@ export function CalendarView({
             }
             setEditing(null);
           }}
+          {...(editing.kind === 'event' && editing.occurrence.event.itemId === null
+            ? {
+                hasNotes: (eventPages.data ?? []).some(
+                  (pair) =>
+                    pair.eventId === editing.occurrence.event.id &&
+                    pair.originalStart === editing.occurrence.originalStart,
+                ),
+                onMeetingNotes: () => {
+                  const { occurrence } = editing;
+                  const meeting = {
+                    title: occurrence.event.title,
+                    location: null,
+                    startsAt: occurrence.startsAt,
+                    endsAt: occurrence.endsAt,
+                    allDay: occurrence.event.allDay,
+                  };
+                  openNotes.mutate(
+                    {
+                      eventId: occurrence.event.id,
+                      originalStart: occurrence.originalStart,
+                      title: notesTitle(meeting, zone),
+                      position: between(
+                        sortByKey(pages.data ?? [], (page) => page.position).at(-1)?.position ??
+                          null,
+                        null,
+                      ),
+                      meeting,
+                      zone,
+                    },
+                    {
+                      onSuccess: (pageId) => {
+                        setEditing(null);
+                        onOpenPage?.(pageId);
+                      },
+                    },
+                  );
+                },
+              }
+            : {})}
           onOpenTask={(() => {
             const itemId =
               editing.kind === 'event'

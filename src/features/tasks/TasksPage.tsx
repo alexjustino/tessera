@@ -631,6 +631,7 @@ export function TasksPage({
                   // can drag it onto the grid, which is the whole point of the slice.
                   unscheduled={(items.data ?? []).filter((item) => item.completedAt === null)}
                   onOpenItem={(item) => setDetailId(item.id)}
+                  onOpenPage={onOpenPage}
                 />
               ) : (items.data ?? []).length === 0 ? (
                 <EmptyState

@@ -1,4 +1,4 @@
-import { Open20Regular } from '@fluentui/react-icons';
+import { Notebook20Regular, Open20Regular } from '@fluentui/react-icons';
 import { useState } from 'react';
 
 import { describeHours } from '@/features/reports/format';
@@ -42,8 +42,14 @@ export function BlockEditor({
   onSave,
   onDelete,
   onOpenTask,
+  onMeetingNotes,
+  hasNotes = false,
   onClose,
 }: {
+  /** Open this meeting's notes, making them the first time. Absent for a task's time. */
+  onMeetingNotes?: (() => void) | undefined;
+  /** This occurrence already has its notes. */
+  hasNotes?: boolean;
   initial: BlockFields;
   /** It is only a suggestion so far. */
   suggested: boolean;
@@ -162,6 +168,16 @@ export function BlockEditor({
             {onOpenTask !== undefined && (
               <Button appearance="subtle" icon={<Open20Regular />} onClick={onOpenTask}>
                 Open the task
+              </Button>
+            )}
+            {onMeetingNotes !== undefined && (
+              <Button
+                appearance="subtle"
+                icon={<Notebook20Regular />}
+                disabled={pending}
+                onClick={onMeetingNotes}
+              >
+                {hasNotes ? 'Open meeting notes' : 'Meeting notes'}
               </Button>
             )}
           </div>
