@@ -42,6 +42,7 @@ import * as templateApi from './templates';
 import * as importApi from './importing';
 import * as daysOffApi from './daysOff';
 import * as goalApi from './goals';
+import * as dayApi from './days';
 import * as meetingApi from './meetingNotes';
 import * as pageApi from './pages';
 import type { TemplateBody, TemplateEdge } from '@/domain/template';
@@ -1016,6 +1017,41 @@ export function useOpenMeetingNotes() {
       void client.invalidateQueries({ queryKey: ['event-pages'] });
       void client.invalidateQueries({ queryKey: pageKeys.all });
       void client.invalidateQueries({ queryKey: ['backlinks'] });
+      void client.invalidateQueries({ queryKey: ['blocks'] });
+    },
+  });
+}
+
+/** The days planned and closed, from a day on (migration 023). */
+export function useDayReviews(from: string) {
+  return useQuery({ queryKey: ['day-reviews', from], queryFn: () => dayApi.listDayReviews(from) });
+}
+
+export function useMarkPlanned() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (day: string) => dayApi.markPlanned(day),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['day-reviews'] }),
+  });
+}
+
+/** Close a day: its record, then its line in the journal. */
+export function useCloseDay() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      day: string;
+      close: Parameters<typeof dayApi.closeDay>[1];
+      journal: Parameters<typeof dayApi.appendToJournal>[1];
+    }) => {
+      const review = await dayApi.closeDay(input.day, input.close);
+      await dayApi.appendToJournal(input.day, input.journal);
+      return review;
+    },
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['day-reviews'] });
+      void client.invalidateQueries({ queryKey: ['sections'] });
+      void client.invalidateQueries({ queryKey: pageKeys.all });
       void client.invalidateQueries({ queryKey: ['blocks'] });
     },
   });
