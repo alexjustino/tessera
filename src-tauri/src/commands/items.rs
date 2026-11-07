@@ -6,6 +6,7 @@
 
 use tauri::State;
 
+use crate::db::day_reviews;
 use crate::db::event_pages;
 use crate::db::lists;
 use crate::db::models::{CaptureRequest, Collection, Item, ItemPlan, ItemSchedule, NewItem};
@@ -75,6 +76,29 @@ pub fn event_pages_list(db: State<'_, Db>) -> Result<Vec<event_pages::EventPage>
 pub struct MeetingNotes {
     pub page: crate::db::pages::Page,
     pub created: bool,
+}
+
+/// The days planned and closed, from a day on (migration 023).
+#[tauri::command]
+pub fn day_reviews_list(db: State<'_, Db>, from: String) -> Result<Vec<day_reviews::DayReview>> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    day_reviews::list(&conn, &from)
+}
+
+#[tauri::command]
+pub fn day_planned(db: State<'_, Db>, day: String) -> Result<day_reviews::DayReview> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    day_reviews::mark_planned(&conn, &day)
+}
+
+#[tauri::command]
+pub fn day_close(
+    db: State<'_, Db>,
+    day: String,
+    close: day_reviews::DayClose,
+) -> Result<day_reviews::DayReview> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    day_reviews::close(&conn, &day, &close)
 }
 
 /// A new list, set up the way Tasks is (ADR-053).

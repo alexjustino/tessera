@@ -57,6 +57,7 @@ pub const TABLES: &[&str] = &[
     "time_block",
     "work_hours",
     "day_off",
+    "day_review",
     "time_entry",
     "template",
     "import_batch",

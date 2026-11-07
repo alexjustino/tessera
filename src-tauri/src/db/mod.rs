@@ -7,6 +7,7 @@
 pub mod backup;
 pub mod blocks;
 pub mod calendar;
+pub mod day_reviews;
 pub mod days_off;
 pub mod dependencies;
 pub mod event_pages;
