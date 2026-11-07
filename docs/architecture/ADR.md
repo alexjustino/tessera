@@ -5,70 +5,70 @@ supersedes it, not an edit in passing. Each entry states the decision and why, a
 that matters most later — the cost or consequence we accepted, where one was accepted. A record
 that a later one narrows says so and points at it.
 
-| #               | Decision                                                                     | Status         |
-| --------------- | ---------------------------------------------------------------------------- | -------------- |
-| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                                   | Accepted       |
-| [002](#adr-002) | SQLite, one file, WAL                                                        | Accepted       |
-| [003](#adr-003) | The domain layer is pure TypeScript                                          | Accepted       |
-| [004](#adr-004) | The view query engine runs in memory                                         | Accepted       |
-| [005](#adr-005) | Properties are stored entity-attribute-value                                 | Accepted       |
-| [006](#adr-006) | Ordering uses fractional indexing                                            | Accepted       |
-| [007](#adr-007) | Recurrence is RRULE plus a mode                                              | Accepted       |
-| [008](#adr-008) | An event is not an item                                                      | Accepted       |
-| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                            | Accepted       |
-| [010](#adr-010) | Fluent is the visual language, with one icon set                             | Accepted       |
-| [011](#adr-011) | Apache-2.0                                                                   | Accepted       |
-| [012](#adr-012) | No network, no telemetry                                                     | Amended by 062 |
-| [013](#adr-013) | Time is stored in UTC with an IANA zone                                      | Accepted       |
-| [014](#adr-014) | The calendar engine is ours                                                  | Accepted       |
-| [015](#adr-015) | Installers are not code-signed until signing exists                          | Accepted       |
-| [016](#adr-016) | End-to-end tests drive the real binary                                       | Accepted       |
+| #               | Decision                                                                     | Status          |
+| --------------- | ---------------------------------------------------------------------------- | --------------- |
+| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                                   | Accepted        |
+| [002](#adr-002) | SQLite, one file, WAL                                                        | Accepted        |
+| [003](#adr-003) | The domain layer is pure TypeScript                                          | Accepted        |
+| [004](#adr-004) | The view query engine runs in memory                                         | Accepted        |
+| [005](#adr-005) | Properties are stored entity-attribute-value                                 | Accepted        |
+| [006](#adr-006) | Ordering uses fractional indexing                                            | Accepted        |
+| [007](#adr-007) | Recurrence is RRULE plus a mode                                              | Accepted        |
+| [008](#adr-008) | An event is not an item                                                      | Accepted        |
+| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                            | Accepted        |
+| [010](#adr-010) | Fluent is the visual language, with one icon set                             | Accepted        |
+| [011](#adr-011) | Apache-2.0                                                                   | Accepted        |
+| [012](#adr-012) | No network, no telemetry                                                     | Amended by 062  |
+| [013](#adr-013) | Time is stored in UTC with an IANA zone                                      | Accepted        |
+| [014](#adr-014) | The calendar engine is ours                                                  | Accepted        |
+| [015](#adr-015) | Installers are not code-signed until signing exists                          | Accepted        |
+| [016](#adr-016) | End-to-end tests drive the real binary                                       | Accepted        |
 | [017](#adr-017) | Backups are file copies; restore replaces                                    | Narrowed by 026 |
-| [018](#adr-018) | Accessibility is gated, not reviewed                                         | Accepted       |
-| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                       | Accepted       |
-| [020](#adr-020) | A plan says what it is worth                                                 | Accepted       |
-| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                          | Accepted       |
-| [022](#adr-022) | An invariant the schema can state, the schema states                         | Accepted       |
-| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved            | Accepted       |
-| [024](#adr-024) | A figure carries the rows it came from                                       | Accepted       |
-| [025](#adr-025) | A template is the plan for tasks, not tasks                                  | Accepted       |
-| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing        | Accepted       |
-| [027](#adr-027) | A column that collides is reconciled, never coerced                          | Accepted       |
-| [028](#adr-028) | A zone is a name, not a rule set                                             | Accepted       |
-| [029](#adr-029) | A link points at an identity and shows a name                                | Accepted       |
-| [030](#adr-030) | What counts towards a goal is a decision, not a filter                       | Accepted       |
-| [031](#adr-031) | Paper is a rendering, not a screenshot                                       | Accepted       |
-| [032](#adr-032) | The review keeps no state                                                    | Accepted       |
-| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one           | Accepted       |
-| [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted       |
-| [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted       |
-| [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted       |
-| [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted       |
-| [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted       |
-| [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan        | Accepted       |
-| [040](#adr-040) | Warnings count back from the due time, and move with it                      | Accepted       |
-| [041](#adr-041) | A task and a page are paired by a person, apart from what the text says      | Accepted       |
-| [042](#adr-042) | An email leaves as a draft file, and Tessera never sends one                 | Accepted       |
-| [043](#adr-043) | A goal may have no finish line                                               | Accepted       |
-| [044](#adr-044) | The week starts from now, and a tile can be pressed                          | Accepted       |
-| [045](#adr-045) | A day's score is arithmetic a person can check                               | Accepted       |
-| [046](#adr-046) | A suggested plan is computed and never stored                                | Accepted       |
-| [047](#adr-047) | A link in the text opens, and says what it points at first                   | Accepted       |
-| [048](#adr-048) | Screens are read on demand, and one failing does not take the window         | Accepted       |
-| [049](#adr-049) | Dragging uses the pointer, and is tested with one                            | Accepted       |
-| [050](#adr-050) | What to do now is one answer, computed                                       | Accepted       |
-| [051](#adr-051) | A step is less than a task, and every count goes on counting tasks           | Accepted       |
-| [052](#adr-052) | Late work is replanned in one write, shown first, and undone in one press    | Accepted       |
-| [053](#adr-053) | A list is a collection set up like Tasks, and every count reads all of them  | Accepted       |
-| [054](#adr-054) | A meeting's notes are a page paired with one occurrence                      | Accepted       |
-| [055](#adr-055) | A `#name` on the capture line is a list only when a list has that name       | Accepted       |
-| [056](#adr-056) | A To do is ticked on the line; a Follow up is done by its task               | Accepted       |
-| [057](#adr-057) | Pages are filed in coloured sections, and Quick notes is where none is       | Accepted       |
-| [058](#adr-058) | A highlight keeps its colour by name, and the theme paints it                | Accepted       |
-| [059](#adr-059) | A list explains itself where it is made, and wears a colour                  | Accepted       |
-| [060](#adr-060) | A board starts with the column that has no value                             | Accepted       |
-| [061](#adr-061) | The day is planned and closed through what Tessera already knows             | Accepted       |
-| [062](#adr-062) | Tessera asks GitHub once a day whether a newer release exists                | Accepted       |
+| [018](#adr-018) | Accessibility is gated, not reviewed                                         | Accepted        |
+| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                       | Accepted        |
+| [020](#adr-020) | A plan says what it is worth                                                 | Accepted        |
+| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                          | Accepted        |
+| [022](#adr-022) | An invariant the schema can state, the schema states                         | Accepted        |
+| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved            | Accepted        |
+| [024](#adr-024) | A figure carries the rows it came from                                       | Accepted        |
+| [025](#adr-025) | A template is the plan for tasks, not tasks                                  | Accepted        |
+| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing        | Accepted        |
+| [027](#adr-027) | A column that collides is reconciled, never coerced                          | Accepted        |
+| [028](#adr-028) | A zone is a name, not a rule set                                             | Accepted        |
+| [029](#adr-029) | A link points at an identity and shows a name                                | Accepted        |
+| [030](#adr-030) | What counts towards a goal is a decision, not a filter                       | Accepted        |
+| [031](#adr-031) | Paper is a rendering, not a screenshot                                       | Accepted        |
+| [032](#adr-032) | The review keeps no state                                                    | Accepted        |
+| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one           | Accepted        |
+| [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted        |
+| [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted        |
+| [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted        |
+| [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted        |
+| [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted        |
+| [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan        | Accepted        |
+| [040](#adr-040) | Warnings count back from the due time, and move with it                      | Accepted        |
+| [041](#adr-041) | A task and a page are paired by a person, apart from what the text says      | Accepted        |
+| [042](#adr-042) | An email leaves as a draft file, and Tessera never sends one                 | Accepted        |
+| [043](#adr-043) | A goal may have no finish line                                               | Accepted        |
+| [044](#adr-044) | The week starts from now, and a tile can be pressed                          | Accepted        |
+| [045](#adr-045) | A day's score is arithmetic a person can check                               | Accepted        |
+| [046](#adr-046) | A suggested plan is computed and never stored                                | Accepted        |
+| [047](#adr-047) | A link in the text opens, and says what it points at first                   | Accepted        |
+| [048](#adr-048) | Screens are read on demand, and one failing does not take the window         | Accepted        |
+| [049](#adr-049) | Dragging uses the pointer, and is tested with one                            | Accepted        |
+| [050](#adr-050) | What to do now is one answer, computed                                       | Accepted        |
+| [051](#adr-051) | A step is less than a task, and every count goes on counting tasks           | Accepted        |
+| [052](#adr-052) | Late work is replanned in one write, shown first, and undone in one press    | Accepted        |
+| [053](#adr-053) | A list is a collection set up like Tasks, and every count reads all of them  | Accepted        |
+| [054](#adr-054) | A meeting's notes are a page paired with one occurrence                      | Accepted        |
+| [055](#adr-055) | A `#name` on the capture line is a list only when a list has that name       | Accepted        |
+| [056](#adr-056) | A To do is ticked on the line; a Follow up is done by its task               | Accepted        |
+| [057](#adr-057) | Pages are filed in coloured sections, and Quick notes is where none is       | Accepted        |
+| [058](#adr-058) | A highlight keeps its colour by name, and the theme paints it                | Accepted        |
+| [059](#adr-059) | A list explains itself where it is made, and wears a colour                  | Accepted        |
+| [060](#adr-060) | A board starts with the column that has no value                             | Accepted        |
+| [061](#adr-061) | The day is planned and closed through what Tessera already knows             | Accepted        |
+| [062](#adr-062) | Tessera asks GitHub once a day whether a newer release exists                | Accepted        |
 
 ---
 
