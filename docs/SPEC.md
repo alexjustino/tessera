@@ -262,6 +262,14 @@ of a week that slipped. Each lands as its own slice, with its own proof.
   list takes a colour of its own, from the same nine as sections, shown beside it in the
   rail and beside its name on Today; Colour on the list's page changes it.
 
+- **The daily ritual** (ADR-061). Today starts with **Your day**: Plan my day and Close the
+  day, the one that is due offered with a word about why. Plan my day sorts what was due
+  before today (today, tomorrow or done), weighs today's work against its free time and
+  says by how much it is over, and reserves today's suggested blocks in one press. Close the
+  day says what got done, with the clock and the score, moves what is not finished to
+  tomorrow at the same time of day, and keeps a line about the day in a Journal page of
+  Notes, one a month. Each day's record keeps its score, so the days before can be read.
+
 #### Deferred out of lists, and why
 
 - **Ordering lists by dragging, colours and icons.** The rail shows them in the order

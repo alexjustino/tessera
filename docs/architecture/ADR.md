@@ -1258,3 +1258,28 @@ unchanged; only the board, where the first column is the one in view, reorders.
 
 **Cost accepted.** A board whose cards all have a status shows an empty first column, which is still
 where a card is dropped to clear its status (the reason the column always exists).
+
+## ADR-061 — The day is planned and closed through what Tessera already knows {#adr-061}
+
+**Context.** Asked what would raise the tool most, the squad proposed a daily ritual, and the owner
+chose it. Tessera already held every piece a day needs (what is due and late, the free time, the
+suggested plan, the clock, the score), but spread over several screens.
+
+**Decision.** Today starts with **Your day**. Plan my day is three steps: what was due before today is
+kept for today, moved to tomorrow or marked done; today's work is weighed against its free time
+(`workLeft` and `weigh` in `src/domain/ritual.ts`, an hour assumed for a task with no estimate); and
+the suggested plan's pieces for today are reserved in one press. Close the day is three steps: what got
+done, with the clock and the score; what is not finished moves to tomorrow; a line about the day.
+Moving to a day keeps the time of day and moves a reminder by as much, through the atomic command
+replanning uses (ADR-052), and a repeating task keeps its date. Migration 023 adds `day_review`: the
+day's planned and closed times and, when it closes, its score, done, carried, clock and line, so the
+days can be read back after their tasks have moved on. The line also goes to a Journal page in Notes,
+one a month, in a Journal section made the first time. The card offers planning until mid-afternoon
+and closing from late afternoon, and both buttons are always there.
+
+**Why record the score.** The score is computed live (ADR-045); yesterday's computed today would be a
+different number, because its tasks have moved. A history needs the number as it was.
+
+**Cost accepted.** A day closed twice keeps the last figures. The journal write follows the record and
+is not in the same transaction: a failure between them keeps the record and loses the line from the
+page, and closing again writes it.

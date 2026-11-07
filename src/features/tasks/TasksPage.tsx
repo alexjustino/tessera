@@ -56,6 +56,7 @@ import { ComingUp } from './ComingUp';
 import { ListActions } from './ListActions';
 import { NowCard } from './NowCard';
 import { ReplanCard } from './ReplanCard';
+import { RitualCard } from '@/features/ritual/RitualCard';
 import { TasksOverview } from './TasksOverview';
 import { FinishedToday, TodayAgenda, TodayOverview } from './TodayOverview';
 import { usePulse } from './usePulse';
@@ -595,6 +596,12 @@ export function TasksPage({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {/* Inside what scrolls: above it, the guide would squeeze the list to nothing. */}
+        {/* The day starts here: plan it, and later close it (ADR-061). */}
+        {place === 'today' && items.isSuccess && (
+          <div className="mb-3">
+            <RitualCard pulse={pulse} />
+          </div>
+        )}
         {/* Today and the inbox carry the guide; a list of one's own is about its work. */}
         {(place === 'today' || (place === 'tasks' && collectionId === INBOX)) &&
           items.isSuccess && (
