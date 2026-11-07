@@ -42,6 +42,7 @@ calls a board and what Notion calls a database.
 | `time_entry`          | an interval on a task; a null end is a running timer          |
 | `item_page`           | a task and a page a person paired (ADR-041)                   |
 | `event_page`          | an occurrence of a meeting and its notes (ADR-054)            |
+| `day_review`          | a day planned and closed, and what it came to (ADR-061)       |
 | `section`             | a named, coloured group of pages (ADR-057); `page.section_id` |
 
 Arriving with the calendar slice: `calendar`, `event`, `event_exception`, `time_block`,

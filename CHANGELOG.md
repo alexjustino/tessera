@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Plan my day, and close it.** Today starts with Your day. In the morning: what was left goes
+  to today, tomorrow or done; today's work is weighed against its free time; its blocks go on
+  the calendar in one press. At night: what got done, what goes to tomorrow, and a line about
+  the day for a Journal page in Notes. Each closed day keeps its score. Adds migration 023.
 - **Lists in colour, and explained.** Making a list now says what a list is for, an empty list
   says how to fill it, and every list wears a colour, in the rail and on Today. Change it with
   Colour on the list's page.
