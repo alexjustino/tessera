@@ -46,6 +46,17 @@ that a later one narrows says so and points at it.
 | [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted |
 | [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted |
 | [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan        | Accepted |
+| [040](#adr-040) | Warnings count back from the due time, and move with it                      | Accepted |
+| [041](#adr-041) | A task and a page are paired by a person, apart from the text                | Accepted |
+| [042](#adr-042) | An email leaves as a draft file, and Tessera never sends one                 | Accepted |
+| [043](#adr-043) | A goal may have no finish line                                               | Accepted |
+| [044](#adr-044) | The week starts from now, and a tile can be pressed                          | Accepted |
+| [045](#adr-045) | A day's score is arithmetic a person can check                               | Accepted |
+| [046](#adr-046) | A suggested plan is computed and never stored                                | Accepted |
+| [047](#adr-047) | A link in the text opens, and says what it points at first                   | Accepted |
+| [048](#adr-048) | Screens are read on demand, and one failing does not take the window         | Accepted |
+| [049](#adr-049) | Dragging uses the pointer, and is tested with one                            | Accepted |
+| [050](#adr-050) | What to do now is one answer, computed                                       | Accepted |
 
 ---
 
@@ -933,8 +944,8 @@ due, the time left, the shortfall — four figures that carry their rows (ADR-02
 drawing of up to sixty of those minutes and takes the state that holds most of them; a day that
 does not end on the hour has a shorter last tile, and the screen says it rounded. The shortfall
 is minutes too, drawn as whole tiles rounded up. Today's hours already gone are drawn as gone,
-not free: the projection's share of today that does not fit what is left is said in words
-rather than painted on the past. The code is `src/domain/mosaic.ts`; the surface is the
+not free. The projection used to give today a whole day and say the difference in words; since
+ADR-044 it starts from now, so there is rarely any. The code is `src/domain/mosaic.ts`; the surface is the
 `TileGrid` primitive.
 
 **Why.** The mosaic exists to be believed at a glance. If a person counts the tiles and the
@@ -1055,6 +1066,142 @@ by the program that receives it. Formatting is the point of the feature.
 **Cost accepted.** A draft is a copy of somebody's notes in a temporary folder until the next draft
 clears anything over a day old. What a `.eml` opens as depends on the person's mail program: Outlook
 honours `X-Unsent`, and others may show it read-only or not open it at all.
+
+## ADR-043 — A goal may have no finish line {#adr-043}
+
+**Context.** The owner's UAT: a goal may be a constant focus, with no period that can be fixed.
+A target and a date demanded of everything get made-up answers.
+
+**Decision.** `goal.ongoing` (migration 019). An ongoing goal shows what has added up, is never
+achieved and never late, and offers no target or date. A date is optional on any goal. The stored
+`target` stays, so going back to a finish line loses nothing. `isAchieved` and `stateOf` in
+`src/domain/goal.ts` are the only places that decide this.
+
+**Cost accepted.** `target` is required by the schema, so an ongoing goal carries a number nobody
+reads. Rebuilding the table to relax that was not worth a migration of its own.
+
+## ADR-044 — The week starts from now, and a tile can be pressed {#adr-044}
+
+**Context.** The owner's UAT found the Mosaic empty, with no way to see why: their tasks had no
+estimates. Separately, in the evening, work stayed on a day whose hours had gone.
+
+**Decision.** `project` takes the minute it is now, and gives today only what is left of it, so
+the receipt's dates and the tiles both move through the day. The Review counts through the same
+function. Tasks with no estimate are listed above the week with sizes one press away; a tile opens
+its task; a free hour can be set aside for one.
+
+**Why this does not break ADR-034.** The ledger still decides nothing and moves nothing by itself.
+Pressing is the person acting, with the same effect as typing an estimate or dragging a block.
+
+**Cost accepted.** A date on the receipt can change during the day with nothing else changing, which
+is correct and may surprise. ADR-037's tile is still a drawing of minutes, now one that responds.
+
+## ADR-045 — A day's score is arithmetic a person can check {#adr-045}
+
+**Context.** The owner's second UAT asked Today for a score: how you are doing today, at a glance. A
+score nobody can take apart is a mood, and it would be the first number in this product that does not
+open onto what made it (ADR-024).
+
+**Decision.** Three parts, out of 100, with the sum written beside each (`src/domain/pulse.ts`).
+Delivered is worth 50: of the work that is yours today, the share finished. Focus is worth 25: of the
+working time gone so far, the share with a clock running. Planned is worth 25: of the work due within
+seven days, the share with time set aside. A part with nothing to measure takes no points either way,
+and the total is scaled to what was measured, so a quiet morning does not read as a bad one. Nothing
+measured means no score, said in words. The bands have names (Behind, Steady, On track, Ahead), so the
+reading is never a colour alone.
+
+**Why these weights.** Delivering is what the day is for, so it holds half; the other two are means to
+it. They are a judgement, and they are written on the screen.
+
+**Cost accepted.** Someone who works without the clock is never scored on focus, and a person can raise
+the score by reserving time they will not use. It reports; it does not police. It is not stored, so
+there is no history of scores, only of what they were made from.
+
+## ADR-046 — A suggested plan is computed and never stored {#adr-046}
+
+**Context.** The owner: tasks do not reach the calendar without a dedicated step, when the system could
+model the work and suggest it, and the person moves what they need to. SPEC 1.3 and ADR-034 say to show
+the cost and never decide.
+
+**Decision.** `suggestPlan` (`src/domain/autoPlan.ts`) lays open work into the free working time, from
+now, for three weeks: earliest date first, then priority, never over an event, never on a day off, never
+before what blocks it or its own start. The calendar draws it dashed, by itself, with nobody asking. Nothing
+is written. Accepting a block, accepting them all, or dragging one is what makes a reservation, and the rest
+flow around it because they are only arithmetic.
+
+**How this keeps ADR-034.** The ledger still moves nothing. A suggestion is a reading of the workspace, like
+a committed tile, and the person's press is what changes it. A task with no estimate is planned at an hour and
+marked as assumed (ADR-020). What lands after its date is marked; what does not fit is listed, not dropped.
+
+**Cost accepted.** Moving one suggestion moves others, which can surprise. Leaving a task out of the plan lasts
+for the session only, since keeping it would need a store for something that is meant to be disposable.
+Committed tiles (ADR-037) and suggestions read the same work in two ways: the first says how many hours a day
+is holding, the second at what hour. They can differ on an individual tile.
+
+## ADR-047 — A link in the text opens, and says what it points at first {#adr-047}
+
+**Context.** The owner could not tell that a page link was a link. They were right: pressing one did nothing,
+and it looked like a word with a line under it. Nothing said whether a name found a page until the page had
+been opened.
+
+**Decision.** A link is drawn as a chip and pressing it goes there; pressing a name with no page makes that page.
+The pointer or the focus shows what it points at, and the `[[` menu shows the same thing before a choice is made,
+so the check comes before the link exists. Beside the page, Connections lists every link in it and whether it
+finds its page, with the press that fixes one that does not. `[[` offers tasks too, as a `taskLink` node of the
+same shape as `pageLink` (ADR-029): an identity beside the words it shows, refreshed on opening. Naming a task on
+a page also pairs the two (ADR-041).
+
+**Cost accepted.** A press on a link is no longer a way to put the caret next to it: the arrow keys are. Removing a
+task link from the text leaves the pair, because the pair is the person's own and outlives edits (ADR-041).
+
+## ADR-048 — Screens are read on demand, and one failing does not take the window {#adr-048}
+
+**Context.** Everything was one 1.4 MB script, parsed on every start, including a code highlighter for a notes page
+nobody had opened. And a render that threw left a blank window with no way out, which the suite found the moment the
+first change here broke one.
+
+**Decision.** Every screen but Tasks, and the editor, load on demand (`src/app/lazyPages.ts`), and all of them are read
+in the background once the window has settled. A navigation is a transition, so a screen not yet read keeps the last one up
+rather than flashing a shape. Each screen sits in an `ErrorBoundary` keyed on it: a failure says so, says the work is safe,
+and the rail stays. The editor guards against `useEditor` destroying an instance rendered inside Suspense before it mounted.
+
+**Cost accepted.** Many small files instead of one. The result on start was measured release against release; see the
+release notes for the figures. E2E lookups now give a screen a moment to arrive, except `findAll`, which is what asks whether
+something is absent.
+
+## ADR-049 — Dragging uses the pointer, and is tested with one {#adr-049}
+
+**Context.** The owner could not move anything on the calendar. With `dragDropEnabled` on, Windows hands
+every HTML5 drag to the host and the page never hears of it, so the calendar, the Mosaic's queue and the
+timeline's bars had not moved from a mouse since they were written. The board worked because it uses
+pointer events. The suite passed because it dispatched the drag's events by hand: it proved what a tile does
+with a drop, not that a drop could happen.
+
+**Decision.** `usePointerDrag` is the one way this product drags outside the board: pointer events, a small
+threshold so a press stays a press, Escape to cancel, and the click that ends a drag swallowed. The screen shows
+where a thing will land and what it would land on. The suite drives it with WebDriver pointer actions, so the
+input goes through the engine as a mouse's does. Dispatching a drag's events by hand does not count as proof.
+
+**Why not turn `dragDropEnabled` off.** It would restore HTML5 drag, but its picture cannot show the hours or
+snap, and a real drag cannot be driven by the suite. With the flag off, a file dropped on the window could also
+navigate the page away.
+
+**Cost accepted.** A second drag mechanism beside dnd-kit on the board. A block can still be dropped on another:
+it is said while carried, and the person decides. Reserving with the button never does.
+
+## ADR-050 — What to do now is one answer, computed {#adr-050}
+
+**Context.** Every screen says something about the day; none says what a person asks when they sit down. The
+owner invited something of value beyond the list.
+
+**Decision.** `pickNow` (`src/domain/now.ts`) gives one answer, in a stated order: a running clock, time reserved
+for a task right now, the event you are in, then whichever is sooner of what is reserved and what the plan
+suggests. Today leads with it, with the press that starts it. It stores nothing and moves nothing (ADR-046): the
+buttons are the person acting.
+
+**Cost accepted.** Focus mode's queue answers a similar question in list order (P8). They differ on purpose: that
+one walks ready work, this one reads the calendar. A person who keeps neither a calendar nor a clock is told
+only what the plan suggests.
 
 ## ADR-051 — A step is less than a task, and every count goes on counting tasks {#adr-051}
 

@@ -53,13 +53,14 @@ Gantt · arbitrary attachments · auto-update · AI.
 
 ### The release train
 
-| Release   | Theme               | Contents                                                                                                                                          |
-| --------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1.0.0** | The workspace       | the list above                                                                                                                                    |
-| 1.1.0     | The project manager | year view · timeline and Gantt · dependencies with critical path · milestones · time tracking · focus mode · reports · templates · daily capacity |
-| 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                      |
-| 1.3.0     | The ledger          | the price of yes · dates with confidence · days off · the week mosaic · envelopes · the split tile                                                |
-| 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                |
+| Release   | Theme               | Contents                                                                                                                                                                                                                                                        |
+| --------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1.0.0** | The workspace       | the list above                                                                                                                                                                                                                                                  |
+| 1.1.0     | The project manager | year view · timeline and Gantt · dependencies with critical path · milestones · time tracking · focus mode · reports · templates · daily capacity                                                                                                               |
+| 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                                                                                                                                    |
+| 1.3.0     | The ledger          | the price of yes · dates with confidence · days off · the week mosaic · envelopes · the split tile                                                                                                                                                              |
+| 1.4.0     | The notebook        | a first run that asks · Today as a place · a score for the day · a suggested plan · the week to use, not only read · warnings before a deadline · the formatting bar · markers · follow-ups from a line · a task and its pages · links that open · email drafts |
+| 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                                                                                                                              |
 
 ### 1.1.0 — the project manager
 
@@ -199,10 +200,48 @@ What 1.3 deliberately does not add: a scheduler that places work by itself; a
 habit score or a productivity grade (the ledger states facts, it does not
 judge); attention, energy or anything that is not time; sync.
 
-### Next line — the steps (in progress)
+### 1.4.0 — the notebook
 
-Two things a person asked for after using 1.4 every day: a task's steps, and a way out
-of a week that slipped. Each lands as its own slice, with its own proof.
+Asked by the owner in the UAT of 1.3.0: the product was right and hard to start with, and
+notes should be where work begins, with what OneNote gets right. Two ideas run through it.
+**A first look should not need a manual**: it says what a screen is, asks for what it needs, and
+offers the next step where the problem is. **A note line can become a commitment without leaving
+the note**: a marker says what a line is, a follow-up makes it a task, and the lines become an
+email.
+
+The first round, from the owner's own list: every screen fills the window; Today is a place, and a
+task opens when pressed; a guide asks for working hours and days off; the Mosaic lists what it
+cannot count and its tiles can be pressed (ADR-044); the calendar fits the working day to the
+window; a goal can have no finish line (ADR-043); an opening; warnings before a deadline
+(ADR-040); and Diagnostics moves to About. The notes: the formatting bar, markers and Marked lines,
+follow-ups, a task and its pages (ADR-041), and email drafts (ADR-042).
+
+The second round, from the owner's UAT of that candidate: Today, Tasks, Review and Reports lead with
+figures, with a score for the day that shows its sum (ADR-045); the Board marks what is for today; the
+calendar suggests a plan that nothing is written from until the person takes or moves it (ADR-046); the
+Mosaic becomes a wall of goals with a queue, an inspector and a history; links in the text open and say
+what they point at, and `[[` reaches tasks (ADR-047); goals are cards; Settings shows one section at a
+time; and screens are read on demand, each failing on its own (ADR-048).
+
+The third round: everything that drags now does it with the pointer, because on Windows it never could
+from a mouse (ADR-049); a block opens when pressed and its hour and length can be typed; reserving by hand
+goes in the first free time; a note can be applied to a task and both say so; and Today leads with one
+answer to what to do now (ADR-050).
+
+Rules for this line: **no network, still** (ADR-012), so an email is a draft file in the person's
+own mail program. **A marker is meaning, not style**, stored on the line and never a colour alone.
+**A follow-up is a task**, with the same dates and reminders as any other.
+
+What 1.4 deliberately does not add: handwriting and ink, audio recording, sections beyond pages,
+shared notebooks, sending mail. Left for a later line: a person's own markers. From the second round: keeping a task left out of the plan
+across a restart, resizing a block from its top edge, moving a whole week's plan at once, and a
+history of the day's score.
+
+#### After the third look: subtasks, replanning and lists
+
+What the owner asked for after the third look at the candidate: a task's steps, a way
+out of a week that slipped, and more than one list. Each landed as its own slice, with
+its own proof.
 
 - **Subtasks** (ADR-051). The steps inside a task: typed one after another, or pasted
   as a list, ticked, put in order by pointer or keyboard, and made a task of their own

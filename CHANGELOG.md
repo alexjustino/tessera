@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-11-03
+
+The notebook, and the first round of what using it taught. 1.3 could count a week; the
+person testing it could not tell where to start, what Today had to do with Tasks, or why
+the Mosaic was empty. So 1.4 opens with a welcome, asks for your working hours, fills the
+window, opens a task when you press it, and lets the week be used and not only read. And
+notes became the place work starts: a formatting bar, markers on a line, a task from a
+line, a task and its pages one press apart, warnings counting down to a deadline, and an
+email draft from what you wrote. Still entirely on your machine, and Tessera still sends
+nothing.
+
+The first look at this candidate sent it back for more, and it came back with figures. Today
+leads with a score whose sum you can read, the calendar suggests your work and lets you move
+it, the Mosaic is a wall of your goals, and links in your notes finally go somewhere.
+
+The third look asked for more structure, and got it: the steps inside a task, a week that
+slipped put right in one press and undone in one more, and more than one list, with `#work` on
+the capture line to reach one. Notes caught up too: a meeting's notes one press from its event,
+a tick on a To do, and a Follow up that is struck through when its task is done.
+
+The fourth look asked for a notebook and for colour: pages in coloured sections, as OneNote keeps
+them, a highlighter in six colours, and lists that say what they are and wear a colour of their own.
+
+### Migrations
+
+This release adds migrations **019** (`goal.ongoing`, a goal with no finish line), **020**
+(`item_page`, a task and a page paired by a person), **021** (`event_page`, a meeting and its
+notes), **022** (`section`, with `page.section_id`) and **023** (`day_review`, a day planned and
+closed). Forward-only. A 1.3.0 workspace, schema version 18, is migrated on first start.
+
 ### Added
 
 - **Plan my day, and close it.** Today starts with Your day. In the morning: what was left goes
@@ -48,7 +78,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Focus shows the steps to tick. When the last one is ticked the task offers its finish, and
   waits for you. A repeating task starts its steps again. Lists, the score and the plan still
   count tasks, not steps.
-
+- **What to do now.** Today leads with one answer: the clock that is running, the time reserved
+  for right now, or what comes next, with the press that starts it.
+- **Apply a note to a task.** Under a page's name, what it is applied to and a button that finds
+  a task by typing. The task's row and its card then show the note, one press from it.
+- **Press a block to edit it.** Its day, start and length can be typed, and it can be deleted or
+  its task opened from there.
+- **A suggested plan on the calendar.** Open work appears by itself in your free working time
+  for the next three weeks, earliest date first, never over an event, on a day off or before
+  what blocks it. It is dashed because it is not there yet: accept a block, accept them all, or
+  drag one where you want it, and the rest flow round it. Nothing is reserved until you do. A
+  task with no estimate is planned at an hour and says so, and what lands late is marked.
+- **How today stands.** Today leads with a score out of 100, its three parts and the sum behind
+  each: what you delivered, the time on the clock, and how much of the week's work has time set
+  aside. With it, what is due, late and done, the free time left, what is next, today's calendar
+  and seven days of finished work.
+- **An overview of Tasks.** Open, overdue, due in seven days, no date, waiting and no estimate,
+  each one press from those tasks, and how the open work divides by status and priority. It can
+  be put away.
+- **The Board shows what is for today.** Cards that are late, on the clock, due today or on
+  today's calendar are marked and counted per column, and can be spotlighted.
+- **A Mosaic worth looking at.** Tiles wear the colour of their goal, tinted while committed and
+  solid once lived. Five figures and where the week goes lead it; beside the week, what is in the
+  hour you point at and the work still to place, ready to drag onto a free hour; under it, sixteen
+  weeks of days. `Reserve this week` takes the suggested plan.
+- **Links you can see through.** A link in a note is a chip, and pressing it goes there. Pointing
+  at one shows what it points at, and the `[[` menu shows the same before you choose. `[[` finds
+  tasks as well as pages. Beside the page, every link and whether it finds its page, with the
+  press that creates what is missing.
+- **Figures on Review and Reports.** Twelve weeks of finished work and clock time, each day against
+  its working hours, where the time went, and how the estimates held up once there are enough
+  timed tasks to say.
+- **More calendar.** A month to jump from, how full each day is, a block's length by its bottom
+  edge or with Shift and the arrows, and a double click for a new event.
+- **A screen that fails says so.** It tells you your work is safe, and the rail stays.
 - **An email from your notes.** One press turns a page or a selection into a draft, with a
   greeting, the topics as you formatted them, markers in words, and the page's follow-ups with
   their dates. It opens in your own mail program, unsent and addressed to nobody. Tessera
@@ -85,14 +148,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   week with their sizes one press away, which is what fills an empty grid. Pressing a
   tile opens its task, and pressing a free hour sets it aside for one.
 
-### Migrations
-
-This line adds migrations **019** (`goal.ongoing`, a goal with no finish line) and **020**
-(`item_page`, a task and a page paired by a person). Forward-only. A 1.3.0 workspace, schema
-version 18, is migrated on first start.
-
 ### Changed
 
+- **Settings, one section at a time.** General, Working time, Backups, Export and import, and Add
+  from another product, chosen on the left, in rows the way Windows lays them out. About leads with
+  the facts, and the licence, the credits and the story of the name open on request.
+- **Goals are cards.** Each shows its score, how it stands and the colour it wears in the Mosaic, and
+  opens across the row when pressed. On track, at risk, achieved and promised hours sit above them.
+- **Notes fill the window.** The text takes the width there is, with what the page is connected to
+  beside it.
+- **The opening stays long enough to be seen.**
+- **Screens are read on demand**, and in the background once the window has settled, instead of all
+  of them before the first paint.
 - **The Board starts with the cards that have no status.** The column is called "No status" and
   comes first, because it is where new cards land; at the far end of a wide board it was off the
   screen and the board looked empty.
@@ -123,6 +190,18 @@ version 18, is migrated on first start.
 
 ### Fixed
 
+- **Dragging works from a mouse.** On Windows, blocks on the calendar, tasks onto the Mosaic and bars
+  on the timeline could never be dragged. They can now, and a block shows where it will land.
+- Reserving a task by hand put it at the top of the day, on top of whatever was there, every time. It
+  now goes in the first free time, for what is left of its estimate.
+- The middle of a block in a narrow column was an invisible Delete button.
+- A day off is no longer shaded as working hours on the calendar.
+- The setup's picture is on the right, as the MSI's is.
+- Pressing a link in a note did nothing. It goes there now.
+- Coming back to the calendar opened it at midnight and unfitted. Only the first visit, and only
+  sometimes, fitted the working day to the window.
+- A long title in the all-day band pushed Sunday off the screen.
+- A finished task no longer shows its past date in red, as if it were late.
 - An all-day event shows on its own day. It used to show on every day after it too.
 - Work no longer sticks to a day that has gone. The price of a change and the Mosaic
   gave today its full day of hours whatever the time was, so in the evening work stayed
