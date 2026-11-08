@@ -15,6 +15,7 @@ interface RawSettings {
   guide_hours_set: boolean;
   guide_days_off_set: boolean;
   guide_dismissed: boolean;
+  update_check: boolean;
 }
 
 function fromRaw(raw: RawSettings): Settings {
@@ -27,6 +28,7 @@ function fromRaw(raw: RawSettings): Settings {
     guideHoursSet: raw.guide_hours_set,
     guideDaysOffSet: raw.guide_days_off_set,
     guideDismissed: raw.guide_dismissed,
+    updateCheck: raw.update_check,
   });
 }
 
@@ -40,6 +42,7 @@ function toRaw(settings: Settings): RawSettings {
     guide_hours_set: settings.guideHoursSet,
     guide_days_off_set: settings.guideDaysOffSet,
     guide_dismissed: settings.guideDismissed,
+    update_check: settings.updateCheck,
   };
 }
 

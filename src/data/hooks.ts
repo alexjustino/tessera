@@ -36,6 +36,7 @@ import * as searchApi from './search';
 import * as captureApi from './capture';
 import * as dependencyApi from './dependencies';
 import * as settingsApi from './settings';
+import * as updatesApi from './updates';
 import * as backupsApi from './backups';
 import * as timeApi from './time';
 import * as templateApi from './templates';
@@ -741,6 +742,37 @@ export function useSaveSettings() {
       void client.invalidateQueries({ queryKey: ['capture-status'] });
     },
   });
+}
+
+// ── Updates (ADR-062) ──────────────────────────────────────────────────────
+
+export const updateKey = ['update-check'] as const;
+const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * The update check: once when Tessera starts, then once a day while it runs,
+ * and only while the setting is on. A failure is an answer, not something to
+ * retry in a loop.
+ */
+export function useUpdateCheck() {
+  const settings = useSettings();
+  const on = settings.data?.updateCheck === true;
+  return useQuery({
+    queryKey: updateKey,
+    queryFn: updatesApi.checkForUpdate,
+    enabled: on,
+    staleTime: DAY,
+    gcTime: Infinity,
+    refetchInterval: on ? DAY : false,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+  });
+}
+
+export function useInstallUpdate() {
+  return useMutation({ mutationFn: updatesApi.installUpdate });
 }
 
 export function useBackupsStatus() {
