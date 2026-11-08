@@ -376,8 +376,10 @@ A to-do application that loses a task is dead. Backup and export are not a versi
 
 ## 5. Security and privacy
 
-No network. No account. No telemetry, analytics, crash reporting or update check. The Tauri CSP
-blocks external origins; capabilities are declared one by one and **shell execution is
+One network request, which can be turned off: once a day the host asks GitHub whether a newer
+release exists, and installs one only when the person presses Install, after checking its signature
+(ADR-062, amending ADR-012). Off, there is no network at all. No account. No telemetry, analytics or
+crash reporting. The Tauri CSP blocks external origins; capabilities are declared one by one and **shell execution is
 deliberately absent**; filesystem access is scoped to the application data directory.
 
 Imported files from other products are treated as hostile data: never-throwing parsers, size

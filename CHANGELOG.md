@@ -39,6 +39,12 @@ closed). Forward-only. A 1.3.0 workspace, schema version 18, is migrated on firs
 
 ### Added
 
+- **Updates that arrive by themselves, and only when you say.** Once a day Tessera asks GitHub
+  whether a newer release exists. When one does, a bar says which, with its notes, and **Install
+  and restart** installs it after checking it against Tessera's own key. Nothing about you or your
+  work is sent. Settings → Updates turns the check off, and then Tessera makes no network request at
+  all (ADR-062, amending ADR-012). This is the first release that can update itself; 1.3.0 and
+  earlier are updated to 1.4.0 by hand, once.
 - **Plan my day, and close it.** Today starts with Your day. In the morning: what was left goes
   to today, tomorrow or done; today's work is weighed against its free time; its blocks go on
   the calendar in one press. At night: what got done, what goes to tomorrow, and a line about

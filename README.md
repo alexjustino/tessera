@@ -82,9 +82,14 @@ Maximising works; the hover flyout does not appear yet.
 
 ## Privacy
 
-Tessera makes **no network requests**. There is no account, no sync, no analytics, no crash
-reporting, no update check. The Tauri content security policy blocks external origins, and the
-application declares the minimum set of capabilities it needs — notably **not** shell execution.
+Tessera makes **one kind of network request**: once a day it asks GitHub whether a newer release
+exists (ADR-062). The request carries nothing about you or your work, a newer release installs only
+when you press Install, and the installer is checked against Tessera's own key before it runs.
+Settings → Updates turns it off, and then Tessera makes **no network requests at all**.
+
+There is no account, no sync, no analytics and no crash reporting. The Tauri content security
+policy blocks external origins, and the application declares the minimum set of capabilities it
+needs — notably **not** shell execution.
 
 Your data lives in a single SQLite file under your user profile. You can back it up, copy it,
 or export it to JSON, Markdown and ICS at any time.
