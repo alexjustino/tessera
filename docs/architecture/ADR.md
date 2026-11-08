@@ -1453,27 +1453,27 @@ page, and closing again writes it.
 **Amends ADR-012.**
 
 **How it was.** From 1.0.0 to 1.3.0, ADR-012 held without exception: the application made no
-outbound request. No account, no sync, no analytics, no crash reporting, no update check. The cost it
-accepted was written down: no automatic updates. A new release was found by visiting GitHub and
+outbound request. No account, no sync, no analytics, no crash reporting, no update check. The cost
+it accepted was written down: no automatic updates. A new release was found by visiting GitHub and
 installed by hand from the downloaded installer. The README, `SECURITY.md`, SPEC §5 and the
 installer's description said "no network requests" in those words, and it was true.
 
-**Context.** On 2026-11-06 the owner asked what would raise the tool most and chose automatic updates
-among the answers. Of the three ways to square that with ADR-012 that were put to the owner (on by default,
-off by default and asked once, or a manual button only), the owner chose **on by default** on
-2026-11-07.
+**Context.** On 2026-11-06 the owner asked what would raise the tool most and chose automatic
+updates among the answers. Of the three ways to square that with ADR-012 that were put to the owner
+(on by default, off by default and asked once, or a manual button only), the owner chose **on by
+default** on 2026-11-07.
 
 **Decision (where we are going).**
 
-1. **One request, one destination.** An HTTPS `GET` of the release manifest (`latest.json`) published
-   with each GitHub release of `alexjustino/tessera`. Tessera asks when it starts and then at most
-   once a day, and when the person presses **Check now** in Settings. Nothing else in the application
-   reaches the network.
+1. **One request, one destination.** An HTTPS `GET` of the release manifest (`latest.json`)
+   published with each GitHub release of `alexjustino/tessera`. Tessera asks when it starts and then
+   at most once a day, and when the person presses **Check now** in Settings. Nothing else in the
+   application reaches the network.
 2. **On by default, off with one switch.** Settings has the switch. Off, the application makes no
    outbound request at all, which is ADR-012 exactly as it was.
-3. **Nothing installs on its own.** When the manifest names a newer version, Tessera says so, with the
-   version and its notes, and offers **Install and restart**. Nothing downloads or runs before that
-   press.
+3. **Nothing installs on its own.** When the manifest names a newer version, Tessera says so, with
+   the version and its notes, and offers **Install and restart**. Nothing downloads or runs before
+   that press.
 4. **What is installed is verified first.** The update is the installer the release published,
    checked against the updater public key built into the application (Tauri's updater, an Ed25519
    signature) before it runs; one that fails the check is discarded. The private key is kept only as
@@ -1486,31 +1486,33 @@ off by default and asked once, or a manual button only), the owner chose **on by
 6. **The web view stays closed.** The content security policy still blocks external origins. The
    request is made by the Rust host through the updater plugin, the one capability that reaches the
    network, limited to that manifest and the installers it names.
-7. **Offline is normal.** An air-gapped or offline machine fails the check quietly. Settings says when
-   the last check succeeded, and nothing retries in a loop.
+7. **Offline is normal.** An air-gapped or offline machine fails the check quietly. Settings says
+   when the last check succeeded, and nothing retries in a loop.
 
-**Why on by default.** A fix nobody installs fixes nothing, and an update that waits to be looked for
-reaches few. The check reveals that a copy of Tessera exists at an address, and its version, nothing
-more. One switch gives the old guarantee back whole.
+**Why on by default.** A fix nobody installs fixes nothing, and an update that waits to be looked
+for reaches few. The check reveals that a copy of Tessera exists at an address, and its version,
+nothing more. One switch gives the old guarantee back whole.
 
-**Cost accepted.** "No network requests" is no longer true out of the box. The README, `SECURITY.md`,
-SPEC §5 and the installer's description change from "no network" to "one update check, which can be
-turned off" in the change that ships the code, never before it: until then, ADR-012 describes the
-application that is shipped. A release now needs the signing key. If the key is lost, installed
-copies cannot verify updates signed with a new one and have to be updated by hand once.
+**Cost accepted.** "No network requests" is no longer true out of the box. The README,
+`SECURITY.md`, SPEC §5 and the installer's description change from "no network" to "one update
+check, which can be turned off" in the change that ships the code, never before it: until then,
+ADR-012 describes the application that is shipped. A release now needs the signing key. If the key
+is lost, installed copies cannot verify updates signed with a new one and have to be updated by hand
+once.
 
 **Built (1.4.0).** The host owns the check: `update_check` and `update_install` in
 `src-tauri/src/os/updates.rs`, through `tauri-plugin-updater`. The plugin's own commands are not
 granted to the web view. `update_check` reads the setting first and refuses when it is off, so the
 switch holds whatever the window does. The plugin is configured with `requireSignedVersion`, so a
 signature only installs the version it was made for, and with `installMode: passive`. A copy updates
-with the same kind of installer it came from, MSI or NSIS. The release workflow builds once without the key, hands the key to one
-step that signs the two installers and runs nothing else, checks both signatures against the public
-key the copies carry, and writes `latest.json` itself; its actions are pinned by commit. It stops
-before building when the public key is still the placeholder or the secret is missing. Before the
-installer ends the process, the host waits for any write or backup in progress and folds the
-write-ahead log into the database. The switch covers the install as well as the check, and turning
-it off forgets an update already found. The test suite points every session's check at an address on the machine
-through `TESSERA_UPDATE_URL`, which the host honours only for `https` on a loopback IP literal, with
-certificates validated as usual, so no test ever asks GitHub. `e2e/updates.e2e.ts` counts the connections: one at start and one per Check now with the
-setting on, and none at all with it off.
+with the same kind of installer it came from, MSI or NSIS. The release workflow builds once without
+the key, hands the key to one step that signs the two installers and runs nothing else, checks both
+signatures against the public key the copies carry, and writes `latest.json` itself; its actions are
+pinned by commit. It stops before building when the public key is still the placeholder or the
+secret is missing. Before the installer ends the process, the host waits for any write or backup in
+progress and folds the write-ahead log into the database. The switch covers the install as well as
+the check, and turning it off forgets an update already found. The test suite points every session's
+check at an address on the machine through `TESSERA_UPDATE_URL`, which the host honours only for
+`https` on a loopback IP literal, with certificates validated as usual, so no test ever asks GitHub.
+`e2e/updates.e2e.ts` counts the connections: one at start and one per Check now with the setting on,
+and none at all with it off.

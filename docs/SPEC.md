@@ -123,7 +123,8 @@ Three rules for every importer, written once here so no slice relitigates them โ
 as ADR-033, so they outlive this section:
 
 - **Files, never accounts.** An importer reads a file the person exported; it
-  never signs in, never calls an API (SPEC ยง4: no network). Where a product
+  never signs in, never calls an API (ADR-012; the update check of ADR-062 is the
+  only request Tessera makes). Where a product
   offers no file export, the importer reads what the product _does_ let out
   (Microsoft To Do: the Outlook tasks CSV) and the SPEC says so.
 - **Hostile input.** Parsers never throw, are capped in size, and treat every
@@ -228,7 +229,8 @@ from a mouse (ADR-049); a block opens when pressed and its hour and length can b
 goes in the first free time; a note can be applied to a task and both say so; and Today leads with one
 answer to what to do now (ADR-050).
 
-Rules for this line: **no network, still** (ADR-012), so an email is a draft file in the person's
+Rules for this line: **no network, still** (ADR-012; the update check of ADR-062, added later in
+1.4.0, is the only request), so an email is a draft file in the person's
 own mail program. **A marker is meaning, not style**, stored on the line and never a colour alone.
 **A follow-up is a task**, with the same dates and reminders as any other.
 
