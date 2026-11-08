@@ -135,6 +135,8 @@ describe('moving things on the calendar', () => {
 
   it('a block can go to another day', async () => {
     const { driver } = session;
+    // Late in the evening the block sits at the foot of the day, below the window.
+    await scrollIntoView('Second job');
     const before = await waitForBox('Second job');
     const target = await driver.execute<{ x: number; day: string }>(
       `const columns = [...document.querySelectorAll('[data-day-column]')];
@@ -229,7 +231,10 @@ describe('moving things on the calendar', () => {
       return null;
     });
     const from = middle(box);
-    await drag(from, { x: from.x, y: from.y + 100 });
+    // Down when there is room below, up when the suggestion sits near the end of the day.
+    const room = await driver.execute<number>('return window.innerHeight');
+    const step = from.y + 110 < room - 10 ? 100 : -100;
+    await drag(from, { x: from.x, y: from.y + step });
     await waitForBox('Fourth job');
   });
 
