@@ -29,6 +29,7 @@ describe('readSettings', () => {
       guideHoursSet: false,
       guideDaysOffSet: false,
       guideDismissed: false,
+      updateCheck: true,
     });
   });
 

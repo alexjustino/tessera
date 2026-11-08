@@ -34,11 +34,21 @@ them, a highlighter in six colours, and lists that say what they are and wear a 
 
 This release adds migrations **019** (`goal.ongoing`, a goal with no finish line), **020**
 (`item_page`, a task and a page paired by a person), **021** (`event_page`, a meeting and its
-notes) and **022** (`section`, with `page.section_id`). Forward-only. A 1.3.0 workspace, schema
-version 18, is migrated on first start.
+notes), **022** (`section`, with `page.section_id`) and **023** (`day_review`, a day planned and
+closed). Forward-only. A 1.3.0 workspace, schema version 18, is migrated on first start.
 
 ### Added
 
+- **Updates that arrive by themselves, and only when you say.** Once a day Tessera asks GitHub
+  whether a newer release exists. When one does, a bar says which, with its notes, and **Install
+  and restart** installs it after checking it against Tessera's own key. Nothing about you or your
+  work is sent. Settings → Updates turns the check off, and then Tessera makes no network request at
+  all (ADR-062, amending ADR-012). This is the first release that can update itself; 1.3.0 and
+  earlier are updated to 1.4.0 by hand, once.
+- **Plan my day, and close it.** Today starts with Your day. In the morning: what was left goes
+  to today, tomorrow or done; today's work is weighed against its free time; its blocks go on
+  the calendar in one press. At night: what got done, what goes to tomorrow, and a line about
+  the day for a Journal page in Notes. Each closed day keeps its score. Adds migration 023.
 - **Lists in colour, and explained.** Making a list now says what a list is for, an empty list
   says how to fill it, and every list wears a colour, in the rail and on Today. Change it with
   Colour on the list's page.

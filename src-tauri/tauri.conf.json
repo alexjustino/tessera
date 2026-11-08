@@ -45,6 +45,16 @@
       }
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "OWNER-PUBLIC-KEY-PENDING",
+      "endpoints": ["https://github.com/alexjustino/tessera/releases/latest/download/latest.json"],
+      "requireSignedVersion": true,
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
   "bundle": {
     "active": true,
     "targets": ["msi", "nsis"],
@@ -52,7 +62,7 @@
     "copyright": "Copyright 2026 Alex Justino",
     "category": "Productivity",
     "shortDescription": "A professional local-first workspace for tasks, projects and time",
-    "longDescription": "Tessera is a local-first workspace that unites a typed task core, a Kanban board, a block editor and a professional calendar. It runs entirely on your machine: no account, no cloud, no telemetry.",
+    "longDescription": "Tessera is a local-first workspace that unites a typed task core, a Kanban board, a block editor and a professional calendar. It runs entirely on your machine: no account, no cloud, no telemetry. Its one request asks GitHub whether a newer release exists, and Settings turns it off.",
     "licenseFile": "../LICENSE",
     "icon": [
       "icons/32x32.png",

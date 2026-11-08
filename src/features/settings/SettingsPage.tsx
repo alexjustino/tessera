@@ -33,6 +33,7 @@ import { Toggle } from '@/ui/Toggle';
 import { BackupsCard } from './BackupsCard';
 import { ExportImportCard } from './ExportImportCard';
 import { ImportsCard } from './ImportsCard';
+import { UpdatesGroup } from './UpdatesGroup';
 import { DaysOffCard } from './DaysOffCard';
 import { WorkHoursCard } from './WorkHoursCard';
 
@@ -216,6 +217,12 @@ export function SettingsPage({ focusCard = null }: { focusCard?: SettingsCard | 
                   combination above.
                 </InfoBar>
               )}
+
+              <UpdatesGroup
+                on={current.updateCheck}
+                saving={settings.isPending || save.isPending}
+                onChange={(updateCheck) => update({ updateCheck })}
+              />
             </>
           )}
 
