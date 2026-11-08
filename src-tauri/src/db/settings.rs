@@ -45,6 +45,9 @@ pub struct Settings {
     pub guide_days_off_set: bool,
     /// Getting started: the person has hidden the guide.
     pub guide_dismissed: bool,
+    /// Whether Tessera asks GitHub for a newer release (ADR-062). On by default;
+    /// off, the application makes no outbound request at all.
+    pub update_check: bool,
 }
 
 impl Default for Settings {
@@ -58,6 +61,7 @@ impl Default for Settings {
             guide_hours_set: false,
             guide_days_off_set: false,
             guide_dismissed: false,
+            update_check: true,
         }
     }
 }

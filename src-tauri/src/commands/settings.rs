@@ -1,6 +1,6 @@
 //! Settings commands: read, replace, and re-bind what the host must act on.
 
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::db::settings::{self, Settings};
 use crate::db::Db;
@@ -21,6 +21,12 @@ pub fn settings_set(app: AppHandle, db: State<'_, Db>, settings: Settings) -> Re
         settings::set(&conn, &settings)?
     };
     crate::os::capture::rebind(&app, &stored.quick_capture_shortcut);
+    // Turning the update check off also drops an update it had found (ADR-062).
+    if !stored.update_check {
+        if let Some(pending) = app.try_state::<crate::os::updates::Pending>() {
+            crate::os::updates::forget(&pending);
+        }
+    }
     Ok(stored)
 }
 

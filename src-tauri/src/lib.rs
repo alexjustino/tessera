@@ -60,7 +60,11 @@ pub fn run() {
                 Some(vec!["--minimized"]),
             ))
             .plugin(os::capture::plugin())
-            .plugin(tauri_plugin_dialog::init());
+            .plugin(tauri_plugin_dialog::init())
+            // The one door to the network (ADR-062): the update check, which
+            // the person can close in Settings.
+            .plugin(tauri_plugin_updater::Builder::new().build())
+            .manage(os::updates::Pending::default());
     }
 
     builder
@@ -125,6 +129,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::system_info,
+            os::updates::update_check,
+            os::updates::update_install,
             commands::system::email_draft,
             commands::system::accent_ramp,
             commands::reminders::probe_notification,
