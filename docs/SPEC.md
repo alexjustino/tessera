@@ -53,13 +53,14 @@ Gantt · arbitrary attachments · auto-update · AI.
 
 ### The release train
 
-| Release   | Theme               | Contents                                                                                                                                          |
-| --------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1.0.0** | The workspace       | the list above                                                                                                                                    |
-| 1.1.0     | The project manager | year view · timeline and Gantt · dependencies with critical path · milestones · time tracking · focus mode · reports · templates · daily capacity |
-| 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                      |
-| 1.3.0     | The ledger          | the price of yes · dates with confidence · days off · the week mosaic · envelopes · the split tile                                                |
-| 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                |
+| Release   | Theme               | Contents                                                                                                                                                                                                                                                        |
+| --------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1.0.0** | The workspace       | the list above                                                                                                                                                                                                                                                  |
+| 1.1.0     | The project manager | year view · timeline and Gantt · dependencies with critical path · milestones · time tracking · focus mode · reports · templates · daily capacity                                                                                                               |
+| 1.2.0     | The adopter         | importers (Microsoft To Do, Trello, Notion, Todoist, ICS) · notes and wiki space · goals · print and PDF export · GTD review                                                                                                                                    |
+| 1.3.0     | The ledger          | the price of yes · dates with confidence · days off · the week mosaic · envelopes · the split tile                                                                                                                                                              |
+| 1.4.0     | The notebook        | a first run that asks · Today as a place · a score for the day · a suggested plan · the week to use, not only read · warnings before a deadline · the formatting bar · markers · follow-ups from a line · a task and its pages · links that open · email drafts |
+| 2.0       | Only if it earns it | opt-in end-to-end-encrypted sync · macOS and Linux                                                                                                                                                                                                              |
 
 ### 1.1.0 — the project manager
 
@@ -122,7 +123,8 @@ Three rules for every importer, written once here so no slice relitigates them �
 as ADR-033, so they outlive this section:
 
 - **Files, never accounts.** An importer reads a file the person exported; it
-  never signs in, never calls an API (SPEC §4: no network). Where a product
+  never signs in, never calls an API (ADR-012; the update check of ADR-062 is the
+  only request Tessera makes). Where a product
   offers no file export, the importer reads what the product _does_ let out
   (Microsoft To Do: the Outlook tasks CSV) and the SPEC says so.
 - **Hostile input.** Parsers never throw, are capped in size, and treat every
@@ -199,6 +201,143 @@ What 1.3 deliberately does not add: a scheduler that places work by itself; a
 habit score or a productivity grade (the ledger states facts, it does not
 judge); attention, energy or anything that is not time; sync.
 
+### 1.4.0 — the notebook
+
+Asked by the owner in the UAT of 1.3.0: the product was right and hard to start with, and
+notes should be where work begins, with what OneNote gets right. Two ideas run through it.
+**A first look should not need a manual**: it says what a screen is, asks for what it needs, and
+offers the next step where the problem is. **A note line can become a commitment without leaving
+the note**: a marker says what a line is, a follow-up makes it a task, and the lines become an
+email.
+
+The first round, from the owner's own list: every screen fills the window; Today is a place, and a
+task opens when pressed; a guide asks for working hours and days off; the Mosaic lists what it
+cannot count and its tiles can be pressed (ADR-044); the calendar fits the working day to the
+window; a goal can have no finish line (ADR-043); an opening; warnings before a deadline
+(ADR-040); and Diagnostics moves to About. The notes: the formatting bar, markers and Marked lines,
+follow-ups, a task and its pages (ADR-041), and email drafts (ADR-042).
+
+The second round, from the owner's UAT of that candidate: Today, Tasks, Review and Reports lead with
+figures, with a score for the day that shows its sum (ADR-045); the Board marks what is for today; the
+calendar suggests a plan that nothing is written from until the person takes or moves it (ADR-046); the
+Mosaic becomes a wall of goals with a queue, an inspector and a history; links in the text open and say
+what they point at, and `[[` reaches tasks (ADR-047); goals are cards; Settings shows one section at a
+time; and screens are read on demand, each failing on its own (ADR-048).
+
+The third round: everything that drags now does it with the pointer, because on Windows it never could
+from a mouse (ADR-049); a block opens when pressed and its hour and length can be typed; reserving by hand
+goes in the first free time; a note can be applied to a task and both say so; and Today leads with one
+answer to what to do now (ADR-050).
+
+Rules for this line: **no network, still** (ADR-012; the update check of ADR-062, added later in
+1.4.0, is the only request), so an email is a draft file in the person's
+own mail program. **A marker is meaning, not style**, stored on the line and never a colour alone.
+**A follow-up is a task**, with the same dates and reminders as any other.
+
+What 1.4 deliberately does not add: handwriting and ink, audio recording, sections beyond pages,
+shared notebooks, sending mail. Left for a later line: a person's own markers. From the second round: keeping a task left out of the plan
+across a restart, resizing a block from its top edge, moving a whole week's plan at once, and a
+history of the day's score.
+
+#### After the third look: subtasks, replanning and lists
+
+What the owner asked for after the third look at the candidate: a task's steps, a way
+out of a week that slipped, and more than one list. Each landed as its own slice, with
+its own proof.
+
+- **Subtasks** (ADR-051). The steps inside a task: typed one after another, or pasted
+  as a list, ticked, put in order by pointer or keyboard, and made a task of their own
+  when they turn out to be work. The task's row and card say how far along it is, Now
+  names the next step, and Focus shows the steps to tick. When the last is ticked the
+  task is offered its finish, never given it. A repeating task starts its steps again.
+  A step is not a task: lists, the score, the plan and every figure count tasks.
+  Search finds a step and opens its task; Markdown prints steps under their task; the
+  import door brings them in as the task's checklist.
+- **Replan in one press** (ADR-052). When work is late, Today and the Calendar say how
+  much, and list where each late task would go and what its new date would be. Nothing is
+  written until the press. One press reserves blocks in the next free working time, late
+  work first, and moves each date to the day its last block ends, at the time of day it was
+  set for when that still holds. A reminder moves by as much as its date. All of it is one
+  write: if any of it fails, none of it happens. One more press, Undo, puts every date back
+  and takes every block away. A repeating task, a task waiting on work that is not late,
+  and a task with no room in three weeks are left as they are, and named.
+
+- **Lists** (ADR-053). More than one place to keep tasks. A list is made from the rail,
+  under Tasks, and lands on screen. It starts set up the way Tasks is: the same properties
+  and views, its board grouping by its own Status. Tasks is the inbox, where quick capture
+  writes, and stays. A task moves between lists from its panel, with its subtasks, and its
+  values go where the target has the same property. Today, the plan, the score, Reports,
+  Goals and Focus read every list; a row from another list says which on Today. Finding a
+  task opens it in its own list. A list is renamed from its page, and deleted only once it
+  is empty.
+
+- **Meeting notes** (ADR-054). An event on the calendar opens its notes in one press:
+  a page named for the meeting and its day, made the first time with when it is and three
+  headings, Notes, Decisions and Follow-ups, and found by the same press every time after.
+  Each occurrence of a repeating meeting has a page of its own. The page says which meeting
+  it holds the notes of. A follow-up written there is a task paired with the page, as from
+  any page. Time reserved for a task offers no meeting notes: the task has its own.
+- **Capturing into a list, and going to one** (ADR-055). `#work` on any capture line,
+  the quick-capture window included, sends the task to Work, and a chip says so before
+  anything is written; the task lands after that list's last, with that list's Priority.
+  A `#word` that names no list stays in the title. The palette offers Go to for each list.
+- **Marked lines that know when they are done** (ADR-056). A To do line carries a tick
+  where it is written, and ticking it is saved with the page. A Follow up line remembers
+  the task it became, and is drawn done once that task is finished. Marked lines shows
+  which are done, and pressing a line goes to that line in its page, with the caret on it.
+  A Question, an Important line and a Decision are never done.
+
+- **A notebook in sections** (ADR-057). Notes keeps pages in sections, as OneNote does:
+  each section has a name and one of nine named colours, and holds its own pages. A new page
+  is made in the section on screen; a page moves to another from its own header. A page in
+  no section is in Quick notes, and finding a page looks in every section. Deleting a
+  section sends its pages back to Quick notes and deletes none.
+
+- **Highlighter colours** (ADR-058). The bar's Highlight picks one of six colours,
+  yellow, green, blue, pink, orange and purple, or none, so a highlight can say what kind of
+  thing it marks. The colour is kept by name and painted from the theme, and the text stays
+  readable on every one, in both themes.
+
+- **Lists that say what they are, in colour** (ADR-059). The line that makes a list
+  explains it in a sentence, and an empty list says how to fill it, `#name` included. A new
+  list takes a colour of its own, from the same nine as sections, shown beside it in the
+  rail and beside its name on Today; Colour on the list's page changes it.
+
+- **The daily ritual** (ADR-061). Today starts with **Your day**: Plan my day and Close the
+  day, the one that is due offered with a word about why. Plan my day sorts what was due
+  before today (today, tomorrow or done), weighs today's work against its free time and
+  says by how much it is over, and reserves today's suggested blocks in one press. Close the
+  day says what got done, with the clock and the score, moves what is not finished to
+  tomorrow at the same time of day, and keeps a line about the day in a Journal page of
+  Notes, one a month. Each day's record keeps its score, so the days before can be read.
+
+#### Deferred out of lists, and why
+
+- **Ordering lists by dragging, colours and icons.** The rail shows them in the order
+  they were made. Worth doing with the rail's own keyboard model, not bolted on.
+- **Archiving a list.** A list with work in it is kept or emptied; an archived list whose
+  tasks still count on Today would be a list that is and is not there.
+- **Lists in templates.** A template stamps into the list it is applied in; choosing
+  another list is a change to ADR-033's shape.
+
+#### Deferred out of subtasks, and why
+
+- **Dates, estimates and the clock on a step.** Each would make a step a second kind of
+  task, and every figure would have to choose which to count. The task carries them.
+- **Steps inside steps.** One level keeps a task readable at a glance and the count
+  honest. The host refuses a deeper one.
+- **Steps in templates.** A template stamps tasks; stamping their steps is a change to
+  ADR-033's shape, and belongs with it.
+
+#### Deferred out of replanning, and why
+
+- **Missed blocks in the past.** A block that came and went without the work stays on the
+  calendar as a record of what was planned; replanning reserves new time and leaves it.
+- **Undo after leaving the screen.** The way back lives with the card that made the change.
+  A person who walks away has moved on, and every date can still be changed by hand.
+- **Choosing which late tasks to move.** The first version moves them all or none. Leaving
+  one out is a date changed by hand first.
+
 ## 3. Architecture
 
 ```
@@ -239,8 +378,10 @@ A to-do application that loses a task is dead. Backup and export are not a versi
 
 ## 5. Security and privacy
 
-No network. No account. No telemetry, analytics, crash reporting or update check. The Tauri CSP
-blocks external origins; capabilities are declared one by one and **shell execution is
+One network request, which can be turned off: once a day the host asks GitHub whether a newer
+release exists, and installs one only when the person presses Install, after checking its signature
+(ADR-062, amending ADR-012). Off, there is no network at all. No account. No telemetry, analytics or
+crash reporting. The Tauri CSP blocks external origins; capabilities are declared one by one and **shell execution is
 deliberately absent**; filesystem access is scoped to the application data directory.
 
 Imported files from other products are treated as hostile data: never-throwing parsers, size

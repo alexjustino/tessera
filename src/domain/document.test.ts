@@ -12,6 +12,7 @@ import {
   toDocument,
   type Block,
   type DocNode,
+  checkLink,
 } from './document';
 import { isValidKey } from './ordering';
 
@@ -291,5 +292,27 @@ describe('plain text, for the search index', () => {
 
   it('leaves a short preview alone', () => {
     expect(preview([block('a', 'a', 'short')], 50)).toBe('short');
+  });
+});
+
+describe('checking a link', () => {
+  it('keeps a web address as typed', () => {
+    expect(checkLink('https://example.com/a')).toEqual({
+      status: 'ok',
+      href: 'https://example.com/a',
+    });
+  });
+
+  it('takes a bare address to mean the web', () => {
+    expect(checkLink(' example.com ')).toEqual({ status: 'ok', href: 'https://example.com' });
+  });
+
+  // ── Negative cases ─────────────────────────────────────────────────────
+  it.each(['javascript:alert(1)', 'file:///C:/secret', 'data:text/html,x'])('refuses %s', (raw) => {
+    expect(checkLink(raw).status).toBe('refused');
+  });
+
+  it('refuses nothing at all', () => {
+    expect(checkLink('   ').status).toBe('refused');
   });
 });

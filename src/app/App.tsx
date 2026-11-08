@@ -1,27 +1,37 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { listen } from '@tauri-apps/api/event';
-import { useCallback, useEffect, useState } from 'react';
+import { startTransition, Suspense, useCallback, useEffect, useState } from 'react';
 
+import {
+  AboutPage,
+  FocusMode,
+  FoundationPage,
+  GoalsPage,
+  MosaicPage,
+  NotesPage,
+  preloadPages,
+  ReportsPage,
+  ReviewPage,
+  SettingsPage,
+} from '@/app/lazyPages';
+import { closeOpening } from '@/app/opening';
 import { applyAccent, applyDensity, applyTheme } from '@/app/theme';
 import { WORKSPACE_CHANGED, showCapture } from '@/data/capture';
 import { pauseReminders, resumeReminders } from '@/data/reminders';
-import { useSaveSettings, useSettings } from '@/data/hooks';
+import { useItems, useSaveSettings, useSettings } from '@/data/hooks';
 import { fetchAccentRamp } from '@/data/system';
+import { settingsAsk } from '@/domain/gettingStarted';
+import { INBOX } from '@/domain/lists';
 import { DEFAULT_SETTINGS } from '@/domain/settings';
-import { AboutPage } from '@/features/about/AboutPage';
-import { FocusMode } from '@/features/focus/FocusMode';
-import { GoalsPage } from '@/features/goals/GoalsPage';
-import { MosaicPage } from '@/features/mosaic/MosaicPage';
-import { NotesPage } from '@/features/notes/NotesPage';
-import { ReportsPage } from '@/features/reports/ReportsPage';
-import { ReviewPage } from '@/features/review/ReviewPage';
-import { FoundationPage } from '@/features/foundation/FoundationPage';
+import type { SettingsCard } from '@/features/guide/GettingStarted';
 import { CommandPalette } from '@/features/palette/CommandPalette';
-import { SettingsPage } from '@/features/settings/SettingsPage';
 import type { CommandId } from '@/features/palette/commands';
 import { Sidebar, type Destination } from '@/features/shell/Sidebar';
 import { TitleBar } from '@/features/shell/TitleBar';
+import { UpdateBar } from '@/features/updates/UpdateBar';
 import { TasksPage } from '@/features/tasks/TasksPage';
+import { ErrorBoundary } from '@/ui/ErrorBoundary';
+import { Skeleton } from '@/ui/Skeleton';
 
 /**
  * A request to show one item: which, and a nonce so that asking for the same
@@ -42,6 +52,10 @@ interface Focus {
  */
 export function App() {
   const [destination, setDestination] = useState<Destination>('tasks');
+  /** The list Tasks and the Board show (ADR-053). */
+  const [listId, setListId] = useState<string>(INBOX);
+  const everything = useItems(null, true);
+  const [settingsCard, setSettingsCard] = useState<SettingsCard | null>(null);
   const [focus, setFocus] = useState<Focus>({ itemId: null, nonce: 0 });
   const [paletteOpen, setPaletteOpen] = useState(false);
   /** The page the palette asked for, until Notes has opened it. */
@@ -50,6 +64,7 @@ export function App() {
   const [focused, setFocused] = useState<string | null | undefined>(undefined);
   const client = useQueryClient();
   const settings = useSettings();
+  const settingsQuestion = settings.data === undefined ? null : settingsAsk(settings.data);
   const saveSettings = useSaveSettings();
 
   // The stored theme and density are applied as soon as they are read, and
@@ -73,6 +88,14 @@ export function App() {
       void unlisten.then((off) => off());
     };
   }, [client]);
+
+  // The workspace has been read, or could not be: either way there is a window to show.
+  useEffect(() => {
+    if (settings.isSuccess || settings.isError) {
+      closeOpening();
+      preloadPages();
+    }
+  }, [settings.isSuccess, settings.isError]);
 
   // The accent ramp follows the desktop. Applied once at start, and again on a
   // theme change, because the shade that reads on white does not read on black.
@@ -107,14 +130,42 @@ export function App() {
   }, []);
 
   const go = useCallback((next: Destination) => {
-    setDestination(next);
+    // A transition, so a screen not yet read keeps the last one up for that moment
+    // rather than flashing an empty shape.
+    startTransition(() => {
+      setSettingsCard(null);
+      // Tasks in the rail is the inbox; a list of one's own is opened from under it.
+      if (next === 'tasks') setListId(INBOX);
+      setDestination(next);
+      setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
+    });
+  }, []);
+
+  const openSettings = useCallback((card: SettingsCard) => {
+    setSettingsCard(card);
+    setDestination('settings');
     setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
   }, []);
 
-  const openItem = useCallback((itemId: string) => {
-    setDestination('tasks');
-    setFocus((current) => ({ itemId, nonce: current.nonce + 1 }));
+  const openList = useCallback((id: string) => {
+    startTransition(() => {
+      setSettingsCard(null);
+      setListId(id);
+      setDestination('tasks');
+      setFocus((current) => ({ itemId: null, nonce: current.nonce + 1 }));
+    });
   }, []);
+
+  // A task opens in its own list, wherever it was found.
+  const openItem = useCallback(
+    (itemId: string) => {
+      const found = everything.data?.find((item) => item.id === itemId);
+      setListId(found?.collectionId ?? INBOX);
+      setDestination('tasks');
+      setFocus((current) => ({ itemId, nonce: current.nonce + 1 }));
+    },
+    [everything.data],
+  );
 
   const openPage = useCallback((pageId: string) => {
     setOpenPageId(pageId);
@@ -124,6 +175,10 @@ export function App() {
 
   const runCommand = useCallback(
     (id: CommandId) => {
+      if (id.startsWith('list.')) {
+        openList(id.slice('list.'.length));
+        return;
+      }
       switch (id) {
         case 'go.today':
         case 'go.tasks':
@@ -164,42 +219,92 @@ export function App() {
         }
       }
     },
-    [go, saveSettings, settings.data],
+    [go, openList, saveSettings, settings.data],
   );
 
-  const pageKey = `${destination}:${focus.nonce}`;
+  const pageKey = `${destination}:${listId}:${focus.nonce}`;
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg">
       <TitleBar />
       {focused !== undefined ? (
-        <FocusMode
-          requestedId={focused}
-          onLeave={() => setFocused(undefined)}
-          onSwitch={(id) => setFocused(id)}
-        />
+        <Suspense fallback={<Skeleton />}>
+          <FocusMode
+            requestedId={focused}
+            onLeave={() => setFocused(undefined)}
+            onSwitch={(id) => setFocused(id)}
+          />
+        </Suspense>
       ) : (
         <div className="flex min-h-0 flex-1">
-          <Sidebar active={destination} onNavigate={go} onSearch={() => setPaletteOpen(true)} />
+          <Sidebar
+            active={destination}
+            onNavigate={go}
+            onSearch={() => setPaletteOpen(true)}
+            asks={settingsQuestion === null ? {} : { settings: settingsQuestion }}
+            activeListId={listId}
+            onOpenList={openList}
+          />
           <main className="min-w-0 flex-1 overflow-y-auto bg-layer">
-            {/* Today is the same page opened on a different saved view — it is
+            <UpdateBar />
+            <ErrorBoundary key={pageKey}>
+              <Suspense fallback={<Skeleton />}>
+                {/* Today is the same page opened on a different saved view — it is
               a query over the same items, not a second screen. */}
-            {destination === 'tasks' && (
-              <TasksPage key={pageKey} initialDetailId={focus.itemId} onFocus={setFocused} />
-            )}
-            {destination === 'today' && <TasksPage key={pageKey} initialViewId="view.today" />}
-            {destination === 'board' && <TasksPage key={pageKey} initialViewId="tasks.board" />}
-            {destination === 'calendar' && (
-              <TasksPage key={pageKey} initialViewId="view.calendar" />
-            )}
-            {destination === 'mosaic' && <MosaicPage key={pageKey} />}
-            {destination === 'notes' && <NotesPage key={pageKey} initialPageId={openPageId} />}
-            {destination === 'goals' && <GoalsPage key={pageKey} />}
-            {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}
-            {destination === 'reports' && <ReportsPage />}
-            {destination === 'settings' && <SettingsPage />}
-            {destination === 'diagnostics' && <FoundationPage />}
-            {destination === 'about' && <AboutPage />}
+                {destination === 'tasks' && (
+                  <TasksPage
+                    key={pageKey}
+                    collectionId={listId}
+                    onListDeleted={() => go('tasks')}
+                    initialDetailId={focus.itemId}
+                    onFocus={setFocused}
+                    onOpenSettings={openSettings}
+                    onOpenPage={openPage}
+                  />
+                )}
+                {destination === 'today' && (
+                  <TasksPage
+                    key={pageKey}
+                    place="today"
+                    onFocus={setFocused}
+                    onShowAll={() => go('tasks')}
+                    onOpenSettings={openSettings}
+                    onOpenPage={openPage}
+                  />
+                )}
+                {destination === 'board' && (
+                  <TasksPage
+                    key={pageKey}
+                    place="board"
+                    collectionId={listId}
+                    onFocus={setFocused}
+                    onOpenPage={openPage}
+                  />
+                )}
+                {destination === 'calendar' && (
+                  <TasksPage
+                    key={pageKey}
+                    place="calendar"
+                    onFocus={setFocused}
+                    onOpenPage={openPage}
+                  />
+                )}
+                {destination === 'mosaic' && <MosaicPage key={pageKey} onOpenPage={openPage} />}
+                {destination === 'notes' && (
+                  <NotesPage key={pageKey} initialPageId={openPageId} onOpenItem={openItem} />
+                )}
+                {destination === 'goals' && <GoalsPage key={pageKey} />}
+                {destination === 'review' && <ReviewPage key={pageKey} onOpenItem={openItem} />}
+                {destination === 'reports' && <ReportsPage />}
+                {destination === 'settings' && (
+                  <SettingsPage key={pageKey} focusCard={settingsCard} />
+                )}
+                {destination === 'diagnostics' && <FoundationPage onBack={() => go('about')} />}
+                {destination === 'about' && (
+                  <AboutPage onOpenDiagnostics={() => go('diagnostics')} />
+                )}
+              </Suspense>
+            </ErrorBoundary>
           </main>
         </div>
       )}

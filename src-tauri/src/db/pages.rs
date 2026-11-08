@@ -29,6 +29,8 @@ pub struct Page {
     pub id: String,
     pub title: String,
     pub position: String,
+    /// The section it is filed in; none is Quick notes (migration 022).
+    pub section_id: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -56,6 +58,7 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Page> {
         position: row.get(2)?,
         created_at: row.get(3)?,
         updated_at: row.get(4)?,
+        section_id: row.get(5)?,
     })
 }
 
@@ -87,7 +90,7 @@ fn check_title(title: &str) -> Result<String> {
 /// Every page, in the order they were put in.
 pub fn list(conn: &Connection) -> Result<Vec<Page>> {
     let mut statement = conn.prepare(
-        "SELECT id, title, position, created_at, updated_at FROM page ORDER BY position, created_at",
+        "SELECT id, title, position, created_at, updated_at, section_id FROM page ORDER BY position, created_at",
     )?;
     let rows = statement.query_map([], read)?;
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
@@ -95,7 +98,7 @@ pub fn list(conn: &Connection) -> Result<Vec<Page>> {
 
 pub fn get(conn: &Connection, id: &str) -> Result<Page> {
     conn.query_row(
-        "SELECT id, title, position, created_at, updated_at FROM page WHERE id = ?1",
+        "SELECT id, title, position, created_at, updated_at, section_id FROM page WHERE id = ?1",
         params![id],
         read,
     )

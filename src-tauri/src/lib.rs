@@ -37,8 +37,11 @@ pub fn run() {
     // A second launch must focus the window that already exists rather than
     // opening a rival one — two processes would fight over the same database
     // and raise every reminder twice.
+    //
+    // Not when pointed at a workspace of its own: that is no rival for the
+    // database, and it is how the test suite runs beside an installed Tessera.
     #[cfg(all(desktop, not(any(target_os = "android", target_os = "ios"))))]
-    {
+    if std::env::var_os("TESSERA_DATA_DIR").is_none() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();
@@ -57,7 +60,11 @@ pub fn run() {
                 Some(vec!["--minimized"]),
             ))
             .plugin(os::capture::plugin())
-            .plugin(tauri_plugin_dialog::init());
+            .plugin(tauri_plugin_dialog::init())
+            // The one door to the network (ADR-062): the update check, which
+            // the person can close in Settings.
+            .plugin(tauri_plugin_updater::Builder::new().build())
+            .manage(os::updates::Pending::default());
     }
 
     builder
@@ -122,6 +129,9 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::system::system_info,
+            os::updates::update_check,
+            os::updates::update_install,
+            commands::system::email_draft,
             commands::system::accent_ramp,
             commands::reminders::probe_notification,
             commands::reminders::reminders_status,
@@ -129,6 +139,9 @@ pub fn run() {
             commands::reminders::reminders_resume,
             commands::reminders::reminder_snooze,
             commands::reminders::reminder_dismiss,
+            commands::reminders::warnings_list,
+            commands::reminders::warning_add,
+            commands::reminders::warning_remove,
             commands::reminders::tray_refresh,
             commands::capture::capture_show,
             commands::capture::capture_hide,
@@ -148,7 +161,22 @@ pub fn run() {
             commands::data::import_json,
             commands::items::item_capture,
             commands::items::collections_list,
+            commands::items::day_reviews_list,
+            commands::items::day_planned,
+            commands::items::day_close,
+            commands::items::meeting_notes_open,
+            commands::items::event_pages_list,
+            commands::items::list_create,
+            commands::items::list_rename,
+            commands::items::list_delete,
+            commands::items::list_color,
+            commands::items::item_move_to_list,
             commands::items::items_list,
+            commands::items::items_replan,
+            commands::items::items_replan_undo,
+            commands::items::subtasks_list,
+            commands::items::subtask_add,
+            commands::items::subtask_promote,
             commands::items::item_create,
             commands::items::item_set_completed,
             commands::items::item_rename,
@@ -169,6 +197,7 @@ pub fn run() {
             commands::views::view_update,
             commands::views::view_delete,
             commands::blocks::blocks_list,
+            commands::blocks::blocks_marked,
             commands::blocks::blocks_apply,
             commands::calendar::calendars_list,
             commands::calendar::work_hours_list,
@@ -195,6 +224,9 @@ pub fn run() {
             commands::days_off::days_off_list,
             commands::days_off::day_off_set,
             commands::days_off::day_off_remove,
+            commands::item_pages::item_pages_list,
+            commands::item_pages::item_page_link,
+            commands::item_pages::item_page_unlink,
             commands::goals::goals_list,
             commands::goals::goal_create,
             commands::goals::goal_update,
@@ -205,6 +237,11 @@ pub fn run() {
             commands::pages::pages_list,
             commands::pages::page_get,
             commands::pages::page_create,
+            commands::pages::sections_list,
+            commands::pages::section_create,
+            commands::pages::section_update,
+            commands::pages::section_delete,
+            commands::pages::page_file,
             commands::pages::page_rename,
             commands::pages::page_delete,
             commands::pages::page_backlinks,

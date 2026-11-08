@@ -32,6 +32,16 @@ export function applyTheme(choice: ThemeChoice): void {
     root.setAttribute('data-theme', choice);
   }
   applyWindowTheme(choice);
+  rememberForOpening(choice);
+}
+
+/** The opening is drawn before the settings can be read, so it keeps its own note. */
+function rememberForOpening(choice: ThemeChoice): void {
+  try {
+    localStorage.setItem('tessera.theme', choice);
+  } catch {
+    // A profile that refuses storage opens in the desktop's theme, which is fine.
+  }
 }
 
 /** Without a host there is no window to tell, and no Mica for it to matter to. */

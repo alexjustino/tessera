@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { DocJSON } from './document';
 import {
+  TASK_LINK,
   checkTitle,
   exactly,
   labelOf,
@@ -200,5 +201,31 @@ describe('choosing a page after typing two brackets', () => {
     expect(exactly('weekly review', PAGES)?.id).toBe('p1');
     expect(exactly('Weekly', PAGES)).toBeUndefined();
     expect(exactly('  ', PAGES)).toBeUndefined();
+  });
+});
+
+describe('a task named in a document', () => {
+  const doc = {
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [{ type: TASK_LINK, attrs: { itemId: 't1', title: 'Old name' } }],
+      },
+    ],
+  } as DocJSON;
+
+  it('reads as the task is called now', () => {
+    const read = refresh(doc, [], [{ id: 't1', title: 'New name' }]);
+    expect(read.content[0]?.content?.[0]?.attrs?.title).toBe('New name');
+  });
+
+  // ── Negative cases ─────────────────────────────────────────────────────
+  it('keeps the name it was written with when the task is gone', () => {
+    expect(refresh(doc, [], [])).toBe(doc);
+  });
+
+  it('hands back the same document when nothing changed', () => {
+    expect(refresh(doc, [], [{ id: 't1', title: 'Old name' }])).toBe(doc);
   });
 });

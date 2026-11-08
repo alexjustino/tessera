@@ -56,7 +56,7 @@ fn clean_title(title: &str) -> Result<String> {
 /// produces keys lives in `src/domain/ordering.ts` and stays there. The host
 /// only refuses a value that could not have come from it, so a bug upstream
 /// surfaces as an error rather than as a list that silently sorts wrong.
-fn check_position(position: &str) -> Result<()> {
+pub(crate) fn check_position(position: &str) -> Result<()> {
     if position.is_empty() {
         return Err(Error::InvalidInput("an order key cannot be empty"));
     }
@@ -110,7 +110,10 @@ pub fn list_collections(conn: &Connection) -> Result<Vec<Collection>> {
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
 }
 
-/// Items in a collection — or across all of them when `collection_id` is None.
+/// Tasks in a collection — or across all of them when `collection_id` is None.
+///
+/// A subtask is not in this list. Every reader of it counts tasks, for the plan, the
+/// score and the views, and a task with five steps is one thing to do (ADR-051).
 ///
 /// Ordering is by the fractional key, which is exactly the order the interface
 /// shows, so the list does not have to be re-sorted after it arrives.
@@ -125,6 +128,7 @@ pub fn list_items(
                 completed_at, estimate_minutes, is_milestone, created_at, updated_at
          FROM item
          WHERE archived_at IS NULL
+           AND parent_item_id IS NULL
            AND (?1 IS NULL OR collection_id = ?1)
            {}
          ORDER BY position",
@@ -138,6 +142,66 @@ pub fn list_items(
     let mut statement = conn.prepare(&sql)?;
     let rows = statement.query_map(params![collection_id], read_item)?;
     Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// Every subtask in the workspace, for each task's row to say how far along it is.
+pub fn list_subtasks(conn: &Connection) -> Result<Vec<Item>> {
+    let mut statement = conn.prepare(
+        "SELECT id, collection_id, parent_item_id, title, position,
+                start_at, due_at, remind_at, recurrence_rrule, recurrence_mode,
+                completed_at, estimate_minutes, is_milestone, created_at, updated_at
+         FROM item
+         WHERE archived_at IS NULL AND parent_item_id IS NOT NULL
+         ORDER BY position",
+    )?;
+    let rows = statement.query_map([], read_item)?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// Add a step to a task. One level: a subtask holds no subtasks of its own.
+pub fn add_subtask(
+    conn: &mut Connection,
+    parent_id: &str,
+    title: &str,
+    position: &str,
+) -> Result<Item> {
+    let parent = get_item(conn, parent_id)?;
+    if parent.parent_item_id.is_some() {
+        return Err(Error::InvalidInput(
+            "a subtask cannot have subtasks of its own",
+        ));
+    }
+
+    let transaction = conn.transaction()?;
+    let id = insert_item(
+        &transaction,
+        &NewItem {
+            collection_id: parent.collection_id,
+            title: title.to_owned(),
+            position: position.to_owned(),
+        },
+    )?;
+    transaction.execute(
+        "UPDATE item SET parent_item_id = ?2 WHERE id = ?1",
+        params![id, parent_id],
+    )?;
+    transaction.commit()?;
+
+    get_item(conn, &id)
+}
+
+/// Make a subtask a task of its own, at the given place in the list.
+pub fn promote_subtask(conn: &Connection, id: &str, position: &str) -> Result<Item> {
+    check_position(position)?;
+    let changed = conn.execute(
+        "UPDATE item SET parent_item_id = NULL, position = ?2, updated_at = ?3
+         WHERE id = ?1 AND parent_item_id IS NOT NULL",
+        params![id, position, now()],
+    )?;
+    if changed == 0 {
+        return Err(Error::NotFound);
+    }
+    get_item(conn, id)
 }
 
 /// Read one item, or report that it is gone.
@@ -416,6 +480,15 @@ pub fn set_schedule(conn: &Connection, id: &str, schedule: ItemSchedule) -> Resu
     // the person's intent; the row is what fires. They are kept in step here so
     // there is exactly one place where they can drift, and it is this one.
     super::reminders::sync_for_item(conn, id, schedule.remind_at.as_deref())?;
+    let due_before: Option<String> = conn
+        .query_row(
+            "SELECT due_at FROM item WHERE id = ?1",
+            params![id],
+            |row| row.get(0),
+        )
+        .optional()?
+        .flatten();
+    super::reminders::follow_due(conn, id, due_before.as_deref(), schedule.due_at.as_deref())?;
 
     let changed = conn.execute(
         "UPDATE item
@@ -470,6 +543,15 @@ pub fn complete_occurrence(
         return Err(Error::NotFound);
     }
 
+    // The next occurrence starts its steps again: last Monday's ticks are not this
+    // Monday's. When the series has ended, the ticks are what was done, and they stay.
+    if next_due_at.is_some() {
+        transaction.execute(
+            "UPDATE item SET completed_at = NULL, updated_at = ?2 WHERE parent_item_id = ?1",
+            params![id, timestamp],
+        )?;
+    }
+
     transaction.execute(
         "INSERT INTO activity (owner_kind, owner_id, kind, payload_json, at)
          VALUES ('item', ?1, 'occurrence_completed', ?2, ?3)",
@@ -497,6 +579,102 @@ mod tests {
         conn.pragma_update(None, "busy_timeout", 1_000).unwrap();
         let _ = &mut conn;
         conn
+    }
+
+    #[test]
+    fn a_subtask_is_not_in_the_list_of_tasks_and_is_in_its_own() {
+        let mut conn = workspace();
+        let parent = add(&mut conn, "parent", "V");
+        let step = add_subtask(&mut conn, &parent.id, "step", "a").expect("add");
+
+        assert_eq!(step.parent_item_id.as_deref(), Some(parent.id.as_str()));
+        assert_eq!(step.collection_id, parent.collection_id);
+        let tasks = list_items(&conn, Some("tasks"), true).expect("list");
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].id, parent.id);
+        let steps = list_subtasks(&conn).expect("steps");
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].id, step.id);
+    }
+
+    #[test]
+    fn a_subtask_cannot_hold_subtasks() {
+        let mut conn = workspace();
+        let parent = add(&mut conn, "parent", "V");
+        let step = add_subtask(&mut conn, &parent.id, "step", "a").expect("add");
+        assert!(matches!(
+            add_subtask(&mut conn, &step.id, "deeper", "a"),
+            Err(Error::InvalidInput(_))
+        ));
+        assert_eq!(list_subtasks(&conn).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn a_subtask_cannot_be_added_to_a_task_that_is_gone() {
+        let mut conn = workspace();
+        assert!(matches!(
+            add_subtask(&mut conn, "nobody", "step", "a"),
+            Err(Error::NotFound)
+        ));
+    }
+
+    #[test]
+    fn a_subtask_with_no_name_is_refused_and_leaves_nothing_behind() {
+        let mut conn = workspace();
+        let parent = add(&mut conn, "parent", "V");
+        assert!(add_subtask(&mut conn, &parent.id, "   ", "a").is_err());
+        assert!(list_subtasks(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_subtask_made_a_task_joins_the_list_and_keeps_its_tick() {
+        let mut conn = workspace();
+        let parent = add(&mut conn, "parent", "V");
+        let step = add_subtask(&mut conn, &parent.id, "step", "a").expect("add");
+        set_completed(&conn, &step.id, true).expect("tick");
+
+        let made = promote_subtask(&conn, &step.id, "X").expect("promote");
+
+        assert_eq!(made.parent_item_id, None);
+        assert_eq!(made.position, "X");
+        assert!(made.completed_at.is_some());
+        assert_eq!(list_items(&conn, Some("tasks"), true).unwrap().len(), 2);
+        assert!(list_subtasks(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn promoting_what_is_already_a_task_is_refused() {
+        let mut conn = workspace();
+        let task = add(&mut conn, "task", "V");
+        assert!(matches!(
+            promote_subtask(&conn, &task.id, "X"),
+            Err(Error::NotFound)
+        ));
+    }
+
+    #[test]
+    fn the_next_occurrence_starts_its_steps_again() {
+        let mut conn = workspace();
+        let parent = add(&mut conn, "weekly", "V");
+        let step = add_subtask(&mut conn, &parent.id, "step", "a").expect("add");
+        set_completed(&conn, &step.id, true).expect("tick");
+
+        complete_occurrence(&mut conn, &parent.id, Some("2027-01-08T12:00:00.000Z"))
+            .expect("complete");
+
+        assert_eq!(list_subtasks(&conn).unwrap()[0].completed_at, None);
+    }
+
+    #[test]
+    fn the_last_occurrence_keeps_its_ticks() {
+        let mut conn = workspace();
+        let parent = add(&mut conn, "weekly", "V");
+        let step = add_subtask(&mut conn, &parent.id, "step", "a").expect("add");
+        set_completed(&conn, &step.id, true).expect("tick");
+
+        complete_occurrence(&mut conn, &parent.id, None).expect("complete");
+
+        assert!(list_subtasks(&conn).unwrap()[0].completed_at.is_some());
     }
 
     fn add(conn: &mut Connection, title: &str, position: &str) -> Item {
@@ -955,6 +1133,18 @@ mod tests {
                 matches!(result, Err(Error::InvalidInput(_))),
                 "accepted position {position:?}"
             );
+        }
+    }
+
+    #[test]
+    fn accepts_every_shape_of_order_key_the_domain_mints() {
+        // Appends count after a run of `z` (ADR-006), and older keys stay stored.
+        let mut conn = workspace();
+        for position in [
+            "V", "z", "zV", "zzl", "za1", "zaz", "zb01", "zzzc001", "za1V",
+        ] {
+            let item = add(&mut conn, "keyed", position);
+            assert_eq!(item.position, position);
         }
     }
 

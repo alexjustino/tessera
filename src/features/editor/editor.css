@@ -223,22 +223,119 @@
    break the line it is written on. A link whose page does not exist yet is
    dotted and dimmer — a wiki where a broken link looks like a good one is a
    wiki that lies about what it holds. */
-.tessera-prose a[data-page-link] {
+.tessera-prose a[data-page-link],
+.tessera-prose a[data-task-link] {
+  padding: 0 0.3em;
+  border-radius: var(--radius-sm);
   color: var(--accent-base);
+  background: var(--accent-subtle);
   text-decoration: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-base) 40%, transparent);
+  border-bottom: 1px solid var(--accent-base);
   cursor: pointer;
   white-space: nowrap;
 }
-.tessera-prose a[data-page-link]:hover {
-  border-bottom-color: var(--accent-base);
+.tessera-prose a[data-page-link]:hover,
+.tessera-prose a[data-task-link]:hover {
+  background: color-mix(in srgb, var(--accent-base) 22%, transparent);
+}
+.tessera-prose a[data-task-link] {
+  color: var(--fg-primary);
+  background: var(--surface-card-hover);
+  border-bottom-color: var(--stroke-strong);
 }
 .tessera-prose a[data-page-link][data-missing] {
   color: var(--fg-tertiary);
-  border-bottom-style: dotted;
+  background: transparent;
+  border-bottom: 1px dotted var(--stroke-strong);
+}
+/* A page's text fills the height there is, so the whole of it takes a click. */
+.tessera-fill .tessera-prose {
+  min-height: 55vh;
 }
 .tessera-prose a[data-page-link].ProseMirror-selectednode {
   outline: 2px solid var(--accent-base);
   outline-offset: 1px;
   border-radius: 2px;
+}
+
+.tessera-prose mark {
+  background: color-mix(in srgb, var(--tag-yellow) 30%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.tessera-prose mark[data-color='yellow'] {
+  background: color-mix(in srgb, var(--tag-yellow) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='green'] {
+  background: color-mix(in srgb, var(--tag-green) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='blue'] {
+  background: color-mix(in srgb, var(--tag-blue) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='pink'] {
+  background: color-mix(in srgb, var(--tag-pink) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='orange'] {
+  background: color-mix(in srgb, var(--tag-orange) 30%, transparent);
+}
+
+.tessera-prose mark[data-color='purple'] {
+  background: color-mix(in srgb, var(--tag-purple) 30%, transparent);
+}
+
+/* A marked line says what it is in a word, never by colour alone. */
+.tessera-prose [data-note-marker]::before {
+  content: attr(data-note-label);
+  display: inline-block;
+  margin-right: 0.5em;
+  padding: 0 0.4em;
+  border: 1px solid var(--color-stroke);
+  border-radius: 4px;
+  color: var(--color-fg-secondary);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  line-height: 1.5;
+  vertical-align: 0.1em;
+  user-select: none;
+}
+
+.tessera-prose [data-note-marker='important']::before {
+  border-color: var(--color-caution);
+  color: var(--color-caution);
+}
+
+.tessera-prose [data-note-marker='decision']::before,
+.tessera-prose [data-note-marker='followup']::before {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* A To do line's tick, and a line whose work is done: struck, and still readable. */
+.tessera-prose .note-tick {
+  margin: 0 0.5em 0 0;
+  vertical-align: middle;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.tessera-prose [data-note-done='true'] {
+  color: var(--color-fg-tertiary);
+  text-decoration: line-through;
+}
+
+.tessera-prose [data-note-done='true']::before {
+  text-decoration: none;
+}
+
+/* The line Marked lines went to, lit for a moment so the eye lands on it. */
+.tessera-prose .note-revealed {
+  background: var(--color-accent-subtle);
+  border-radius: 4px;
+  transition: background 600ms ease;
 }

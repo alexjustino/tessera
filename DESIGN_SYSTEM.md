@@ -173,6 +173,10 @@ from where it was — it does not decorate.
 
 Loading shows a skeleton of the shape that is coming, not a spinner.
 
+**The opening is the one flourish.** The mark, set tile by tile as the window opens, because it
+marks a real change of state: nothing there, then the workspace. It plays once, takes no press and
+is gone as soon as there is something to show.
+
 **`prefers-reduced-motion` is honoured globally**, in `global.css`, not per component. A
 component cannot forget it. Nothing animates in a loop.
 
@@ -209,8 +213,48 @@ first — not inline in the feature.
 `Skeleton` · `EmptyState` · `Toast` · `InfoBar` · `Kbd` · `Resizer` · `VirtualList`
 
 Present today: `Button`, `IconButton`, `Card`, `InfoBar`, `Input`, `Select`, `Checkbox`, `Chip`,
-`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`, `TileGrid`. The rest arrive with the slice that first
+`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`, `TileGrid`, `Page`, `PageColumns`, `Stat`, `StatRow`, `Sparkline`, `Meter`, `ColumnChart`, `StackBar`, `BarList`, `ProgressRing`, `Toggle`, `SettingGroup`, `SettingRow`. The rest arrive with the slice that first
 needs them, and arrive _here_.
+
+### Figures and charts
+
+A dashboard is built from these and nothing else: `Stat` for one number and what it is measured
+against, `Meter` for how much of something is used, `ColumnChart` for change over a run of days,
+`StackBar` for the parts of a whole, `BarList` for things ranked. Marks are thin, a value is never
+only a height or a colour (a word, a tooltip or a table says it too), and only the tallest column
+and the one the reader stands in carry a number. A figure that has not earned a reading shows a
+dash and says why.
+
+Identity is `--series-1` to `--series-6`, in that order, for telling goals apart. It is checked with
+the palette validator in both themes and is never used for state: late, done and at risk keep the
+`--state-*` tokens.
+
+### A screen fails on its own
+
+Each screen sits in an `ErrorBoundary`. A render that throws says so and that the work is safe, and the
+rail stays, so going elsewhere is the way out. A blank window with no way out is the one failure a person
+cannot read (ADR-048).
+
+### A suggestion is dashed
+
+Time the plan proposes is drawn with a dashed border and says so, because it is not there yet. A dashed
+block is never counted as reserved, and pressing or moving it is what makes it solid (ADR-046).
+
+### Dragging
+
+With `usePointerDrag`, or dnd-kit on the board, and never HTML5 drag and drop, which the host takes for itself
+on Windows. What is carried shows where it will land and what it would land on. Nothing hidden sits on a thing
+that can be dragged: a control with opacity 0 still takes the press (ADR-049).
+
+### Settings
+
+One section at a time, chosen from a list on the left. A section is `SettingGroup`s of `SettingRow`s:
+what it is on the left in one line, the control on the right, as Windows 11 lays them out. A switch
+(`Toggle`) takes effect at once; a long explanation opens on request or does not exist.
+
+A destination is framed by `Page` and sets no width of its own, so it fills the window it is
+given. Screens made of cards put them in `PageColumns`. Only long running text keeps a reading
+measure.
 
 ### A grid of tiles
 

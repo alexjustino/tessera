@@ -303,6 +303,23 @@ pub fn create_time_block(
     ends: &str,
     tz: &str,
 ) -> Result<CalendarEvent> {
+    let transaction = conn.transaction()?;
+    let event_id = insert_time_block(&transaction, item_id, calendar_id, starts, ends, tz)?;
+    transaction.commit()?;
+
+    get_event(conn, &event_id)
+}
+
+/// The event and its link to the task, inside the caller's transaction, so a replan
+/// can reserve many blocks and change many dates as one write (ADR-052).
+pub(crate) fn insert_time_block(
+    conn: &Connection,
+    item_id: &str,
+    calendar_id: &str,
+    starts: &str,
+    ends: &str,
+    tz: &str,
+) -> Result<String> {
     check_span(starts, ends)?;
 
     let title: String = conn
@@ -317,20 +334,17 @@ pub fn create_time_block(
     let event_id = Uuid::now_v7().to_string();
     let timestamp = now();
 
-    let transaction = conn.transaction()?;
-    transaction.execute(
+    conn.execute(
         "INSERT INTO event (id, calendar_id, title, starts_at_utc, ends_at_utc, tz,
                             all_day, busy, created_at, updated_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0, 1, ?7, ?7)",
         params![event_id, calendar_id, title, starts, ends, tz, timestamp],
     )?;
-    transaction.execute(
+    conn.execute(
         "INSERT INTO time_block (id, item_id, event_id, created_at) VALUES (?1, ?2, ?3, ?4)",
         params![Uuid::now_v7().to_string(), item_id, event_id, timestamp],
     )?;
-    transaction.commit()?;
-
-    get_event(conn, &event_id)
+    Ok(event_id)
 }
 
 #[cfg(test)]

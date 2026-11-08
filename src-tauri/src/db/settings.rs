@@ -39,6 +39,15 @@ pub struct Settings {
     pub backups_enabled: bool,
     /// How many backups rotation keeps.
     pub backups_keep: u32,
+    /// Getting started: the person has answered for their working hours.
+    pub guide_hours_set: bool,
+    /// Getting started: the person has answered for their days off.
+    pub guide_days_off_set: bool,
+    /// Getting started: the person has hidden the guide.
+    pub guide_dismissed: bool,
+    /// Whether Tessera asks GitHub for a newer release (ADR-062). On by default;
+    /// off, the application makes no outbound request at all.
+    pub update_check: bool,
 }
 
 impl Default for Settings {
@@ -49,6 +58,10 @@ impl Default for Settings {
             quick_capture_shortcut: DEFAULT_SHORTCUT.to_string(),
             backups_enabled: true,
             backups_keep: 7,
+            guide_hours_set: false,
+            guide_days_off_set: false,
+            guide_dismissed: false,
+            update_check: true,
         }
     }
 }
@@ -129,6 +142,7 @@ mod tests {
             quick_capture_shortcut: "Ctrl+Alt+T".into(),
             backups_enabled: false,
             backups_keep: 3,
+            ..Settings::default()
         };
         assert_eq!(set(&conn, &wanted).unwrap(), wanted);
         assert_eq!(get(&conn).unwrap(), wanted);

@@ -10,7 +10,9 @@ import {
   startOfWeek,
   step,
   weekdayOf,
+  fittedHourHeight,
   workingSpan,
+  workingWindow,
   type CalendarEvent,
   type EventException,
   type Occurrence,
@@ -423,5 +425,41 @@ describe('working hours', () => {
 
   it('has nothing to say about a day that is not one', () => {
     expect(workingSpan('2026-09-12', hours)).toBeNull(); // Saturday
+  });
+});
+
+describe('fitting the working window', () => {
+  const week = ['2026-11-02', '2026-11-03', '2026-11-07'];
+  const hours = [
+    { weekday: 1, startsMinute: 9 * 60, endsMinute: 17 * 60 },
+    { weekday: 2, startsMinute: 8 * 60, endsMinute: 18 * 60 },
+  ];
+
+  it('runs from the earliest start to the latest end', () => {
+    expect(workingWindow(week, hours)).toEqual({ startsMinute: 8 * 60, endsMinute: 18 * 60 });
+  });
+
+  it('makes the hours fill the room there is', () => {
+    expect(fittedHourHeight(600, { startsMinute: 8 * 60, endsMinute: 18 * 60 })).toBe(60);
+  });
+
+  // ── Negative cases ─────────────────────────────────────────────────────
+  it('falls back to an ordinary day when nobody works these days', () => {
+    expect(workingWindow(['2026-11-07'], hours)).toEqual({
+      startsMinute: 9 * 60,
+      endsMinute: 18 * 60,
+    });
+  });
+
+  it('never makes an hour unreadable, however small the window', () => {
+    expect(fittedHourHeight(100, { startsMinute: 0, endsMinute: 24 * 60 })).toBe(28);
+  });
+
+  it('never makes an hour absurd, however large the window', () => {
+    expect(fittedHourHeight(4000, { startsMinute: 9 * 60, endsMinute: 12 * 60 })).toBe(96);
+  });
+
+  it('has a sensible height before the room is known', () => {
+    expect(fittedHourHeight(0, { startsMinute: 9 * 60, endsMinute: 18 * 60 })).toBe(48);
   });
 });

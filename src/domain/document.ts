@@ -315,3 +315,20 @@ export function preview(blocks: readonly Block[], limit = 140): string {
   const text = plainText(blocks).replace(/\s+/g, ' ').trim();
   return text.length <= limit ? text : `${text.slice(0, limit - 1)}…`;
 }
+
+export type LinkCheck = { status: 'ok'; href: string } | { status: 'refused'; message: string };
+
+/**
+ * Read an address a person typed for a link. Only the web is allowed: a
+ * `javascript:` link in a document is a script waiting for a click. A bare
+ * `example.com` is what people type, and it means the web.
+ */
+export function checkLink(raw: string): LinkCheck {
+  const typed = raw.trim();
+  if (typed === '') return { status: 'refused', message: 'Type an address first.' };
+  const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(typed);
+  if (hasScheme && !/^https?:\/\//i.test(typed)) {
+    return { status: 'refused', message: 'A link has to start with http or https.' };
+  }
+  return { status: 'ok', href: hasScheme ? typed : `https://${typed}` };
+}

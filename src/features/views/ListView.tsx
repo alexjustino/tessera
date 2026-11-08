@@ -9,6 +9,12 @@ import {
 import { useState } from 'react';
 
 import { checkTitle, type Item } from '@/domain/item';
+import type { Page } from '@/domain/page';
+import { isColor, SWATCH } from '@/domain/colors';
+import { INBOX } from '@/domain/lists';
+import type { Progress } from '@/domain/subtasks';
+import { NotesChip } from '@/features/notes/NotesChip';
+import { StepsChip } from '@/features/tasks/StepsChip';
 import type { Property, PropertyValue } from '@/domain/property';
 import type { Group, Row } from '@/domain/query';
 import { bucketOf, formatDue, systemZone } from '@/domain/schedule';
@@ -25,7 +31,14 @@ import { IconButton } from '@/ui/IconButton';
  * grows past that stops being scannable and becomes a spreadsheet nobody asked
  * for — which is what the table view is for, deliberately and separately.
  */
+const NO_NOTES: readonly Page[] = [];
+
 export function ListView({
+  stepsOf,
+  notesOf,
+  listNameOf,
+  listColorOf,
+  onOpenPage,
   groups,
   grouped,
   inlineProperties,
@@ -39,6 +52,15 @@ export function ListView({
   onOpen,
   onSetValue,
 }: {
+  /** How far along each task's subtasks are, by the task's id. */
+  stepsOf?: ReadonlyMap<string, Progress>;
+  /** The pages applied to each task, by the task's id. */
+  notesOf?: ReadonlyMap<string, readonly Page[]>;
+  /** Where a row comes from more than one list, each list's name by its id. */
+  listNameOf?: ReadonlyMap<string, string> | undefined;
+  /** And each list's colour, when it has one. */
+  listColorOf?: ReadonlyMap<string, string | null> | undefined;
+  onOpenPage?: ((pageId: string) => void) | undefined;
   groups: readonly Group[];
   grouped: boolean;
   inlineProperties: Property[];
@@ -75,12 +97,24 @@ export function ListView({
               {group.rows.map((row) => (
                 <TaskRow
                   key={row.item.id}
+                  notes={notesOf?.get(row.item.id) ?? NO_NOTES}
+                  steps={stepsOf?.get(row.item.id)}
+                  onOpenPage={onOpenPage}
                   task={row.item}
                   blocked={blockedIds.has(row.item.id)}
                   critical={criticalIds.has(row.item.id)}
                   milestone={milestoneIds.has(row.item.id)}
                   timing={timingId === row.item.id}
-                  properties={inlineProperties}
+                  // A property is its own list's: a row from another list shows none.
+                  properties={inlineProperties.filter(
+                    (property) => property.collectionId === row.item.collectionId,
+                  )}
+                  listName={
+                    row.item.collectionId === INBOX
+                      ? undefined
+                      : listNameOf?.get(row.item.collectionId)
+                  }
+                  listColor={listColorOf?.get(row.item.collectionId) ?? null}
                   values={row.values}
                   onToggle={(completed) => onToggle(row, completed)}
                   onRename={(title) => onRename(row, title)}
@@ -98,6 +132,11 @@ export function ListView({
 }
 
 function TaskRow({
+  listName,
+  listColor = null,
+  steps,
+  notes,
+  onOpenPage,
   task,
   blocked,
   critical,
@@ -111,6 +150,15 @@ function TaskRow({
   onOpen,
   onSetValue,
 }: {
+  /** The list it lives in, said where rows from several lists meet. */
+  listName?: string | undefined;
+  /** That list's colour, beside its name. */
+  listColor?: string | null;
+  /** How far along its subtasks are. */
+  steps?: Progress | undefined;
+  /** The pages applied to this task. */
+  notes: readonly Page[];
+  onOpenPage?: ((pageId: string) => void) | undefined;
   task: Item;
   blocked: boolean;
   critical: boolean;
@@ -163,9 +211,14 @@ function TaskRow({
       ) : (
         <button
           type="button"
-          onClick={() => {
-            setDraft(task.title);
-            setEditing(true);
+          // Pressing a task opens it, which is what a person reaches for first.
+          // The name is edited there, or here with F2 as everywhere in Windows.
+          onClick={onOpen}
+          onKeyDown={(event) => {
+            if (event.key === 'F2') {
+              setDraft(task.title);
+              setEditing(true);
+            }
           }}
           className={[
             'min-w-0 flex-1 truncate py-1.5 text-left text-body',
@@ -177,6 +230,21 @@ function TaskRow({
       )}
 
       <DueChip task={task} />
+
+      <StepsChip progress={steps} />
+
+      {listName !== undefined && (
+        <span data-task-list={listName} className="shrink-0">
+          <Chip tone="neutral" title={`In ${listName}`}>
+            {isColor(listColor) && (
+              <span aria-hidden="true" className={`size-2 rounded-full ${SWATCH[listColor]}`} />
+            )}
+            {listName}
+          </Chip>
+        </span>
+      )}
+
+      {notes.length > 0 && <NotesChip notes={notes} onOpenPage={onOpenPage} />}
 
       {/* A moment in the plan rather than work. A diamond because that is what
           a plan draws — and never the shape alone: the wrapper carries the
@@ -276,7 +344,16 @@ function DueChip({ task }: { task: Item }) {
   return (
     <span className="hidden shrink-0 sm:block">
       <Chip
-        tone={bucket === 'overdue' ? 'danger' : bucket === 'today' ? 'caution' : 'neutral'}
+        // Finished is finished: a date in the past is no longer a problem to flag.
+        tone={
+          task.completedAt !== null
+            ? 'neutral'
+            : bucket === 'overdue'
+              ? 'danger'
+              : bucket === 'today'
+                ? 'caution'
+                : 'neutral'
+        }
         title={new Date(task.dueAt).toLocaleString()}
       >
         {repeats && <ArrowRepeatAll16Regular aria-hidden="true" />}

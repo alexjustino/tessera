@@ -5,47 +5,70 @@ supersedes it, not an edit in passing. Each entry states the decision and why, a
 that matters most later — the cost or consequence we accepted, where one was accepted. A record
 that a later one narrows says so and points at it.
 
-| #               | Decision                                                                     | Status   |
-| --------------- | ---------------------------------------------------------------------------- | -------- |
-| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                                   | Accepted |
-| [002](#adr-002) | SQLite, one file, WAL                                                        | Accepted |
-| [003](#adr-003) | The domain layer is pure TypeScript                                          | Accepted |
-| [004](#adr-004) | The view query engine runs in memory                                         | Accepted |
-| [005](#adr-005) | Properties are stored entity-attribute-value                                 | Accepted |
-| [006](#adr-006) | Ordering uses fractional indexing                                            | Accepted |
-| [007](#adr-007) | Recurrence is RRULE plus a mode                                              | Accepted |
-| [008](#adr-008) | An event is not an item                                                      | Accepted |
-| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                            | Accepted |
-| [010](#adr-010) | Fluent is the visual language, with one icon set                             | Accepted |
-| [011](#adr-011) | Apache-2.0                                                                   | Accepted |
-| [012](#adr-012) | No network, no telemetry                                                     | Accepted |
-| [013](#adr-013) | Time is stored in UTC with an IANA zone                                      | Accepted |
-| [014](#adr-014) | The calendar engine is ours                                                  | Accepted |
-| [015](#adr-015) | Installers are not code-signed until signing exists                          | Accepted |
-| [016](#adr-016) | End-to-end tests drive the real binary                                       | Accepted |
-| [017](#adr-017) | Backups are file copies; restore replaces                                    | Accepted |
-| [018](#adr-018) | Accessibility is gated, not reviewed                                         | Accepted |
-| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                       | Accepted |
-| [020](#adr-020) | A plan says what it is worth                                                 | Accepted |
-| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                          | Accepted |
-| [022](#adr-022) | An invariant the schema can state, the schema states                         | Accepted |
-| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved            | Accepted |
-| [024](#adr-024) | A figure carries the rows it came from                                       | Accepted |
-| [025](#adr-025) | A template is the plan for tasks, not tasks                                  | Accepted |
-| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing        | Accepted |
-| [027](#adr-027) | A column that collides is reconciled, never coerced                          | Accepted |
-| [028](#adr-028) | A zone is a name, not a rule set                                             | Accepted |
-| [029](#adr-029) | A link points at an identity and shows a name                                | Accepted |
-| [030](#adr-030) | What counts towards a goal is a decision, not a filter                       | Accepted |
-| [031](#adr-031) | Paper is a rendering, not a screenshot                                       | Accepted |
-| [032](#adr-032) | The review keeps no state                                                    | Accepted |
-| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one           | Accepted |
-| [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted |
-| [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted |
-| [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted |
-| [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted |
-| [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted |
-| [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan        | Accepted |
+| #               | Decision                                                                     | Status          |
+| --------------- | ---------------------------------------------------------------------------- | --------------- |
+| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                                   | Accepted        |
+| [002](#adr-002) | SQLite, one file, WAL                                                        | Accepted        |
+| [003](#adr-003) | The domain layer is pure TypeScript                                          | Accepted        |
+| [004](#adr-004) | The view query engine runs in memory                                         | Accepted        |
+| [005](#adr-005) | Properties are stored entity-attribute-value                                 | Accepted        |
+| [006](#adr-006) | Ordering uses fractional indexing                                            | Accepted        |
+| [007](#adr-007) | Recurrence is RRULE plus a mode                                              | Accepted        |
+| [008](#adr-008) | An event is not an item                                                      | Accepted        |
+| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                            | Accepted        |
+| [010](#adr-010) | Fluent is the visual language, with one icon set                             | Accepted        |
+| [011](#adr-011) | Apache-2.0                                                                   | Accepted        |
+| [012](#adr-012) | No network, no telemetry                                                     | Amended by 062  |
+| [013](#adr-013) | Time is stored in UTC with an IANA zone                                      | Accepted        |
+| [014](#adr-014) | The calendar engine is ours                                                  | Accepted        |
+| [015](#adr-015) | Installers are not code-signed until signing exists                          | Accepted        |
+| [016](#adr-016) | End-to-end tests drive the real binary                                       | Accepted        |
+| [017](#adr-017) | Backups are file copies; restore replaces                                    | Narrowed by 026 |
+| [018](#adr-018) | Accessibility is gated, not reviewed                                         | Accepted        |
+| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                       | Accepted        |
+| [020](#adr-020) | A plan says what it is worth                                                 | Accepted        |
+| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                          | Accepted        |
+| [022](#adr-022) | An invariant the schema can state, the schema states                         | Accepted        |
+| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved            | Accepted        |
+| [024](#adr-024) | A figure carries the rows it came from                                       | Accepted        |
+| [025](#adr-025) | A template is the plan for tasks, not tasks                                  | Accepted        |
+| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing        | Accepted        |
+| [027](#adr-027) | A column that collides is reconciled, never coerced                          | Accepted        |
+| [028](#adr-028) | A zone is a name, not a rule set                                             | Accepted        |
+| [029](#adr-029) | A link points at an identity and shows a name                                | Accepted        |
+| [030](#adr-030) | What counts towards a goal is a decision, not a filter                       | Accepted        |
+| [031](#adr-031) | Paper is a rendering, not a screenshot                                       | Accepted        |
+| [032](#adr-032) | The review keeps no state                                                    | Accepted        |
+| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one           | Accepted        |
+| [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted        |
+| [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted        |
+| [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted        |
+| [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted        |
+| [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted        |
+| [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan        | Accepted        |
+| [040](#adr-040) | Warnings count back from the due time, and move with it                      | Accepted        |
+| [041](#adr-041) | A task and a page are paired by a person, apart from what the text says      | Accepted        |
+| [042](#adr-042) | An email leaves as a draft file, and Tessera never sends one                 | Accepted        |
+| [043](#adr-043) | A goal may have no finish line                                               | Accepted        |
+| [044](#adr-044) | The week starts from now, and a tile can be pressed                          | Accepted        |
+| [045](#adr-045) | A day's score is arithmetic a person can check                               | Accepted        |
+| [046](#adr-046) | A suggested plan is computed and never stored                                | Accepted        |
+| [047](#adr-047) | A link in the text opens, and says what it points at first                   | Accepted        |
+| [048](#adr-048) | Screens are read on demand, and one failing does not take the window         | Accepted        |
+| [049](#adr-049) | Dragging uses the pointer, and is tested with one                            | Accepted        |
+| [050](#adr-050) | What to do now is one answer, computed                                       | Accepted        |
+| [051](#adr-051) | A step is less than a task, and every count goes on counting tasks           | Accepted        |
+| [052](#adr-052) | Late work is replanned in one write, shown first, and undone in one press    | Accepted        |
+| [053](#adr-053) | A list is a collection set up like Tasks, and every count reads all of them  | Accepted        |
+| [054](#adr-054) | A meeting's notes are a page paired with one occurrence                      | Accepted        |
+| [055](#adr-055) | A `#name` on the capture line is a list only when a list has that name       | Accepted        |
+| [056](#adr-056) | A To do is ticked on the line; a Follow up is done by its task               | Accepted        |
+| [057](#adr-057) | Pages are filed in coloured sections, and Quick notes is where none is       | Accepted        |
+| [058](#adr-058) | A highlight keeps its colour by name, and the theme paints it                | Accepted        |
+| [059](#adr-059) | A list explains itself where it is made, and wears a colour                  | Accepted        |
+| [060](#adr-060) | A board starts with the column that has no value                             | Accepted        |
+| [061](#adr-061) | The day is planned and closed through what Tessera already knows             | Accepted        |
+| [062](#adr-062) | Tessera asks GitHub once a day whether a newer release exists                | Accepted        |
 
 ---
 
@@ -155,9 +178,23 @@ logical order. A new key can always be generated strictly between any two.
 keys, a move is one UPDATE of one row regardless of list length, and sorting is plain
 lexicographic comparison that both SQLite and JavaScript agree on.
 
-**Cost accepted.** Keys grow slowly under pathological insert patterns (always inserting at the
-same point). The invariant "a key never ends in the lowest digit" is enforced, and the growth is
-logarithmic in practice. Implementation and its property tests: `src/domain/ordering.ts`.
+**Appends.** A key made only of the top digit `z` has no room above it, so appending to one starts
+a counter instead of descending: after the run of `z`, a head `a`–`y` gives the width, 1 to 25
+digits, followed by that many digits (`z`, `za1`, `za2`, … `zaz`, `zb01`). Appends cost 5 digits up
+to 238,332 rows, where one digit per five appends cost 10,000 digits at 50,000 rows, with a 619 MB
+database and a 2-second list read. The keys are in the same alphabet and sort the same way, so
+`check_position`, SQLite and older builds treat them like any other key. The head is read only to
+choose the next key, never to compare keys.
+
+**Stored keys are never rewritten.** No key sorts above a run of `z` without sharing it, so a list
+that was already long keeps its prefix: growth stops, the length does not fall.
+
+**Cost accepted.** Prepends and repeated inserts into one gap stay linear, about one digit per five
+or six: 10,000 prepends reach 1,667 digits and 10,000 inserts into one gap reach 2,001. Nothing adds
+to a list that way in bulk today: prepending is a drag or typing at the top of a document, and
+`MAX_BLOCKS` caps a document at 10,000 blocks. Inserting into random gaps stays short, at 7 digits
+after 50,000. The invariant "a key never ends in the lowest digit" is enforced. Implementation and
+its property tests: `src/domain/ordering.ts`.
 
 ## ADR-007 — Recurrence is RRULE plus a mode {#adr-007}
 
@@ -236,6 +273,11 @@ declared one by one, with shell execution deliberately absent.
 also what makes the security posture simple enough to be true.
 
 **Cost accepted.** No automatic updates. Releases are downloaded from GitHub.
+
+**Amended by ADR-062.** From 1.4.0 the application makes one kind of request: the update check of
+ADR-062, which asks GitHub whether a newer release exists, on by default and switched off with one
+setting. With it off, this record holds as written. Everything else here (no account, no sync, no
+analytics, no crash reporting) stands either way.
 
 ## ADR-013 — Time is stored in UTC with an IANA zone {#adr-013}
 
@@ -919,8 +961,8 @@ due, the time left, the shortfall — four figures that carry their rows (ADR-02
 drawing of up to sixty of those minutes and takes the state that holds most of them; a day that
 does not end on the hour has a shorter last tile, and the screen says it rounded. The shortfall
 is minutes too, drawn as whole tiles rounded up. Today's hours already gone are drawn as gone,
-not free: the projection's share of today that does not fit what is left is said in words
-rather than painted on the past. The code is `src/domain/mosaic.ts`; the surface is the
+not free. The projection used to give today a whole day and say the difference in words; since
+ADR-044 it starts from now, so there is rarely any. The code is `src/domain/mosaic.ts`; the surface is the
 `TileGrid` primitive.
 
 **Why.** The mosaic exists to be believed at a glance. If a person counts the tiles and the
@@ -984,3 +1026,493 @@ onto the hours so the reason is always one click away from the number.
 first hour and unplanned in the second — the tile knows its hour, not the intention behind it.
 Tracking a different task than the block, for good reason, still splits the tile; the person
 reads the reason in the row.
+
+## ADR-040 — Warnings count back from the due time, and move with it {#adr-040}
+
+**Context.** One reminder says "do not forget". The owner asked for what a clock's alarms do: a
+deadline at 10:00 on the 7th, with one warning on the 4th, two on the 5th, three on the 6th.
+
+**Decision.** A task holds any number of warnings, as rows of kind `warning` in the `reminder`
+table, beside the one `absolute` reminder that `remind_at` keeps in step, so the scheduler needed no
+change. No migration: the table always allowed it, and only
+`sync_for_item` assumed one. A warning is an instant. When the due time moves, the waiting ones
+move by the same amount; when it is cleared, they go; one that went off stays as a record. The same
+instant twice is one alarm. The code is `db/reminders.rs` and `src/domain/warnings.ts`.
+
+**Why they move.** A warning is meant as "this long before", even when picked as a date. Left
+behind, every one would be wrong the moment the plan changed, and a person would have to redo the
+whole set. The screen says so.
+
+**Why a warning needs a due time.** It precedes something. A free-standing alarm is a calendar
+event, and the calendar has those.
+
+**Cost accepted.** A repeating task carries its waiting warnings to the next occurrence by the same
+rule, but one that went off is not armed again, so a repeating task runs out of warnings. A
+warning cannot be labelled, and it fires the same notification as any other.
+
+## ADR-041 — A task and a page are paired by a person, apart from what the text says {#adr-041}
+
+**Context.** The owner's UAT: a task needs notes, and it has to be possible to associate a note with
+it from where the work is. A link inside a document (ADR-029) already says "this mentions that", but
+it is derived from the text: delete the words and the link is gone.
+
+**Decision.** `item_page` (migration 020) holds pairs a person made, from either side. A task lists
+its pages and a page lists its tasks, one press apart. Either side going removes the pair and
+nothing else. Membership is a decision and this product stores decisions, as ADR-030 says of goals.
+
+**Why not write a link into the document.** The pair would then depend on text a person can edit
+away without meaning to, and pairing from the page's side would mean editing the task's document
+from outside its editor.
+
+**Cost accepted.** There are now two ways a page and a task can be connected, a link in the text and
+a pair, shown in two lists on a page (Linked from, and Tasks). They mean different things, and a
+person may reasonably have both.
+
+## ADR-042 — An email leaves as a draft file, and Tessera never sends one {#adr-042}
+
+**Context.** The owner asked for a formatted email from a set of topics. ADR-012 says no network.
+
+**Decision.** Tessera writes a `.eml` with `X-Unsent: 1`, no sender and no recipient, and asks
+Windows to open it. Everything after that is the person's own mail program. A subject cannot add a
+header, because control characters are taken out. The code is `os/email.rs` and
+`src/domain/emailDraft.ts`.
+
+**Why a file and not `mailto:`.** A `mailto:` link carries plain text only, and a long one is cut off
+by the program that receives it. Formatting is the point of the feature.
+
+**Cost accepted.** A draft is a copy of somebody's notes in a temporary folder until the next draft
+clears anything over a day old. What a `.eml` opens as depends on the person's mail program: Outlook
+honours `X-Unsent`, and others may show it read-only or not open it at all.
+
+## ADR-043 — A goal may have no finish line {#adr-043}
+
+**Context.** The owner's UAT: a goal may be a constant focus, with no period that can be fixed.
+A target and a date demanded of everything get made-up answers.
+
+**Decision.** `goal.ongoing` (migration 019). An ongoing goal shows what has added up, is never
+achieved and never late, and offers no target or date. A date is optional on any goal. The stored
+`target` stays, so going back to a finish line loses nothing. `isAchieved` and `stateOf` in
+`src/domain/goal.ts` are the only places that decide this.
+
+**Cost accepted.** `target` is required by the schema, so an ongoing goal carries a number nobody
+reads. Rebuilding the table to relax that was not worth a migration of its own.
+
+## ADR-044 — The week starts from now, and a tile can be pressed {#adr-044}
+
+**Context.** The owner's UAT found the Mosaic empty, with no way to see why: their tasks had no
+estimates. Separately, in the evening, work stayed on a day whose hours had gone.
+
+**Decision.** `project` takes the minute it is now, and gives today only what is left of it, so
+the receipt's dates and the tiles both move through the day. The Review counts through the same
+function. Tasks with no estimate are listed above the week with sizes one press away; a tile opens
+its task; a free hour can be set aside for one.
+
+**Why this does not break ADR-034.** The ledger still decides nothing and moves nothing by itself.
+Pressing is the person acting, with the same effect as typing an estimate or dragging a block.
+
+**Cost accepted.** A date on the receipt can change during the day with nothing else changing, which
+is correct and may surprise. ADR-037's tile is still a drawing of minutes, now one that responds.
+
+## ADR-045 — A day's score is arithmetic a person can check {#adr-045}
+
+**Context.** The owner's second UAT asked Today for a score: how you are doing today, at a glance. A
+score nobody can take apart is a mood, and it would be the first number in this product that does not
+open onto what made it (ADR-024).
+
+**Decision.** Three parts, out of 100, with the sum written beside each (`src/domain/pulse.ts`).
+Delivered is worth 50: of the work that is yours today, the share finished. Focus is worth 25: of the
+working time gone so far, the share with a clock running. Planned is worth 25: of the work due within
+seven days, the share with time set aside. A part with nothing to measure takes no points either way,
+and the total is scaled to what was measured, so a quiet morning does not read as a bad one. Nothing
+measured means no score, said in words. The bands have names (Behind, Steady, On track, Ahead), so the
+reading is never a colour alone.
+
+**Why these weights.** Delivering is what the day is for, so it holds half; the other two are means to
+it. They are a judgement, and they are written on the screen.
+
+**Cost accepted.** Someone who works without the clock is never scored on focus, and a person can raise
+the score by reserving time they will not use. It reports; it does not police. It is not stored, so
+there is no history of scores, only of what they were made from.
+
+## ADR-046 — A suggested plan is computed and never stored {#adr-046}
+
+**Context.** The owner: tasks do not reach the calendar without a dedicated step, when the system could
+model the work and suggest it, and the person moves what they need to. SPEC 1.3 and ADR-034 say to show
+the cost and never decide.
+
+**Decision.** `suggestPlan` (`src/domain/autoPlan.ts`) lays open work into the free working time, from
+now, for three weeks: earliest date first, then priority, never over an event, never on a day off, never
+before what blocks it or its own start. The calendar draws it dashed, by itself, with nobody asking. Nothing
+is written. Accepting a block, accepting them all, or dragging one is what makes a reservation, and the rest
+flow around it because they are only arithmetic.
+
+**How this keeps ADR-034.** The ledger still moves nothing. A suggestion is a reading of the workspace, like
+a committed tile, and the person's press is what changes it. A task with no estimate is planned at an hour and
+marked as assumed (ADR-020). What lands after its date is marked; what does not fit is listed, not dropped.
+
+**Cost accepted.** Moving one suggestion moves others, which can surprise. Leaving a task out of the plan lasts
+for the session only, since keeping it would need a store for something that is meant to be disposable.
+Committed tiles (ADR-037) and suggestions read the same work in two ways: the first says how many hours a day
+is holding, the second at what hour. They can differ on an individual tile.
+
+## ADR-047 — A link in the text opens, and says what it points at first {#adr-047}
+
+**Context.** The owner could not tell that a page link was a link. They were right: pressing one did nothing,
+and it looked like a word with a line under it. Nothing said whether a name found a page until the page had
+been opened.
+
+**Decision.** A link is drawn as a chip and pressing it goes there; pressing a name with no page makes that page.
+The pointer or the focus shows what it points at, and the `[[` menu shows the same thing before a choice is made,
+so the check comes before the link exists. Beside the page, Connections lists every link in it and whether it
+finds its page, with the press that fixes one that does not. `[[` offers tasks too, as a `taskLink` node of the
+same shape as `pageLink` (ADR-029): an identity beside the words it shows, refreshed on opening. Naming a task on
+a page also pairs the two (ADR-041).
+
+**Cost accepted.** A press on a link is no longer a way to put the caret next to it: the arrow keys are. Removing a
+task link from the text leaves the pair, because the pair is the person's own and outlives edits (ADR-041).
+
+## ADR-048 — Screens are read on demand, and one failing does not take the window {#adr-048}
+
+**Context.** Everything was one 1.4 MB script, parsed on every start, including a code highlighter for a notes page
+nobody had opened. And a render that threw left a blank window with no way out, which the suite found the moment the
+first change here broke one.
+
+**Decision.** Every screen but Tasks, and the editor, load on demand (`src/app/lazyPages.ts`), and all of them are read
+in the background once the window has settled. A navigation is a transition, so a screen not yet read keeps the last one up
+rather than flashing a shape. Each screen sits in an `ErrorBoundary` keyed on it: a failure says so, says the work is safe,
+and the rail stays. The editor guards against `useEditor` destroying an instance rendered inside Suspense before it mounted.
+
+**Cost accepted.** Many small files instead of one. The result on start was measured release against release; see the
+release notes for the figures. E2E lookups now give a screen a moment to arrive, except `findAll`, which is what asks whether
+something is absent.
+
+## ADR-049 — Dragging uses the pointer, and is tested with one {#adr-049}
+
+**Context.** The owner could not move anything on the calendar. With `dragDropEnabled` on, Windows hands
+every HTML5 drag to the host and the page never hears of it, so the calendar, the Mosaic's queue and the
+timeline's bars had not moved from a mouse since they were written. The board worked because it uses
+pointer events. The suite passed because it dispatched the drag's events by hand: it proved what a tile does
+with a drop, not that a drop could happen.
+
+**Decision.** `usePointerDrag` is the one way this product drags outside the board: pointer events, a small
+threshold so a press stays a press, Escape to cancel, and the click that ends a drag swallowed. The screen shows
+where a thing will land and what it would land on. The suite drives it with WebDriver pointer actions, so the
+input goes through the engine as a mouse's does. Dispatching a drag's events by hand does not count as proof.
+
+**Why not turn `dragDropEnabled` off.** It would restore HTML5 drag, but its picture cannot show the hours or
+snap, and a real drag cannot be driven by the suite. With the flag off, a file dropped on the window could also
+navigate the page away.
+
+**Cost accepted.** A second drag mechanism beside dnd-kit on the board. A block can still be dropped on another:
+it is said while carried, and the person decides. Reserving with the button never does.
+
+## ADR-050 — What to do now is one answer, computed {#adr-050}
+
+**Context.** Every screen says something about the day; none says what a person asks when they sit down. The
+owner invited something of value beyond the list.
+
+**Decision.** `pickNow` (`src/domain/now.ts`) gives one answer, in a stated order: a running clock, time reserved
+for a task right now, the event you are in, then whichever is sooner of what is reserved and what the plan
+suggests. Today leads with it, with the press that starts it. It stores nothing and moves nothing (ADR-046): the
+buttons are the person acting.
+
+**Cost accepted.** Focus mode's queue answers a similar question in list order (P8). They differ on purpose: that
+one walks ready work, this one reads the calendar. A person who keeps neither a calendar nor a clock is told
+only what the plan suggests.
+
+## ADR-051 — A step is less than a task, and every count goes on counting tasks {#adr-051}
+
+**Context.** The owner asked for subtasks. `item.parent_item_id` has existed since migration 001,
+unused, so the store already allows a tree. The question is what a child is.
+
+**Decision.** A subtask is an `item` with a parent, one level deep: it has a name, a place in the
+order and a tick, and nothing else the screens offer. `items_list` returns only items without a
+parent, so the plan, the score, Today, the overview, reports and goals keep counting what they
+counted. Steps come from their own command, `subtasks_list`, and the screens join them to their task
+by id. The host refuses a step under a step. Completing an occurrence of a repeating task clears its
+steps' ticks; completing the last one leaves them. A search hit on a step names the task. Markdown
+prints steps indented under their task, and the import door turns them into the task's checklist,
+because it adds tasks and has no parent to point at. Ticking the last step offers to finish the task
+and never does it: a person may have something left that is not written down.
+
+**Why not a checklist inside the task's notes.** A checklist in a document cannot be counted on a
+row without reading every document, cannot be reordered by a handle, and cannot become a task.
+
+**Why not a full task under a task.** Dates, estimates and time on a child would make every figure
+decide whether to count the parent, the children or both, and two honest answers would disagree.
+
+**Cost accepted.** No migration, so a 1.4 workspace reads the same, but an older Tessera given a
+newer workspace would show steps as tasks. A step made into a task keeps its tick and gains nothing
+else; the person gives it a date if it needs one.
+
+## ADR-052 — Late work is replanned in one write, shown first, and undone in one press {#adr-052}
+
+**Context.** The owner asked for a way out of a week that slipped without a date and a reservation
+per task. ADR-046 says the calendar suggests and never writes on its own.
+
+**Decision.** `src/domain/replan.ts` works out, on every read, where each late task would go: the
+planner of ADR-046 run over the late tasks alone, so they take the next free working time before
+anything else. Each new date is the day the last block ends, at the time of day it was set for when
+that is still after the block. A reminder moves by as much as its date. The card shows all of it and
+writes nothing. The press sends the changes to `items_replan`, which writes every date and every
+block in one transaction and hands back the dates as they were and the blocks it made.
+`items_replan_undo` takes that back. A block or a task deleted in the meantime is passed over, and
+everything else is restored exactly. The host refuses a task finished since the plan was worked out,
+or a repeating one, and then writes nothing at all.
+
+**Left alone, and named.** A repeating task, because its date moves the series. A task waiting on open
+work that is not late, because planning it first would put it before what it waits on, and the same
+goes for what waits on it. A task no free time in three weeks can hold.
+
+**Why one transaction.** Half a replan is worse than none: some dates moved and others not, with
+blocks that do not match them. ADR-040's warnings follow the date inside the same write.
+
+**Cost accepted.** Moving a date clears a task from Late, so a replan raises the score of the day
+without any work being done. The score (ADR-045) counts what was delivered, and a moved date is not
+that. The card says plainly what it moved. Undo lives with the card that made the change and is gone
+once the person leaves the screen.
+
+## ADR-053 — A list is a collection set up like Tasks, and every count reads all of them {#adr-053}
+
+**Context.** The owner asked for more than one list. The `collection` table has existed since
+migration 001 and the import door has written new collections since 1.2, but the screens only ever
+showed `tasks`, so an imported board was reachable only by the import's own undo.
+
+**Decision.** A list is a collection. A new one copies how Tasks is set up: every property, under new
+ids, and every view of Tasks, with each reference to a Tasks property in a view's configuration
+rewritten to the new list's own, so its board groups by its own Status. Tasks is the inbox: quick
+capture writes there, it cannot be deleted, and the rail names it on its own entry, with the
+person's lists under it. Tasks and the Board show one list; Today, the plan, the score and every
+figure read all of them. A row from another list on Today says which, and shows no inline property
+of the inbox, because a property is its own list's. Moving a task takes its subtasks with it, and
+each value goes to the target's property with the same key and type, or is dropped, because a value
+on a property the list does not have would be shown nowhere. A task found elsewhere opens in its own
+list. No migration.
+
+**Why delete only when empty.** `item.collection_id` cascades: deleting a collection deletes its
+tasks. The host refuses a list that holds anything, finished tasks included, and the page says what
+is in the way instead of offering a confirmation that would destroy work.
+
+**Why copy and not share properties.** Sharing would need a property that belongs to no collection,
+which every query and the import door's reconcile (ADR-027) would have to learn. A copy keeps the
+model as it is, at the cost that a property added to Tasks later does not appear in lists made
+before it.
+
+**Cost accepted.** On Today, a task from another list shows its title, date and list, not its Status
+or Priority; those are edited in its panel or its list.
+
+## ADR-054 — A meeting's notes are a page paired with one occurrence {#adr-054}
+
+**Context.** 1.4 left "meeting notes started from an event" for later. The owner chose it before the
+UAT of the candidate.
+
+**Decision.** Migration 021 adds `event_page (event_id, original_start, page_id)`. The pair names an
+occurrence by the start the series gave it, the same key an exception uses, so a weekly meeting has a
+page for each week and moving one occurrence keeps its notes. Meeting notes, in an event's editor,
+calls `meeting_notes_open`: the pair's page when there is one; otherwise a page named "Meeting — Mon,
+Nov 9", or the page of that name when one exists, paired. A new page is written its opening lines by
+the client, through the same change set the editor uses: when and where, then Notes, Decisions and
+Follow-ups. The page says which meeting it holds the notes of. Time reserved for a task offers no
+meeting notes. Either side going removes the pair, and nothing else, as with `item_page` (ADR-041).
+
+**Why not a link in the page's text.** The press has to find the page again from the event, and a
+link a person can delete without meaning to would make the press make a second page.
+
+**Cost accepted.** Making the page and pairing it are two writes: a failure between them leaves a page
+with the meeting's name and no pair. The next press finds it by name and pairs it, so nothing is lost
+and nothing is made twice. Location is not shown yet: events are made without one today.
+
+## ADR-055 — A `#name` on the capture line is a list only when a list has that name {#adr-055}
+
+**Context.** ADR-053 left capturing into a list for later, because a hash is also how people write
+numbers and tags.
+
+**Decision.** `parseCapture` takes the person's lists. A `#` at the start of the line or after a space,
+followed by a list's name, whatever its case, and then the end, a space or punctuation, is that list.
+The longest name written wins, so `#home office` is not `#home`. It is read last, so it claims nothing
+another phrase claimed, and never inside brackets. The chip reads "In Work". Any other `#word` stays
+in the title, for the same reason a reminder with no date does: a chip that does nothing is a lie.
+The task lands after the target list's last task, with the target list's own Priority property,
+read from the host when the list is not the one on screen. The palette lists Go to for each list.
+
+**Cost accepted.** A list renamed to a word people write with a hash, `#1` say, starts taking that
+word out of titles. The chip shows it before the task is written, and removing the chip keeps the
+word.
+
+## ADR-056 — A To do is ticked on the line; a Follow up is done by its task {#adr-056}
+
+**Context.** 1.4 left three things about markers for later: a tick on To do, a Follow up line that
+says when its task is finished, and Marked lines going to the exact line. The owner chose them before
+the candidate's UAT.
+
+**Decision.** Two attributes join the marker on a line: `noteDone`, set by the
+tick a To do line carries, and `noteTask`, the task a Follow up line became, written when the
+follow-up is made. The tick is a widget the editor draws, and pressing it is an edit saved like any
+other. A Follow up line's done is not stored: the editor is told which tasks are finished and draws
+the line struck. `isLineDone` in `src/domain/markers.ts` is the one rule, used by the editor and by
+Marked lines alike. Marked lines carries each line's block, and pressing one opens the page with the
+caret on that line, lit for a moment. A task's notes open the task, as before.
+
+**Why not store the Follow up's done.** The task is where it is finished, on a board, in Focus or on
+Today. A copy on the line would be a second answer that goes stale the first time the task is
+reopened.
+
+**Cost accepted.** A Follow up made before this change knows no task, and stays undone until it is
+marked again. Changing a line's marker clears what belonged to the old one.
+
+## ADR-057 — Pages are filed in coloured sections, and Quick notes is where none is {#adr-057}
+
+**Context.** The owner's fourth look asked for the notebook OneNote has: add a section, add a page in
+it, and colour to tell things apart.
+
+**Decision.** Migration 022 adds `section (id, name, color, position)` and `page.section_id`, `ON DELETE
+SET NULL`. A page is in one section or none; none is Quick notes, which is not a row and so can never
+be renamed, recoloured or deleted, and no section may take its name. A colour is one of nine named ones
+(`src/domain/colors.ts`), kept to that list by the host, and drawn as a mark beside the name, each at
+least 3:1 on a card in both themes (`tokens.test.ts`). A new section takes the least used colour. The
+list shows the sections, then the pages of the one chosen; finding a page looks in all of them and
+shows each one's colour. A new page is made in the section on screen. Deleting a section sends its
+pages back to Quick notes, and the dialog says so before the press.
+
+**Why a page is in at most one section.** A page in two places is two answers to "where did I put
+it", and the links between pages already say what relates to what (ADR-029).
+
+**Cost accepted.** Sections are ordered as they were made; dragging them into another order, and
+section groups, are left for later. Lists use the same nine colours, so a colour means a thing only
+where the person decides it does.
+
+## ADR-058 — A highlight keeps its colour by name, and the theme paints it {#adr-058}
+
+**Context.** The owner's fourth look asked for colours to mark and categorise things in notes, as a
+highlighter pen does.
+
+**Decision.** TipTap's highlight is used with colours, and its colour attribute is kept as one of the
+names in `src/domain/colors.ts` (`data-color="green"`), never as a colour value. The stylesheet paints
+each name as 30% of that colour's token behind the text, so a highlight follows the theme and the
+paper, and `tokens.test.ts` holds that body text stays at 4.5:1 on every highlight, on a card, in both
+themes. A highlight with no name, from before this change or from Ctrl+Shift+H, is yellow. The bar's
+Highlight is a picker with the six bright colours and "No highlight".
+
+**Cost accepted.** An email draft (ADR-042) carries the highlight as a mark without its colour, because
+the colour lives in Tessera's stylesheet; a mail program shows its own highlight, or none.
+
+## ADR-059 — A list explains itself where it is made, and wears a colour {#adr-059}
+
+**Context.** In the fourth look the owner did not understand what New list was for, and took it for a
+way to make tags. A feature a person has to guess at is not finished.
+
+**Decision.** The line that makes a list says, in one sentence, what a list is: a kind of work kept
+apart, with its own board, while Today still shows everything due. An empty list says the same and
+how to fill it, writing `#name` included (ADR-055). `collection.color`, unused since migration 001, now
+holds one of the nine colours of ADR-057, kept to that list by the host. A new list takes the least
+used one, the rail draws it beside the name, and Today's chip carries it. The list's page changes it.
+
+**Cost accepted.** A list is still not a tag: a task is in one list. Tags, many to one task, remain a
+separate idea the product does not have yet.
+
+## ADR-060 — A board starts with the column that has no value {#adr-060}
+
+**Context.** A tour of every screen with a lived-in workspace (`e2e/tour.e2e.ts`) showed a board that
+looked empty: the cards were in "No value", the last column, off the right edge of the screen. A new
+card has no status, so it always lands there.
+
+**Decision.** `toColumns` puts the column with no value first and names it after the field it groups
+by, "No status". The query engine's groups keep their order, so a list grouped by a field is
+unchanged; only the board, where the first column is the one in view, reorders.
+
+**Cost accepted.** A board whose cards all have a status shows an empty first column, which is still
+where a card is dropped to clear its status (the reason the column always exists).
+
+## ADR-061 — The day is planned and closed through what Tessera already knows {#adr-061}
+
+**Context.** Asked what would raise the tool most, the squad proposed a daily ritual, and the owner
+chose it. Tessera already held every piece a day needs (what is due and late, the free time, the
+suggested plan, the clock, the score), but spread over several screens.
+
+**Decision.** Today starts with **Your day**. Plan my day is three steps: what was due before today is
+kept for today, moved to tomorrow or marked done; today's work is weighed against its free time
+(`workLeft` and `weigh` in `src/domain/ritual.ts`, an hour assumed for a task with no estimate); and
+the suggested plan's pieces for today are reserved in one press. Close the day is three steps: what got
+done, with the clock and the score; what is not finished moves to tomorrow; a line about the day.
+Moving to a day keeps the time of day and moves a reminder by as much, through the atomic command
+replanning uses (ADR-052), and a repeating task keeps its date. Migration 023 adds `day_review`: the
+day's planned and closed times and, when it closes, its score, done, carried, clock and line, so the
+days can be read back after their tasks have moved on. The line also goes to a Journal page in Notes,
+one a month, in a Journal section made the first time. The card offers planning until mid-afternoon
+and closing from late afternoon, and both buttons are always there.
+
+**Why record the score.** The score is computed live (ADR-045); yesterday's computed today would be a
+different number, because its tasks have moved. A history needs the number as it was.
+
+**Cost accepted.** A day closed twice keeps the last figures. The journal write follows the record and
+is not in the same transaction: a failure between them keeps the record and loses the line from the
+page, and closing again writes it.
+
+## ADR-062 — Tessera asks GitHub once a day whether a newer release exists {#adr-062}
+
+**Amends ADR-012.**
+
+**How it was.** From 1.0.0 to 1.3.0, ADR-012 held without exception: the application made no
+outbound request. No account, no sync, no analytics, no crash reporting, no update check. The cost
+it accepted was written down: no automatic updates. A new release was found by visiting GitHub and
+installed by hand from the downloaded installer. The README, `SECURITY.md`, SPEC §5 and the
+installer's description said "no network requests" in those words, and it was true.
+
+**Context.** On 2026-11-06 the owner asked what would raise the tool most and chose automatic
+updates among the answers. Of the three ways to square that with ADR-012 that were put to the owner
+(on by default, off by default and asked once, or a manual button only), the owner chose **on by
+default** on 2026-11-07.
+
+**Decision (where we are going).**
+
+1. **One request, one destination.** An HTTPS `GET` of the release manifest (`latest.json`)
+   published with each GitHub release of `alexjustino/tessera`. Tessera asks when it starts and then
+   at most once a day, and when the person presses **Check now** in Settings. Nothing else in the
+   application reaches the network.
+2. **On by default, off with one switch.** Settings has the switch. Off, the application makes no
+   outbound request at all, which is ADR-012 exactly as it was.
+3. **Nothing installs on its own.** When the manifest names a newer version, Tessera says so, with
+   the version and its notes, and offers **Install and restart**. Nothing downloads or runs before
+   that press.
+4. **What is installed is verified first.** The update is the installer the release published,
+   checked against the updater public key built into the application (Tauri's updater, an Ed25519
+   signature) before it runs; one that fails the check is discarded. The private key is kept only as
+   a secret of the repository's release workflow, which the owner holds. It is never in the
+   repository, never in a commit, never on a page. This is not Windows code signing: ADR-015 stands,
+   and SmartScreen still warns about an installer downloaded by hand.
+5. **The request carries nothing about the person.** No identifier, no workspace content, no counts,
+   no settings. GitHub sees what any `GET` shows: the address it comes from, the time, and a user
+   agent with the version. There is still no account, sync, telemetry, analytics or crash reporting.
+6. **The web view stays closed.** The content security policy still blocks external origins. The
+   request is made by the Rust host through the updater plugin, the one capability that reaches the
+   network, limited to that manifest and the installers it names.
+7. **Offline is normal.** An air-gapped or offline machine fails the check quietly. Settings says
+   when the last check succeeded, and nothing retries in a loop.
+
+**Why on by default.** A fix nobody installs fixes nothing, and an update that waits to be looked
+for reaches few. The check reveals that a copy of Tessera exists at an address, and its version,
+nothing more. One switch gives the old guarantee back whole.
+
+**Cost accepted.** "No network requests" is no longer true out of the box. The README,
+`SECURITY.md`, SPEC §5 and the installer's description change from "no network" to "one update
+check, which can be turned off" in the change that ships the code, never before it: until then,
+ADR-012 describes the application that is shipped. A release now needs the signing key. If the key
+is lost, installed copies cannot verify updates signed with a new one and have to be updated by hand
+once.
+
+**Built (1.4.0).** The host owns the check: `update_check` and `update_install` in
+`src-tauri/src/os/updates.rs`, through `tauri-plugin-updater`. The plugin's own commands are not
+granted to the web view. `update_check` reads the setting first and refuses when it is off, so the
+switch holds whatever the window does. The plugin is configured with `requireSignedVersion`, so a
+signature only installs the version it was made for, and with `installMode: passive`. A copy updates
+with the same kind of installer it came from, MSI or NSIS. The release workflow builds once without
+the key, hands the key to one step that signs the two installers and runs nothing else, checks both
+signatures against the public key the copies carry, and writes `latest.json` itself; its actions are
+pinned by commit. It stops before building when the public key is still the placeholder or the
+secret is missing. Before the installer ends the process, the host waits for any write or backup in
+progress and folds the write-ahead log into the database. The switch covers the install as well as
+the check, and turning it off forgets an update already found. The test suite points every session's
+check at an address on the machine through `TESSERA_UPDATE_URL`, which the host honours only for
+`https` on a loopback IP literal, with certificates validated as usual, so no test ever asks GitHub.
+`e2e/updates.e2e.ts` counts the connections: one at start and one per Check now with the setting on,
+and none at all with it off.

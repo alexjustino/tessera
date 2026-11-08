@@ -36,12 +36,15 @@ import * as searchApi from './search';
 import * as captureApi from './capture';
 import * as dependencyApi from './dependencies';
 import * as settingsApi from './settings';
+import * as updatesApi from './updates';
 import * as backupsApi from './backups';
 import * as timeApi from './time';
 import * as templateApi from './templates';
 import * as importApi from './importing';
 import * as daysOffApi from './daysOff';
 import * as goalApi from './goals';
+import * as dayApi from './days';
+import * as meetingApi from './meetingNotes';
 import * as pageApi from './pages';
 import type { TemplateBody, TemplateEdge } from '@/domain/template';
 
@@ -55,6 +58,64 @@ export function useCollections() {
   return useQuery({ queryKey: keys.collections, queryFn: api.listCollections });
 }
 
+/** A list's properties and views are made with it, so all three are read again. */
+function useInvalidateLists() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: keys.collections });
+    void client.invalidateQueries({ queryKey: ['properties'] });
+    void client.invalidateQueries({ queryKey: ['property-values'] });
+    void client.invalidateQueries({ queryKey: ['views'] });
+    void client.invalidateQueries({ queryKey: ['items'] });
+  };
+}
+
+export function useCreateList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({
+    mutationFn: ({ name, position }: { name: string; position: string }) =>
+      api.createList(name, position),
+    onSuccess: invalidate,
+  });
+}
+
+export function useRenameList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => api.renameList(id, name),
+    onSuccess: invalidate,
+  });
+}
+
+export function useColorList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({
+    mutationFn: ({ id, color }: { id: string; color: string | null }) => api.colorList(id, color),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({ mutationFn: (id: string) => api.deleteList(id), onSuccess: invalidate });
+}
+
+export function useMoveToList() {
+  const invalidate = useInvalidateLists();
+  return useMutation({
+    mutationFn: ({
+      id,
+      collectionId,
+      position,
+    }: {
+      id: string;
+      collectionId: string;
+      position: string;
+    }) => api.moveToList(id, collectionId, position),
+    onSuccess: invalidate,
+  });
+}
+
 export function useItems(collectionId: string | null, includeCompleted: boolean) {
   return useQuery({
     queryKey: keys.items(collectionId, includeCompleted),
@@ -66,6 +127,44 @@ export function useItems(collectionId: string | null, includeCompleted: boolean)
 function useInvalidateItems() {
   const client = useQueryClient();
   return () => client.invalidateQueries({ queryKey: ['items'] });
+}
+
+/** Under the items key, so whatever refreshes the tasks refreshes their steps. */
+export function useSubtasks() {
+  return useQuery({ queryKey: ['items', 'subtasks'], queryFn: api.listSubtasks });
+}
+
+export function useAddSubtask() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({
+      parentId,
+      title,
+      position,
+    }: {
+      parentId: string;
+      title: string;
+      position: string;
+    }) => api.addSubtask(parentId, title, position),
+    onSuccess: invalidate,
+  });
+}
+
+export function usePromoteSubtask() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({ id, position }: { id: string; position: string }) =>
+      api.promoteSubtask(id, position),
+    onSuccess: invalidate,
+  });
+}
+
+export function useMoveItem() {
+  const invalidate = useInvalidateItems();
+  return useMutation({
+    mutationFn: ({ id, position }: { id: string; position: string }) => api.moveItem(id, position),
+    onSuccess: invalidate,
+  });
 }
 
 export function useCreateItem() {
@@ -320,6 +419,11 @@ export const blockKeys = {
   blocks: (ownerKind: string, ownerId: string) => ['blocks', ownerKind, ownerId] as const,
 };
 
+/** Every block with a marker in it. Refetched whenever any document is saved. */
+export function useMarkedBlocks() {
+  return useQuery({ queryKey: ['marked-blocks'], queryFn: blockApi.listMarkedBlocks });
+}
+
 export function useBlocks(ownerKind: string, ownerId: string | null) {
   return useQuery({
     queryKey: blockKeys.blocks(ownerKind, ownerId ?? ''),
@@ -356,6 +460,7 @@ export function useApplyBlocks() {
       client.setQueryData(blockKeys.blocks(variables.ownerKind, variables.ownerId), blocks);
       // A save changes what points where, so every backlink list is stale.
       void client.invalidateQueries({ queryKey: ['backlinks'] });
+      void client.invalidateQueries({ queryKey: ['marked-blocks'] });
     },
   });
 }
@@ -427,6 +532,15 @@ export function useMoveEvent() {
   });
 }
 
+export function useRenameEvent() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) =>
+      calendarApi.renameEvent(id, title),
+    onSuccess: invalidate,
+  });
+}
+
 export function useDeleteEvent() {
   const invalidate = useInvalidateCalendar();
   return useMutation({ mutationFn: calendarApi.deleteEvent, onSuccess: invalidate });
@@ -437,9 +551,25 @@ export function useSetException() {
   return useMutation({ mutationFn: calendarApi.setException, onSuccess: invalidate });
 }
 
+/** Dates and blocks together, so both the tasks and the calendar refresh. */
+export function useReplan() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: api.replanItems, onSuccess: invalidate });
+}
+
+export function useUndoReplan() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: api.undoReplan, onSuccess: invalidate });
+}
+
 export function useCreateTimeBlock() {
   const invalidate = useInvalidateCalendar();
   return useMutation({ mutationFn: calendarApi.createTimeBlock, onSuccess: invalidate });
+}
+
+export function useCreateEvent() {
+  const invalidate = useInvalidateCalendar();
+  return useMutation({ mutationFn: calendarApi.createEvent, onSuccess: invalidate });
 }
 
 // ── Reminders ───────────────────────────────────────────────────────────────
@@ -448,6 +578,34 @@ export const reminderKeys = {
   status: ['reminders', 'status'] as const,
   autostart: ['autostart'] as const,
 };
+
+/** Keyed by the due time too: moving it moves the warnings on the host. */
+export function useWarnings(itemId: string, dueAt: string | null) {
+  return useQuery({
+    queryKey: ['warnings', itemId, dueAt],
+    queryFn: () => reminderApi.listWarnings(itemId),
+    enabled: dueAt !== null,
+    // The scheduler fires them on its own, so what is stored can change unasked.
+    refetchOnMount: 'always',
+    refetchInterval: 30_000,
+  });
+}
+
+export function useAddWarning() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: reminderApi.addWarning,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['warnings'] }),
+  });
+}
+
+export function useRemoveWarning() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: reminderApi.removeWarning,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['warnings'] }),
+  });
+}
 
 export function useReminderStatus() {
   return useQuery({
@@ -584,6 +742,37 @@ export function useSaveSettings() {
       void client.invalidateQueries({ queryKey: ['capture-status'] });
     },
   });
+}
+
+// ── Updates (ADR-062) ──────────────────────────────────────────────────────
+
+export const updateKey = ['update-check'] as const;
+const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * The update check: once when Tessera starts, then once a day while it runs,
+ * and only while the setting is on. A failure is an answer, not something to
+ * retry in a loop.
+ */
+export function useUpdateCheck() {
+  const settings = useSettings();
+  const on = settings.data?.updateCheck === true;
+  return useQuery({
+    queryKey: updateKey,
+    queryFn: updatesApi.checkForUpdate,
+    enabled: on,
+    staleTime: DAY,
+    gcTime: Infinity,
+    refetchInterval: on ? DAY : false,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+  });
+}
+
+export function useInstallUpdate() {
+  return useMutation({ mutationFn: updatesApi.installUpdate });
 }
 
 export function useBackupsStatus() {
@@ -846,6 +1035,97 @@ export const pageKeys = {
   backlinks: (id: string) => ['backlinks', id] as const,
 };
 
+/** Every page paired with an occurrence of a meeting. */
+export function useEventPages() {
+  return useQuery({ queryKey: ['event-pages'], queryFn: meetingApi.listEventPages });
+}
+
+/** Open a meeting's notes, making them the first time; resolves to the page's id. */
+export function useOpenMeetingNotes() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: meetingApi.openMeetingNotes,
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['event-pages'] });
+      void client.invalidateQueries({ queryKey: pageKeys.all });
+      void client.invalidateQueries({ queryKey: ['backlinks'] });
+      void client.invalidateQueries({ queryKey: ['blocks'] });
+    },
+  });
+}
+
+/** The days planned and closed, from a day on (migration 023). */
+export function useDayReviews(from: string) {
+  return useQuery({ queryKey: ['day-reviews', from], queryFn: () => dayApi.listDayReviews(from) });
+}
+
+export function useMarkPlanned() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (day: string) => dayApi.markPlanned(day),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['day-reviews'] }),
+  });
+}
+
+/** Close a day: its record, then its line in the journal. */
+export function useCloseDay() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      day: string;
+      close: Parameters<typeof dayApi.closeDay>[1];
+      journal: Parameters<typeof dayApi.appendToJournal>[1];
+    }) => {
+      const review = await dayApi.closeDay(input.day, input.close);
+      await dayApi.appendToJournal(input.day, input.journal);
+      return review;
+    },
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['day-reviews'] });
+      void client.invalidateQueries({ queryKey: ['sections'] });
+      void client.invalidateQueries({ queryKey: pageKeys.all });
+      void client.invalidateQueries({ queryKey: ['blocks'] });
+    },
+  });
+}
+
+export function useSections() {
+  return useQuery({ queryKey: ['sections'], queryFn: pageApi.listSections });
+}
+
+/** Sections and the pages filed in them are read again together. */
+function useInvalidateNotebook() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: ['sections'] });
+    void client.invalidateQueries({ queryKey: pageKeys.all });
+  };
+}
+
+export function useCreateSection() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({ mutationFn: pageApi.createSection, onSuccess: invalidate });
+}
+
+export function useUpdateSection() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({ mutationFn: pageApi.updateSection, onSuccess: invalidate });
+}
+
+export function useDeleteSection() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({ mutationFn: pageApi.deleteSection, onSuccess: invalidate });
+}
+
+export function useFilePage() {
+  const invalidate = useInvalidateNotebook();
+  return useMutation({
+    mutationFn: ({ id, sectionId }: { id: string; sectionId: string | null }) =>
+      pageApi.filePage(id, sectionId),
+    onSuccess: invalidate,
+  });
+}
+
 export function usePages() {
   return useQuery({ queryKey: pageKeys.all, queryFn: pageApi.listPages });
 }
@@ -856,6 +1136,27 @@ export function useBacklinks(id: string | null) {
     queryKey: pageKeys.backlinks(id ?? ''),
     queryFn: () => pageApi.pageBacklinks(id ?? ''),
     enabled: id !== null,
+  });
+}
+
+/** Which tasks and pages belong together, both ways round. */
+export function useItemPages() {
+  return useQuery({ queryKey: ['item-pages'], queryFn: pageApi.listItemPages });
+}
+
+export function useLinkItemPage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: pageApi.linkItemPage,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['item-pages'] }),
+  });
+}
+
+export function useUnlinkItemPage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: pageApi.unlinkItemPage,
+    onSuccess: () => client.invalidateQueries({ queryKey: ['item-pages'] }),
   });
 }
 
@@ -889,6 +1190,7 @@ export function useDeletePage() {
   return useMutation({
     mutationFn: (id: string) => pageApi.deletePage(id),
     onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['item-pages'] });
       void client.invalidateQueries({ queryKey: pageKeys.all });
       void client.invalidateQueries({ queryKey: ['backlinks'] });
     },

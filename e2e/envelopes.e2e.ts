@@ -130,6 +130,7 @@ describe('envelopes', () => {
 
   it('a goal holds a weekly envelope of hours', async () => {
     const { driver } = session;
+    await (await driver.findByXPath('//summary[normalize-space(.)="More details"]')).click();
     await setField('input[aria-label="Hours each week"]', '4', true);
     await new Promise((resolve) => setTimeout(resolve, 500));
     await goTo('Review');

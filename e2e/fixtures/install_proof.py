@@ -3,7 +3,7 @@
     python e2e/fixtures/install_proof.py seed  <workspace file>
     python e2e/fixtures/install_proof.py check <workspace file>
 
-`seed` runs on the workspace the published 1.2.0 made, and writes one task the
+`seed` runs on the workspace the published 1.3.0 made, and writes one task the
 way the application would. `check` exits 0 only when that task is still there
 and the workspace is at the schema this checkout ships — so an upgrade that
 loses a row, or that does not migrate, fails the workflow.
@@ -14,14 +14,14 @@ import sqlite3
 import sys
 
 MIGRATIONS = pathlib.Path(__file__).resolve().parent.parent.parent / "src-tauri" / "migrations"
-TITLE = "Written by 1.2.0"
+TITLE = "Written by 1.3.0"
 
 
 def seed(path: str) -> int:
     db = sqlite3.connect(path)
     (version,) = db.execute("SELECT schema_version FROM workspace WHERE id = 1").fetchone()
-    if version != 16:
-        print(f"expected 1.2.0 to leave schema 16, found {version}")
+    if version != 18:
+        print(f"expected 1.3.0 to leave schema 18, found {version}")
         return 1
     (collection,) = db.execute("SELECT id FROM collection ORDER BY position LIMIT 1").fetchone()
     stamp = "2026-10-01T10:00:00.000Z"
