@@ -28,6 +28,7 @@ import { CommandPalette } from '@/features/palette/CommandPalette';
 import type { CommandId } from '@/features/palette/commands';
 import { Sidebar, type Destination } from '@/features/shell/Sidebar';
 import { TitleBar } from '@/features/shell/TitleBar';
+import { UpdateBar } from '@/features/updates/UpdateBar';
 import { TasksPage } from '@/features/tasks/TasksPage';
 import { ErrorBoundary } from '@/ui/ErrorBoundary';
 import { Skeleton } from '@/ui/Skeleton';
@@ -245,6 +246,7 @@ export function App() {
             onOpenList={openList}
           />
           <main className="min-w-0 flex-1 overflow-y-auto bg-layer">
+            <UpdateBar />
             <ErrorBoundary key={pageKey}>
               <Suspense fallback={<Skeleton />}>
                 {/* Today is the same page opened on a different saved view — it is

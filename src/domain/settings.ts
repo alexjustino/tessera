@@ -38,6 +38,8 @@ export interface Settings {
   guideHoursSet: boolean;
   guideDaysOffSet: boolean;
   guideDismissed: boolean;
+  /** Ask GitHub once a day whether a newer release exists (ADR-062). */
+  updateCheck: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -49,6 +51,7 @@ export const DEFAULT_SETTINGS: Settings = {
   guideHoursSet: false,
   guideDaysOffSet: false,
   guideDismissed: false,
+  updateCheck: true,
 };
 
 function oneOf<T extends string>(list: readonly T[], value: unknown, fallback: T): T {
@@ -80,6 +83,8 @@ export function readSettings(raw: unknown): Settings {
     guideHoursSet: source.guideHoursSet === true,
     guideDaysOffSet: source.guideDaysOffSet === true,
     guideDismissed: source.guideDismissed === true,
+    // On unless the person turned it off: a document from before 1.4 has no word on it.
+    updateCheck: source.updateCheck !== false,
   };
 }
 

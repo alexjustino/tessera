@@ -73,11 +73,38 @@ can reason about afterwards.
    git push origin vX.Y.Z
    ```
 
-9. The **Release workflow** runs on the tag: gates, build, bundle check, and a
-   **draft** GitHub Release with the MSI and the NSIS installer attached. It is
-   a draft on purpose — somebody reads the notes before the world does.
+9. The **Release workflow** runs on the tag. It stops at once when the signing
+   secret is missing, when the updater public key in `tauri.conf.json` is still
+   the placeholder, or when the tag is not the version (ADR-062). Then: gates,
+   one build, the bundle check, the signing of the two installers in a step of
+   its own, a check of both signatures against the public key the copies carry
+   (`scripts/verify-update-signature.mjs`), `latest.json` written from them, and
+   a **draft** GitHub Release with the installers, their `.sig` files and
+   `latest.json`. It is a draft on purpose — somebody reads the notes before the
+   world does. Installed copies look for `releases/latest/download/latest.json`,
+   which a draft does not serve: nobody is offered the release until it is
+   published. The notes the update bar shows are the version's section of
+   `CHANGELOG.md`.
+
 10. **Edit the draft release notes** from the changelog, then publish.
 11. **Merge `main` back into `develop`** so the release commits are not stranded.
+
+## The updater key
+
+Every installed copy checks an update against the Ed25519 public key in
+`src-tauri/tauri.conf.json` (`plugins.updater.pubkey`). The owner made the pair
+once, with `npx tauri signer generate`, and holds the private key outside the
+repository, with a copy kept somewhere safe. The release workflow reads it from
+two repository secrets, `TAURI_SIGNING_PRIVATE_KEY` and
+`TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, in one step that signs two files and runs
+nothing else: the build, the install of dependencies and every third-party
+action run without it, and the actions are pinned by commit. A local
+`release:check` never needs the key.
+
+If the private key is lost or exposed, make a new pair, put the new public key
+in `tauri.conf.json`, replace both secrets, and say in the release notes that
+copies older than that release are updated by hand, once: they cannot verify a
+release signed with the new key.
 
 ## After
 

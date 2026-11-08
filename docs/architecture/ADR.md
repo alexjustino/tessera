@@ -1498,3 +1498,19 @@ SPEC §5 and the installer's description change from "no network" to "one update
 turned off" in the change that ships the code, never before it: until then, ADR-012 describes the
 application that is shipped. A release now needs the signing key. If the key is lost, installed
 copies cannot verify updates signed with a new one and have to be updated by hand once.
+
+**Built (1.4.0).** The host owns the check: `update_check` and `update_install` in
+`src-tauri/src/os/updates.rs`, through `tauri-plugin-updater`. The plugin's own commands are not
+granted to the web view. `update_check` reads the setting first and refuses when it is off, so the
+switch holds whatever the window does. The plugin is configured with `requireSignedVersion`, so a
+signature only installs the version it was made for, and with `installMode: passive`. A copy updates
+with the same kind of installer it came from, MSI or NSIS. The release workflow builds once without the key, hands the key to one
+step that signs the two installers and runs nothing else, checks both signatures against the public
+key the copies carry, and writes `latest.json` itself; its actions are pinned by commit. It stops
+before building when the public key is still the placeholder or the secret is missing. Before the
+installer ends the process, the host waits for any write or backup in progress and folds the
+write-ahead log into the database. The switch covers the install as well as the check, and turning
+it off forgets an update already found. The test suite points every session's check at an address on the machine
+through `TESSERA_UPDATE_URL`, which the host honours only for `https` on a loopback IP literal, with
+certificates validated as usual, so no test ever asks GitHub. `e2e/updates.e2e.ts` counts the connections: one at start and one per Check now with the
+setting on, and none at all with it off.
