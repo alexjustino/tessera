@@ -66,7 +66,13 @@ async function waitForDriver(): Promise<void> {
   throw new Error('tauri-driver did not come up on port 4444');
 }
 
-function startDriverProcess(dataDir: string): ChildProcess {
+/**
+ * Where a session's update check goes (ADR-062): never GitHub. Nothing listens on
+ * the discard port, so the check fails at once, as it does on a machine offline.
+ */
+const NO_UPDATES = 'https://127.0.0.1:9/latest.json';
+
+function startDriverProcess(dataDir: string, updateUrl: string): ChildProcess {
   const child = spawn(
     'tauri-driver',
     [
@@ -84,6 +90,7 @@ function startDriverProcess(dataDir: string): ChildProcess {
         // The engine's own profile too: an installed Tessera holds the default
         // one while it runs, and a second engine on it exits at once.
         WEBVIEW2_USER_DATA_FOLDER: path.join(dataDir, 'webview'),
+        TESSERA_UPDATE_URL: updateUrl,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
@@ -224,6 +231,8 @@ export interface SessionOptions {
    * place: the fixture stays what it was.
    */
   seedWorkspace?: string;
+  /** Where the update check goes: an `https` address on this machine. */
+  updateUrl?: string;
 }
 
 /** Diagnostics has no place in the rail: it opens from About. */
@@ -246,7 +255,8 @@ export async function startSession(options: SessionOptions = {}): Promise<Sessio
   if (options.seedWorkspace !== undefined) {
     await copyFile(options.seedWorkspace, path.join(dataDir, 'tessera.sqlite3'));
   }
-  let process_ = startDriverProcess(dataDir);
+  const updateUrl = options.updateUrl ?? NO_UPDATES;
+  let process_ = startDriverProcess(dataDir, updateUrl);
   let driver: Driver;
   try {
     await waitForDriver();
@@ -276,7 +286,7 @@ export async function startSession(options: SessionOptions = {}): Promise<Sessio
     },
     async restart() {
       await teardown(driver, process_);
-      process_ = startDriverProcess(dataDir);
+      process_ = startDriverProcess(dataDir, updateUrl);
       await waitForDriver();
       driver = await createSession();
       session.driver = driver;
