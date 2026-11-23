@@ -34,6 +34,12 @@ export const COMMANDS: readonly PaletteCommand[] = [
   { id: 'go.goals', title: 'Go to Goals', group: 'navigate', keywords: ['target', 'habit'] },
   { id: 'go.review', title: 'Go to Review', group: 'navigate', keywords: ['weekly', 'gaps'] },
   {
+    id: 'go.guide',
+    title: 'Open the Guide',
+    group: 'navigate',
+    keywords: ['help', 'manual', 'how', 'f1'],
+  },
+  {
     id: 'go.settings',
     title: 'Go to Settings',
     group: 'navigate',

@@ -1,4 +1,5 @@
 import {
+  BookOpen20Regular,
   Board20Regular,
   Grid20Regular,
   Notebook20Regular,
@@ -38,6 +39,7 @@ export type Destination =
   | 'goals'
   | 'review'
   | 'reports'
+  | 'guide'
   | 'settings'
   | 'diagnostics'
   | 'about';
@@ -59,6 +61,7 @@ const ENTRIES: Entry[] = [
   { id: 'goals', label: 'Goals', icon: <Target20Regular />, ready: true },
   { id: 'review', label: 'Review', icon: <TaskListLtr20Regular />, ready: true },
   { id: 'reports', label: 'Reports', icon: <DataBarHorizontal20Regular />, ready: true },
+  { id: 'guide', label: 'Guide', icon: <BookOpen20Regular />, ready: true },
   { id: 'settings', label: 'Settings', icon: <Settings20Regular />, ready: true },
   { id: 'about', label: 'About', icon: <Info20Regular />, ready: true },
 ];
