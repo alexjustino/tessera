@@ -59,6 +59,7 @@
     "active": true,
     "targets": ["msi", "nsis"],
     "publisher": "Alex Justino",
+    "homepage": "https://github.com/alexjustino/tessera",
     "copyright": "Copyright 2026 Alex Justino",
     "category": "Productivity",
     "shortDescription": "A professional local-first workspace for tasks, projects and time",
@@ -73,7 +74,7 @@
     ],
     "windows": {
       "webviewInstallMode": {
-        "type": "downloadBootstrapper"
+        "type": "embedBootstrapper"
       },
       "nsis": {
         "installMode": "currentUser",

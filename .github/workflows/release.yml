@@ -121,6 +121,19 @@ jobs:
           }
           $manifest | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8NoBOM latest.json
 
+      # What a person compares a download against, published beside it.
+      - name: Write the checksums
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $bundle = 'src-tauri/target/release/bundle'
+          $files = @("$bundle/nsis/Tessera_${version}_x64-setup.exe", "$bundle/msi/Tessera_${version}_x64_en-US.msi")
+          $lines = foreach ($file in $files) {
+            "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLower())  $(Split-Path $file -Leaf)"
+          }
+          $lines | Set-Content -Encoding utf8NoBOM SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
       # A draft on purpose: somebody reads the notes before the world does, and a
       # draft is not served at releases/latest, so no copy is offered it yet.
       - name: Publish a draft release
@@ -135,7 +148,8 @@ jobs:
           See CHANGELOG.md for what changed.
 
           The installers are not code-signed: Windows SmartScreen will warn on first run. Verify
-          the download came from this Releases page. Copies of 1.4.0 and later update themselves
+          the download came from this Releases page, and that its SHA-256 matches SHA256SUMS.txt
+          (in PowerShell: Get-FileHash .\<file>). Copies of 1.4.0 and later update themselves
           from here, after checking each installer against Tessera's own key.
           '@
           gh release create $tag --draft --title "Tessera $tag" --notes $notes `
@@ -143,5 +157,6 @@ jobs:
             "$bundle/nsis/Tessera_${version}_x64-setup.exe.sig" `
             "$bundle/msi/Tessera_${version}_x64_en-US.msi" `
             "$bundle/msi/Tessera_${version}_x64_en-US.msi.sig" `
-            latest.json
+            latest.json `
+            SHA256SUMS.txt
           if ($LASTEXITCODE -ne 0) { throw 'The draft release was not created.' }

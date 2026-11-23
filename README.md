@@ -97,15 +97,25 @@ or export it to JSON, Markdown and ICS at any time.
 ## Requirements
 
 - Windows 11 (Windows 10 21H2+ works; Mica falls back to a solid surface)
-- The WebView2 runtime, which Windows 11 always has. On a machine without it the
-  installer fetches it, which needs a network connection **once, at install
-  time**. Nothing the product does afterwards touches a network — the runtime is
-  bootstrapped rather than embedded because embedding it would take the
-  installer from three megabytes to about a hundred and thirty.
+- The WebView2 runtime, which Windows 11 always has. The installer carries
+  Microsoft's small WebView2 bootstrapper inside it, so it downloads nothing of
+  its own; only on a machine without the runtime does that bootstrapper fetch
+  it, **once, at install time**. The runtime itself is not embedded because that
+  would take the installer from a few megabytes to about a hundred and thirty.
 
-The installers are not code-signed, so SmartScreen warns on first run: choose
-**More info → Run anyway**. Verify the download came from the Releases page of
-this repository.
+The installers are not code-signed yet, so SmartScreen warns on first run: choose
+**More info → Run anyway**. Before that, check the download: it should come from
+the Releases page of this repository, and its SHA-256 should match the line for
+it in that release's `SHA256SUMS.txt`:
+
+```powershell
+Get-FileHash .\Tessera_1.4.0_x64-setup.exe
+```
+
+The setup installs for the current user, under `%LOCALAPPDATA%\Tessera`: it asks
+for no administrator rights and writes nothing outside your profile. It is listed
+in **Settings → Apps → Installed apps** with its publisher and this repository as
+its home page, and removes itself from there.
 
 Building additionally needs Node.js 20+, Rust 1.80+, and the MSVC build tools.
 
