@@ -5,70 +5,71 @@ supersedes it, not an edit in passing. Each entry states the decision and why, a
 that matters most later — the cost or consequence we accepted, where one was accepted. A record
 that a later one narrows says so and points at it.
 
-| #               | Decision                                                                     | Status          |
-| --------------- | ---------------------------------------------------------------------------- | --------------- |
-| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                                   | Accepted        |
-| [002](#adr-002) | SQLite, one file, WAL                                                        | Accepted        |
-| [003](#adr-003) | The domain layer is pure TypeScript                                          | Accepted        |
-| [004](#adr-004) | The view query engine runs in memory                                         | Accepted        |
-| [005](#adr-005) | Properties are stored entity-attribute-value                                 | Accepted        |
-| [006](#adr-006) | Ordering uses fractional indexing                                            | Accepted        |
-| [007](#adr-007) | Recurrence is RRULE plus a mode                                              | Accepted        |
-| [008](#adr-008) | An event is not an item                                                      | Accepted        |
-| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                            | Accepted        |
-| [010](#adr-010) | Fluent is the visual language, with one icon set                             | Accepted        |
-| [011](#adr-011) | Apache-2.0                                                                   | Accepted        |
-| [012](#adr-012) | No network, no telemetry                                                     | Amended by 062  |
-| [013](#adr-013) | Time is stored in UTC with an IANA zone                                      | Accepted        |
-| [014](#adr-014) | The calendar engine is ours                                                  | Accepted        |
-| [015](#adr-015) | Installers are not code-signed until signing exists                          | Accepted        |
-| [016](#adr-016) | End-to-end tests drive the real binary                                       | Accepted        |
-| [017](#adr-017) | Backups are file copies; restore replaces                                    | Narrowed by 026 |
-| [018](#adr-018) | Accessibility is gated, not reviewed                                         | Accepted        |
-| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                       | Accepted        |
-| [020](#adr-020) | A plan says what it is worth                                                 | Accepted        |
-| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                          | Accepted        |
-| [022](#adr-022) | An invariant the schema can state, the schema states                         | Accepted        |
-| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved            | Accepted        |
-| [024](#adr-024) | A figure carries the rows it came from                                       | Accepted        |
-| [025](#adr-025) | A template is the plan for tasks, not tasks                                  | Accepted        |
-| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing        | Accepted        |
-| [027](#adr-027) | A column that collides is reconciled, never coerced                          | Accepted        |
-| [028](#adr-028) | A zone is a name, not a rule set                                             | Accepted        |
-| [029](#adr-029) | A link points at an identity and shows a name                                | Accepted        |
-| [030](#adr-030) | What counts towards a goal is a decision, not a filter                       | Accepted        |
-| [031](#adr-031) | Paper is a rendering, not a screenshot                                       | Accepted        |
-| [032](#adr-032) | The review keeps no state                                                    | Accepted        |
-| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one           | Accepted        |
-| [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides | Accepted        |
-| [035](#adr-035) | A range is the person's own error, and there is none without a sample        | Accepted        |
-| [036](#adr-036) | A day off is a fact about capacity, not an event                             | Accepted        |
-| [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes               | Accepted        |
-| [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles      | Accepted        |
-| [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan        | Accepted        |
-| [040](#adr-040) | Warnings count back from the due time, and move with it                      | Accepted        |
-| [041](#adr-041) | A task and a page are paired by a person, apart from what the text says      | Accepted        |
-| [042](#adr-042) | An email leaves as a draft file, and Tessera never sends one                 | Accepted        |
-| [043](#adr-043) | A goal may have no finish line                                               | Accepted        |
-| [044](#adr-044) | The week starts from now, and a tile can be pressed                          | Accepted        |
-| [045](#adr-045) | A day's score is arithmetic a person can check                               | Accepted        |
-| [046](#adr-046) | A suggested plan is computed and never stored                                | Accepted        |
-| [047](#adr-047) | A link in the text opens, and says what it points at first                   | Accepted        |
-| [048](#adr-048) | Screens are read on demand, and one failing does not take the window         | Accepted        |
-| [049](#adr-049) | Dragging uses the pointer, and is tested with one                            | Accepted        |
-| [050](#adr-050) | What to do now is one answer, computed                                       | Accepted        |
-| [051](#adr-051) | A step is less than a task, and every count goes on counting tasks           | Accepted        |
-| [052](#adr-052) | Late work is replanned in one write, shown first, and undone in one press    | Accepted        |
-| [053](#adr-053) | A list is a collection set up like Tasks, and every count reads all of them  | Accepted        |
-| [054](#adr-054) | A meeting's notes are a page paired with one occurrence                      | Accepted        |
-| [055](#adr-055) | A `#name` on the capture line is a list only when a list has that name       | Accepted        |
-| [056](#adr-056) | A To do is ticked on the line; a Follow up is done by its task               | Accepted        |
-| [057](#adr-057) | Pages are filed in coloured sections, and Quick notes is where none is       | Accepted        |
-| [058](#adr-058) | A highlight keeps its colour by name, and the theme paints it                | Accepted        |
-| [059](#adr-059) | A list explains itself where it is made, and wears a colour                  | Accepted        |
-| [060](#adr-060) | A board starts with the column that has no value                             | Accepted        |
-| [061](#adr-061) | The day is planned and closed through what Tessera already knows             | Accepted        |
-| [062](#adr-062) | Tessera asks GitHub once a day whether a newer release exists                | Accepted        |
+| #               | Decision                                                                       | Status          |
+| --------------- | ------------------------------------------------------------------------------ | --------------- |
+| [001](#adr-001) | Tauri 2 with a deliberately thin Rust host                                     | Accepted        |
+| [002](#adr-002) | SQLite, one file, WAL                                                          | Accepted        |
+| [003](#adr-003) | The domain layer is pure TypeScript                                            | Accepted        |
+| [004](#adr-004) | The view query engine runs in memory                                           | Accepted        |
+| [005](#adr-005) | Properties are stored entity-attribute-value                                   | Accepted        |
+| [006](#adr-006) | Ordering uses fractional indexing                                              | Accepted        |
+| [007](#adr-007) | Recurrence is RRULE plus a mode                                                | Accepted        |
+| [008](#adr-008) | An event is not an item                                                        | Accepted        |
+| [009](#adr-009) | The block editor is built on TipTap / ProseMirror                              | Accepted        |
+| [010](#adr-010) | Fluent is the visual language, with one icon set                               | Accepted        |
+| [011](#adr-011) | Apache-2.0                                                                     | Accepted        |
+| [012](#adr-012) | No network, no telemetry                                                       | Amended by 062  |
+| [013](#adr-013) | Time is stored in UTC with an IANA zone                                        | Accepted        |
+| [014](#adr-014) | The calendar engine is ours                                                    | Accepted        |
+| [015](#adr-015) | Installers are not code-signed until signing exists                            | Accepted        |
+| [016](#adr-016) | End-to-end tests drive the real binary                                         | Accepted        |
+| [017](#adr-017) | Backups are file copies; restore replaces                                      | Narrowed by 026 |
+| [018](#adr-018) | Accessibility is gated, not reviewed                                           | Accepted        |
+| [019](#adr-019) | The dependency graph is acyclic, and two layers say so                         | Accepted        |
+| [020](#adr-020) | A plan says what it is worth                                                   | Accepted        |
+| [021](#adr-021) | The timeline draws dates, not the plan's arithmetic                            | Accepted        |
+| [022](#adr-022) | An invariant the schema can state, the schema states                           | Accepted        |
+| [023](#adr-023) | Capacity is the working hours; load is what the calendar reserved              | Accepted        |
+| [024](#adr-024) | A figure carries the rows it came from                                         | Accepted        |
+| [025](#adr-025) | A template is the plan for tasks, not tasks                                    | Accepted        |
+| [026](#adr-026) | An import is a plan, previewed, applied once, and undone as one thing          | Accepted        |
+| [027](#adr-027) | A column that collides is reconciled, never coerced                            | Accepted        |
+| [028](#adr-028) | A zone is a name, not a rule set                                               | Accepted        |
+| [029](#adr-029) | A link points at an identity and shows a name                                  | Accepted        |
+| [030](#adr-030) | What counts towards a goal is a decision, not a filter                         | Accepted        |
+| [031](#adr-031) | Paper is a rendering, not a screenshot                                         | Accepted        |
+| [032](#adr-032) | The review keeps no state                                                      | Accepted        |
+| [033](#adr-033) | An importer reads a file, survives it, and proves it on a real one             | Accepted        |
+| [034](#adr-034) | A commitment shows its price before it is made, and the ledger never decides   | Accepted        |
+| [035](#adr-035) | A range is the person's own error, and there is none without a sample          | Accepted        |
+| [036](#adr-036) | A day off is a fact about capacity, not an event                               | Accepted        |
+| [037](#adr-037) | A tile is a drawing of minutes; the week's numbers are minutes                 | Accepted        |
+| [038](#adr-038) | An envelope is a promise of tiles, and its spend is read from the tiles        | Accepted        |
+| [039](#adr-039) | An hour closes when life matches the plan, and only a block is a plan          | Accepted        |
+| [040](#adr-040) | Warnings count back from the due time, and move with it                        | Accepted        |
+| [041](#adr-041) | A task and a page are paired by a person, apart from what the text says        | Accepted        |
+| [042](#adr-042) | An email leaves as a draft file, and Tessera never sends one                   | Accepted        |
+| [043](#adr-043) | A goal may have no finish line                                                 | Accepted        |
+| [044](#adr-044) | The week starts from now, and a tile can be pressed                            | Accepted        |
+| [045](#adr-045) | A day's score is arithmetic a person can check                                 | Accepted        |
+| [046](#adr-046) | A suggested plan is computed and never stored                                  | Accepted        |
+| [047](#adr-047) | A link in the text opens, and says what it points at first                     | Accepted        |
+| [048](#adr-048) | Screens are read on demand, and one failing does not take the window           | Accepted        |
+| [049](#adr-049) | Dragging uses the pointer, and is tested with one                              | Accepted        |
+| [050](#adr-050) | What to do now is one answer, computed                                         | Accepted        |
+| [051](#adr-051) | A step is less than a task, and every count goes on counting tasks             | Accepted        |
+| [052](#adr-052) | Late work is replanned in one write, shown first, and undone in one press      | Accepted        |
+| [053](#adr-053) | A list is a collection set up like Tasks, and every count reads all of them    | Accepted        |
+| [054](#adr-054) | A meeting's notes are a page paired with one occurrence                        | Accepted        |
+| [055](#adr-055) | A `#name` on the capture line is a list only when a list has that name         | Accepted        |
+| [056](#adr-056) | A To do is ticked on the line; a Follow up is done by its task                 | Accepted        |
+| [057](#adr-057) | Pages are filed in coloured sections, and Quick notes is where none is         | Accepted        |
+| [058](#adr-058) | A highlight keeps its colour by name, and the theme paints it                  | Accepted        |
+| [059](#adr-059) | A list explains itself where it is made, and wears a colour                    | Accepted        |
+| [060](#adr-060) | A board starts with the column that has no value                               | Accepted        |
+| [061](#adr-061) | The day is planned and closed through what Tessera already knows               | Accepted        |
+| [062](#adr-062) | Tessera asks GitHub once a day whether a newer release exists                  | Accepted        |
+| [063](#adr-063) | The mark says what the product is for, and the installer looks like what it is | Accepted        |
 
 ---
 
@@ -1516,3 +1517,52 @@ check at an address on the machine through `TESSERA_UPDATE_URL`, which the host 
 `https` on a loopback IP literal, with certificates validated as usual, so no test ever asks GitHub.
 `e2e/updates.e2e.ts` counts the connections: one at start and one per Check now with the setting on,
 and none at all with it off.
+
+## ADR-063 — The mark says what the product is for, and the installer looks like what it is {#adr-063}
+
+**Context.** On 2026-11-23 the owner asked for a more sophisticated icon and opening, and for an
+installer that Windows does not treat as something to fear. Eight directions were drawn and put to
+the owner on one sheet each, at every size from 256 pixels down to the tray's sixteen, on light and
+dark ground. The bolder five (a stained-glass grid of the list colours, an arc of days, a week of
+blocks, a faceted gem, overlapping petals) were art, and the owner's verdict was that none of them
+said "a professional to-do list". Four were then drawn from the check, and the owner chose the one
+that keeps the old mark and makes its fourth tile a finished task.
+
+**Decision.**
+
+1. **The mark** is four tiles on the blue ground, and the fourth is green and carries a check: a
+   task, done. It is still the four tiles the product has worn since 1.0, now lit (a sheen, a hair
+   of edge light, soft shadows) and saying what Tessera is for. Green is used for nothing else in the
+   mark.
+2. **One file, every picture.** `scripts/make-brand.py` draws every raster from
+   `src-tauri/icons/tessera.svg` with headless Edge, each size from the vector at that size: the
+   PNGs, an `.ico` with 16, 20, 24, 32, 40, 48, 64 and 256, the `.icns`, the window's copy in
+   `src/assets`, and the four installer pictures (the setup's sidebar now carries the mark, the name
+   and what it is for over a lit blue). It replaces `make-installer-art.py`, which drew the old mark
+   by hand in Pillow and could not follow a change to the file.
+3. **The opening** sets the new mark in layers: the ground, three tiles, the fourth landing as a
+   task while its check is drawn, then the name. A first opening says "Welcome" and what the product
+   is for; later ones, the time of day and the date. About two seconds, once, never in a loop, all
+   of it skipped under reduced motion (DESIGN_SYSTEM §6).
+4. **The installer looks like what it is.**
+   - It names its home page, so Installed apps shows the publisher and a link to this repository
+     beside it.
+   - It carries Microsoft's WebView2 bootstrapper inside instead of downloading it while installing.
+     An installer that fetches and runs a program is the shape antivirus heuristics distrust, and
+     this one now fetches nothing of its own.
+   - It installs for the current user, without administrator rights. That was already so, and
+     README now says it.
+   - Each release publishes `SHA256SUMS.txt` beside the installers, and its notes and the README say
+     how to check a download against it.
+5. **Code signing stays deferred (ADR-015 stands).** Only a signature stops SmartScreen's warning
+   and Smart App Control's block, and the options were researched for the owner:
+   - Microsoft's Artifact Signing does not accept individual developers outside the US and Canada.
+   - The SignPath Foundation signs qualifying open-source projects for free, as the Foundation.
+   - Certum's open-source certificate costs about €69 a year, in the owner's name.
+
+   On 2026-11-23 the owner chose to leave signing for later.
+
+**Cost accepted.** Until a signature exists, SmartScreen warns on first run and Smart App Control
+blocks the installer outright, however clean the rest of it is. Embedding the bootstrapper adds
+about two megabytes to the installers. The `.icns` grows to a megabyte because it now carries a
+1024-pixel image; it is not shipped on Windows.
