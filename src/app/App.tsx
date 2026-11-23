@@ -179,16 +179,12 @@ export function App() {
         openList(id.slice('list.'.length));
         return;
       }
+      // Every place in the sidebar is a command; each one goes there.
+      if (id.startsWith('go.')) {
+        go(id.slice('go.'.length) as Destination);
+        return;
+      }
       switch (id) {
-        case 'go.today':
-        case 'go.tasks':
-        case 'go.board':
-        case 'go.calendar':
-        case 'go.settings':
-        case 'go.diagnostics':
-        case 'go.about':
-          go(id.slice('go.'.length) as Destination);
-          break;
         case 'focus.start':
           setFocused(null);
           break;
