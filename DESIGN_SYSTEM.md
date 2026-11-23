@@ -177,6 +177,11 @@ Loading shows a skeleton of the shape that is coming, not a spinner.
 marks a real change of state: nothing there, then the workspace. It plays once, takes no press and
 is gone as soon as there is something to show.
 
+**The guide's scenes are the one other place things move** (ADR-064). A scene is a small drawing of
+Tessera doing one thing, and the motion is the explanation: it plays once when the scene comes
+into view, again on **Replay**, and never in a loop. Every colour in it is a token, so it is right
+in both themes. Under reduced motion it is shown finished.
+
 **`prefers-reduced-motion` is honoured globally**, in `global.css`, not per component. A
 component cannot forget it. Nothing animates in a loop.
 

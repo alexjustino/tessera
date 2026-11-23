@@ -310,6 +310,11 @@ its own proof.
   day says what got done, with the clock and the score, moves what is not finished to
   tomorrow at the same time of day, and keeps a line about the day in a Journal page of
   Notes, one a month. Each day's record keeps its score, so the days before can be read.
+- **The User Guide** (ADR-064). **Guide** in the sidebar, or F1 anywhere in the window: ten
+  chapters of what Tessera does and how, each section with a scene that plays when it comes
+  into view (and again on Replay) and a **Try it** that goes to the place. A search finds a
+  section by its words. `docs/USER_GUIDE.md` is generated from the same chapters, and a test
+  fails when the two differ. Every place in the sidebar is also a command in the palette.
 
 #### Deferred out of lists, and why
 

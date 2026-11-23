@@ -111,6 +111,11 @@ Building additionally needs Node.js 20+, Rust 1.80+, and the MSVC build tools.
 
 ## Getting started
 
+**Using Tessera:** the [User Guide](docs/USER_GUIDE.md) says what it does and how. The same
+guide is inside the application: press **F1**.
+
+**Building it:**
+
 ```bash
 git clone https://github.com/alexjustino/tessera.git
 cd tessera

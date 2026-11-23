@@ -39,6 +39,10 @@ closed). Forward-only. A 1.3.0 workspace, schema version 18, is migrated on firs
 
 ### Added
 
+- **A User Guide, inside Tessera.** Guide in the sidebar, or F1 anywhere: ten chapters of what
+  Tessera does and how, each with a scene that shows it happening and a Try it that goes there,
+  and a search across all of it. The same guide is `docs/USER_GUIDE.md` in the repository. Every
+  place in the sidebar is now a command in the palette too (ADR-064).
 - **Updates that arrive by themselves, and only when you say.** Once a day Tessera asks GitHub
   whether a newer release exists. When one does, a bar says which, with its notes, and **Install
   and restart** installs it after checking it against Tessera's own key. Nothing about you or your

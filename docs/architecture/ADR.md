@@ -69,6 +69,7 @@ that a later one narrows says so and points at it.
 | [060](#adr-060) | A board starts with the column that has no value                             | Accepted        |
 | [061](#adr-061) | The day is planned and closed through what Tessera already knows             | Accepted        |
 | [062](#adr-062) | Tessera asks GitHub once a day whether a newer release exists                | Accepted        |
+| [064](#adr-064) | The User Guide is in the product, written once, and shows what it says       | Accepted        |
 
 ---
 
@@ -1516,3 +1517,39 @@ check at an address on the machine through `TESSERA_UPDATE_URL`, which the host 
 `https` on a loopback IP literal, with certificates validated as usual, so no test ever asks GitHub.
 `e2e/updates.e2e.ts` counts the connections: one at start and one per Check now with the setting on,
 and none at all with it off.
+
+## ADR-064 — The User Guide is in the product, written once, and shows what it says {#adr-064}
+
+**Context.** On 2026-11-23 the owner asked for the documentation and a User Guide embedded in the
+software, professional, with animations and careful explanation. Tessera had a getting-started
+card for the questions only the person can answer, and a README for people building it; nothing
+told a person using it what it does.
+
+**Decision.**
+
+1. **A place of its own.** **Guide** in the sidebar, F1 from anywhere in the window, and Open the
+   Guide in the palette. Ten chapters, in the order a person meets the product: getting started,
+   capture, the day, lists and the Board, calendar and time, Mosaic and goals, Notes, reports and
+   review, the keyboard, your data.
+2. **Written once.** The chapters are data in `src/domain/guide.ts`, pure like the rest of the
+   domain. The screen reads them, and `npm run guide:doc` writes `docs/USER_GUIDE.md` from them; a
+   test fails when the file and the chapters differ, so the guide in the repository and the one in
+   the product cannot drift. The keys it teaches are checked against the ones the code uses.
+3. **Shown, not only told.** A section can carry a scene: a small drawing of Tessera doing that one
+   thing (a line becoming a task, a task ticked, a day planned, late work replanned, a card moved,
+   suggestions reserved, a week of tiles, a page filling in, the palette, a file kept safe). It
+   plays once when it comes into view and again on Replay, is drawn in the theme's own tokens, and
+   is shown finished under reduced motion. DESIGN_SYSTEM §6 names it as the one place besides the
+   opening where things move.
+4. **A way to try it.** A section that describes a place ends with a button that goes there.
+5. **Found by its words.** A search needs every word, ignores case and accents, and keeps the
+   guide's order; with nothing typed it shows the contents, and with nothing found it says so.
+6. **Every claim checked.** Each statement was read against the code before it went in. Writing
+   the Keyboard chapter found that the palette's Go to Reports did nothing and that Mosaic, Notes,
+   Goals and Review had no command; every place in the sidebar is now a command, and each one goes
+   there.
+
+**Cost accepted.** The guide is in English only, like the product. A change to how something works
+now has a third place to change, after the code and its ADR, and the test only catches a
+difference between the guide's two copies, not between the guide and the behaviour: keeping the
+text true stays part of each slice's definition of done.
