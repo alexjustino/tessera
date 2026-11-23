@@ -70,8 +70,9 @@ installers are not code-signed (ADR-015). Code signing is what would close that 
 
 ## Distribution integrity
 
-Releases are built by GitHub Actions from a tagged commit and attached to the GitHub Release.
-Verify what you install came from this repository's Releases page.
+Releases are built by GitHub Actions from a tagged commit and attached to the GitHub Release,
+with a `SHA256SUMS.txt` beside the installers. Verify what you install came from this
+repository's Releases page and that its SHA-256 matches (`Get-FileHash` in PowerShell).
 
 Installers are **not** code-signed today: Windows SmartScreen will warn on first run. That is
 expected, and is a cost decision rather than a security posture — it is recorded in the

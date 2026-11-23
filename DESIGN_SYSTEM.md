@@ -147,19 +147,21 @@ cannot be undone later without touching every screen.
 
 ### The mark
 
-The product's own icon is `src-tauri/icons/tessera.svg`: four tiles, one of them
-lighter and a hair apart — the tessera being set. It is drawn to survive sixteen
-pixels in the tray: four shapes, one accent, no stroke thinner than the gap
-between tiles. The blue is the Windows 11 default accent, the value the token
-layer starts from.
+The product's own icon is `src-tauri/icons/tessera.svg`: four tiles on a blue ground, and the
+fourth is a task that is done — green, with its check (ADR-063). A to-do list says what it is for
+before its name is read. It is drawn to survive sixteen pixels in the tray: four shapes, one
+accent, no stroke thinner than the gap between tiles. The blue is the Windows 11 default accent,
+the value the token layer starts from; the green is the one colour that means done.
 
-Every raster the platform needs is generated from that one file, never edited by
-hand:
+Every raster the platform needs is generated from that one file, never edited by hand — each
+size drawn from the vector at that size, so the tray's sixteen pixels are drawn for sixteen:
 
 ```bash
-node -e "require('sharp')('src-tauri/icons/tessera.svg').resize(1024,1024).png().toFile('src-tauri/icons/tessera-1024.png')"
-npx tauri icon src-tauri/icons/tessera-1024.png --output src-tauri/icons
+python scripts/make-brand.py
 ```
+
+It writes the PNGs, the `.ico` (16 to 256), the `.icns`, the window's copy and the four installer
+pictures, with headless Edge doing the drawing.
 
 The same file is `src/assets/mark.svg`, shown beside the name in the title bar
 and on About, so the window, the tray, the installer and the screen all carry one
@@ -174,8 +176,15 @@ from where it was — it does not decorate.
 Loading shows a skeleton of the shape that is coming, not a spinner.
 
 **The opening is the one flourish.** The mark, set tile by tile as the window opens, because it
-marks a real change of state: nothing there, then the workspace. It plays once, takes no press and
-is gone as soon as there is something to show.
+marks a real change of state: nothing there, then the workspace. The ground arrives, three tiles
+are set, the fourth lands as a task and its check is drawn, then the name. A first opening says
+"Welcome" and what Tessera is for; after that, the time of day and the date. It plays once, in
+about two seconds, takes no press and is gone as soon as there is something to show.
+
+**The guide's scenes are the one other place things move** (ADR-064). A scene is a small drawing of
+Tessera doing one thing, and the motion is the explanation: it plays once when the scene comes
+into view, again on **Replay**, and never in a loop. Every colour in it is a token, so it is right
+in both themes. Under reduced motion it is shown finished.
 
 **`prefers-reduced-motion` is honoured globally**, in `global.css`, not per component. A
 component cannot forget it. Nothing animates in a loop.

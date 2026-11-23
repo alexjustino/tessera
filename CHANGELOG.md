@@ -39,6 +39,10 @@ closed). Forward-only. A 1.3.0 workspace, schema version 18, is migrated on firs
 
 ### Added
 
+- **A User Guide, inside Tessera.** Guide in the sidebar, or F1 anywhere: ten chapters of what
+  Tessera does and how, each with a scene that shows it happening and a Try it that goes there,
+  and a search across all of it. The same guide is `docs/USER_GUIDE.md` in the repository. Every
+  place in the sidebar is now a command in the palette too (ADR-064).
 - **Updates that arrive by themselves, and only when you say.** Once a day Tessera asks GitHub
   whether a newer release exists. When one does, a bar says which, with its notes, and **Install
   and restart** installs it after checking it against Tessera's own key. Nothing about you or your
@@ -156,6 +160,15 @@ closed). Forward-only. A 1.3.0 workspace, schema version 18, is migrated on firs
 
 ### Changed
 
+- **A mark that says what Tessera is for.** The four tiles stay; the fourth is now a finished task,
+  green with its check, on a lit blue ground. Every size of the icon (the tray's sixteen pixels
+  included) and the installers' pictures are drawn from the one file. The opening sets the new
+  mark tile by tile, draws the check, and says Welcome the first time and the date after that
+  (ADR-063).
+- **An installer that looks like what it is.** It carries the WebView2 bootstrapper instead of
+  downloading it, names its home page in Installed apps, and each release publishes
+  `SHA256SUMS.txt` beside the installers, with the README saying how to check a download. Code
+  signing is still to come.
 - **Settings, one section at a time.** General, Working time, Backups, Export and import, and Add
   from another product, chosen on the left, in rows the way Windows lays them out. About leads with
   the facts, and the licence, the credits and the story of the name open on request.

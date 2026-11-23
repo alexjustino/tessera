@@ -1,0 +1,232 @@
+/*
+ * The guide's scenes (ADR-064): small drawings of Tessera doing one thing, played
+ * once when they come into view and again on Replay. They are the guide's
+ * explanation, not decoration, and the only motion besides the opening
+ * (DESIGN_SYSTEM §6). Every colour is a token, so a scene is right in both themes.
+ */
+.gs svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gs * {
+  transform-box: fill-box;
+}
+.gs[data-state='idle'] * {
+  animation-play-state: paused !important;
+}
+
+/* Surfaces and ink, from the token layer. */
+.gs .card {
+  fill: var(--color-card);
+  stroke: var(--color-stroke-subtle);
+}
+.gs .layer {
+  fill: var(--color-layer-alt);
+}
+.gs .line {
+  fill: var(--color-fg-tertiary);
+  opacity: 0.55;
+}
+.gs .ink {
+  fill: var(--color-fg);
+}
+.gs .quiet {
+  fill: var(--color-fg-secondary);
+}
+.gs .stroke {
+  stroke: var(--color-stroke);
+}
+.gs .accent {
+  fill: var(--color-accent);
+}
+.gs .accent-soft {
+  fill: var(--color-accent-subtle);
+}
+.gs .success {
+  fill: var(--color-success);
+}
+.gs .danger {
+  fill: var(--color-danger);
+}
+.gs .caution {
+  fill: var(--color-caution);
+}
+.gs text {
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  font-size: 11px;
+  fill: var(--color-fg);
+}
+.gs text.small {
+  font-size: 9px;
+  fill: var(--color-fg-secondary);
+}
+.gs text.on-accent {
+  fill: var(--color-fg-on-accent);
+}
+
+/* The moves. Each element sets its own delay; all of them hold their last frame. */
+.gs .pop,
+.gs .rise,
+.gs .drop,
+.gs .grow,
+.gs .draw,
+.gs .type,
+.gs .leave,
+.gs .shift,
+.gs .travel,
+.gs .solid,
+.gs .fade {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.1, 0.9, 0.2, 1);
+  animation-fill-mode: both;
+}
+.gs .pop {
+  transform-origin: center;
+  animation-name: gs-pop;
+}
+.gs .rise {
+  animation-name: gs-rise;
+}
+.gs .drop {
+  animation-name: gs-drop;
+}
+.gs .grow {
+  transform-origin: left center;
+  animation-name: gs-grow;
+}
+.gs .draw {
+  stroke-dasharray: 60;
+  animation-name: gs-draw;
+}
+.gs .type {
+  animation-name: gs-type;
+  animation-duration: 1100ms;
+  animation-timing-function: steps(24, end);
+}
+.gs .leave {
+  animation-name: gs-leave;
+}
+.gs .shift {
+  animation-name: gs-shift;
+}
+.gs .travel {
+  animation-name: gs-travel;
+  animation-duration: 700ms;
+}
+.gs .solid {
+  animation-name: gs-solid;
+}
+.gs .fade {
+  animation-name: gs-fade;
+}
+/* A suggestion: it appears dashed and faint, then is reserved and turns solid. */
+.gs .suggest {
+  animation-name: gs-fade, gs-solid;
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.1, 0.9, 0.2, 1);
+  animation-fill-mode: both;
+}
+
+@keyframes gs-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gs-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gs-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes gs-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes gs-draw {
+  from {
+    stroke-dashoffset: 60;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes gs-type {
+  from {
+    width: 0;
+  }
+}
+@keyframes gs-leave {
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+@keyframes gs-shift {
+  to {
+    transform: translate(var(--dx, 0), var(--dy, 0));
+  }
+}
+@keyframes gs-travel {
+  0% {
+    transform: none;
+    filter: none;
+  }
+  30% {
+    transform: translate(0, -6px) rotate(-2deg);
+    filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.22));
+  }
+  100% {
+    transform: translate(var(--dx, 0), var(--dy, 0));
+    filter: none;
+  }
+}
+@keyframes gs-solid {
+  from {
+    fill-opacity: 0.18;
+    stroke-dasharray: 4 3;
+  }
+  to {
+    fill-opacity: 1;
+    stroke-dasharray: none;
+  }
+}
+@keyframes gs-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Less motion: the scene is shown finished, at once. The global rule shortens the
+   moves; the delays are cut here, or a scene would sit half drawn. */
+@media (prefers-reduced-motion: reduce) {
+  .gs * {
+    animation-delay: 0s !important;
+  }
+}
