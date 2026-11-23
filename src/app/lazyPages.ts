@@ -18,6 +18,7 @@ const load = {
   settings: () => import('@/features/settings/SettingsPage'),
   diagnostics: () => import('@/features/foundation/FoundationPage'),
   about: () => import('@/features/about/AboutPage'),
+  guide: () => import('@/features/guide/GuidePage'),
   focus: () => import('@/features/focus/FocusMode'),
   calendar: () => import('@/features/calendar/CalendarView'),
   board: () => import('@/features/views/BoardView'),
@@ -44,6 +45,7 @@ export const FoundationPage = lazy(() =>
   load.diagnostics().then((module) => ({ default: module.FoundationPage })),
 );
 export const AboutPage = lazy(() => load.about().then((module) => ({ default: module.AboutPage })));
+export const GuidePage = lazy(() => load.guide().then((module) => ({ default: module.GuidePage })));
 export const FocusMode = lazy(() => load.focus().then((module) => ({ default: module.FocusMode })));
 export const CalendarView = lazy(() =>
   load.calendar().then((module) => ({ default: module.CalendarView })),

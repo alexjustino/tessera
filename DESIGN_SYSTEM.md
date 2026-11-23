@@ -181,6 +181,11 @@ are set, the fourth lands as a task and its check is drawn, then the name. A fir
 "Welcome" and what Tessera is for; after that, the time of day and the date. It plays once, in
 about two seconds, takes no press and is gone as soon as there is something to show.
 
+**The guide's scenes are the one other place things move** (ADR-064). A scene is a small drawing of
+Tessera doing one thing, and the motion is the explanation: it plays once when the scene comes
+into view, again on **Replay**, and never in a loop. Every colour in it is a token, so it is right
+in both themes. Under reduced motion it is shown finished.
+
 **`prefers-reduced-motion` is honoured globally**, in `global.css`, not per component. A
 component cannot forget it. Nothing animates in a loop.
 

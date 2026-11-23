@@ -43,6 +43,7 @@ describe('shell', () => {
       'Goals',
       'Review',
       'Reports',
+      'Guide',
       'Settings',
       'About',
     ]);
@@ -63,6 +64,7 @@ describe('shell', () => {
     ['Goals', 'h1'],
     ['Review', 'h1'],
     ['Reports', 'h1'],
+    ['Guide', '#guide-chapter-title'],
     ['Settings', 'h1'],
     ['About', 'h1'],
     ['Tasks', 'input[aria-label="New task"]'],

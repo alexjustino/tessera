@@ -7,6 +7,7 @@ import {
   FocusMode,
   FoundationPage,
   GoalsPage,
+  GuidePage,
   MosaicPage,
   NotesPage,
   preloadPages,
@@ -117,12 +118,17 @@ export function App() {
     };
   }, []);
 
-  // Ctrl+K opens the palette from anywhere in the window.
+  // Ctrl+K opens the palette from anywhere in the window, and F1 the guide (ADR-064).
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setPaletteOpen((current) => !current);
+      } else if (event.key === 'F1' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+        event.preventDefault();
+        setPaletteOpen(false);
+        setFocused(undefined);
+        startTransition(() => setDestination('guide'));
       }
     };
     document.addEventListener('keydown', onKeyDown);
@@ -179,16 +185,12 @@ export function App() {
         openList(id.slice('list.'.length));
         return;
       }
+      // Every place in the sidebar is a command; each one goes there.
+      if (id.startsWith('go.')) {
+        go(id.slice('go.'.length) as Destination);
+        return;
+      }
       switch (id) {
-        case 'go.today':
-        case 'go.tasks':
-        case 'go.board':
-        case 'go.calendar':
-        case 'go.settings':
-        case 'go.diagnostics':
-        case 'go.about':
-          go(id.slice('go.'.length) as Destination);
-          break;
         case 'focus.start':
           setFocused(null);
           break;
@@ -300,6 +302,7 @@ export function App() {
                   <SettingsPage key={pageKey} focusCard={settingsCard} />
                 )}
                 {destination === 'diagnostics' && <FoundationPage onBack={() => go('about')} />}
+                {destination === 'guide' && <GuidePage key={pageKey} onNavigate={go} />}
                 {destination === 'about' && (
                   <AboutPage onOpenDiagnostics={() => go('diagnostics')} />
                 )}
