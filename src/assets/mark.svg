@@ -2,30 +2,62 @@
   <!--
     The Tessera mark.
 
-    A mosaic is four tiles that only mean something together — and one of them
-    is the piece being set: the tessera that carries the order of the day. It
-    is the lighter tile, so the eye lands on it, and it sits a hair apart from
-    the others, so it reads as a piece rather than a pattern.
+    A to-do list is a mosaic: three tiles set, and the fourth is a task that is
+    done. The finished tile is green and carries the check, so the icon says
+    what the product is for before the name is read, and it is still the four
+    tiles the product has always worn.
 
     Drawn to survive sixteen pixels in a tray: four shapes, one accent, no
-    strokes thinner than the gap between tiles. The blue is the Windows 11
-    default accent, the same value the token layer starts from.
+    stroke thinner than the gap between tiles. The blue is the Windows 11
+    default accent, the value the token layer starts from. Every raster the
+    platform needs is generated from this file by scripts/make-brand.py.
   -->
   <defs>
     <linearGradient id="ground" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1a8ae0"/>
-      <stop offset="1" stop-color="#0060b0"/>
+      <stop offset="0" stop-color="#2b97ff"/>
+      <stop offset=".6" stop-color="#0f62d6"/>
+      <stop offset="1" stop-color="#0a3f9e"/>
     </linearGradient>
+    <radialGradient id="sheen" cx=".25" cy=".15" r=".8">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".32"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dcebff"/>
+    </linearGradient>
+    <linearGradient id="done" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2fd3a4"/>
+      <stop offset="1" stop-color="#0a9270"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".38"/>
+      <stop offset=".5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="set" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#00194d" flood-opacity=".35"/>
+    </filter>
+    <filter id="lift" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#003d2c" flood-opacity=".45"/>
+    </filter>
   </defs>
 
-  <!-- The ground: Windows 11 corner radius, at this scale. -->
-  <rect x="0" y="0" width="256" height="256" rx="56" fill="url(#ground)"/>
+  <!-- The ground: Windows 11 corner radius, at this scale, lit from the top left. -->
+  <rect width="256" height="256" rx="56" fill="url(#ground)"/>
+  <rect width="256" height="256" rx="56" fill="url(#sheen)"/>
+  <rect x="1.5" y="1.5" width="253" height="253" rx="54.5" fill="none" stroke="#ffffff" stroke-opacity=".22" stroke-width="3"/>
 
   <!-- Three tiles set. -->
-  <rect x="56"  y="56"  width="64" height="64" rx="14" fill="#ffffff"/>
-  <rect x="136" y="56"  width="64" height="64" rx="14" fill="#ffffff"/>
-  <rect x="56"  y="136" width="64" height="64" rx="14" fill="#ffffff"/>
+  <g filter="url(#set)" fill="url(#tile)">
+    <rect x="50" y="50" width="70" height="70" rx="18"/>
+    <rect x="136" y="50" width="70" height="70" rx="18"/>
+    <rect x="50" y="136" width="70" height="70" rx="18"/>
+  </g>
 
-  <!-- The piece being placed: lighter, and a hair apart. -->
-  <rect x="142" y="142" width="64" height="64" rx="14" fill="#a6dcff"/>
+  <!-- The fourth: a task, done. -->
+  <g filter="url(#lift)">
+    <rect x="136" y="136" width="70" height="70" rx="18" fill="url(#done)"/>
+    <rect x="136" y="136" width="70" height="70" rx="18" fill="url(#gloss)"/>
+    <path d="M153 172 L166 185 L190 158" fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
 </svg>
