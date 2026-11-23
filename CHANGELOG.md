@@ -156,6 +156,15 @@ closed). Forward-only. A 1.3.0 workspace, schema version 18, is migrated on firs
 
 ### Changed
 
+- **A mark that says what Tessera is for.** The four tiles stay; the fourth is now a finished task,
+  green with its check, on a lit blue ground. Every size of the icon (the tray's sixteen pixels
+  included) and the installers' pictures are drawn from the one file. The opening sets the new
+  mark tile by tile, draws the check, and says Welcome the first time and the date after that
+  (ADR-063).
+- **An installer that looks like what it is.** It carries the WebView2 bootstrapper instead of
+  downloading it, names its home page in Installed apps, and each release publishes
+  `SHA256SUMS.txt` beside the installers, with the README saying how to check a download. Code
+  signing is still to come.
 - **Settings, one section at a time.** General, Working time, Backups, Export and import, and Add
   from another product, chosen on the left, in rows the way Windows lays them out. About leads with
   the facts, and the licence, the credits and the story of the name open on request.
