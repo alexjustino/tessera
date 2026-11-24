@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.4.0] — 2026-11-03
+## [1.4.0] — 2026-11-24
 
 The notebook, and the first round of what using it taught. 1.3 could count a week; the
 person testing it could not tell where to start, what Today had to do with Tasks, or why
