@@ -111,6 +111,8 @@ export function NotesPage({
       : all.filter((page) => titleKey(page.title).includes(key));
   }, [all, filter, currentSection]);
 
+  const sectionColourId = (sectionId: string | null) =>
+    ordered.find((section) => section.id === sectionId)?.color ?? null;
   const sectionColorOf = (sectionId: string | null) => {
     const color = ordered.find((section) => section.id === sectionId)?.color;
     return color ? SWATCH[color] : null;
@@ -282,15 +284,14 @@ export function NotesPage({
                     : 'text-fg-secondary',
                 ].join(' ')}
               >
-                {filter !== '' && (
-                  <span
-                    aria-hidden="true"
-                    className={[
-                      'size-2 shrink-0 rounded-full',
-                      sectionColorOf(page.sectionId) ?? 'border border-stroke-strong',
-                    ].join(' ')}
-                  />
-                )}
+                <span
+                  aria-hidden="true"
+                  data-page-colour
+                  className={[
+                    'h-4 w-1 shrink-0 rounded-full',
+                    sectionColorOf(page.sectionId) ?? 'border border-dashed border-stroke-strong',
+                  ].join(' ')}
+                />
                 <span className="min-w-0 flex-1 truncate">{page.title}</span>
                 {(appliedTo.get(page.id) ?? 0) > 0 && (
                   <span
@@ -347,108 +348,134 @@ export function NotesPage({
             />
           </div>
         ) : (
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col xl:flex-row">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="flex min-w-0 flex-1 flex-col gap-4 p-6 xl:overflow-y-auto">
-              <div className="flex items-start gap-2">
-                <div className="min-w-0 flex-1">
-                  {draftTitle === null ? (
-                    <h1 className="truncate text-title font-semibold text-fg">{open.title}</h1>
-                  ) : (
-                    <Input
-                      autoFocus
-                      aria-label="Page name"
-                      value={draftTitle}
-                      onChange={(event) => setDraftTitle(event.target.value)}
-                      onBlur={commitTitle}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter') {
-                          event.preventDefault();
-                          commitTitle();
-                        } else if (event.key === 'Escape') {
-                          setDraftTitle(null);
-                        }
-                      }}
-                    />
-                  )}
-                  {complaint !== null && (
-                    <p role="alert" className="mt-1 text-caption text-danger">
-                      {complaint}
-                    </p>
-                  )}
-                </div>
-                <label className="flex items-center gap-1 text-caption text-fg-secondary">
-                  <span className="sr-only">Section of {open.title}</span>
-                  <Select
-                    aria-label={`Section of ${open.title}`}
-                    value={open.sectionId ?? ''}
-                    className="w-40"
-                    onChange={(event) => {
-                      const target = event.target.value === '' ? null : event.target.value;
-                      filePage.mutate(
-                        { id: open.id, sectionId: target },
-                        {
-                          onSuccess: () => {
-                            setChosenSection(target);
-                            announce(
-                              `Moved ${open.title} to ${ordered.find((one) => one.id === target)?.name ?? QUICK_NOTES}`,
-                            );
+              {/* The note is a sheet in its section's colour: a band along the top
+                  and a folded corner, so a page says where it belongs at a glance. */}
+              <article
+                aria-label={open.title}
+                data-note-sheet
+                data-note-colour={sectionColourId(open.sectionId) ?? 'none'}
+                className="relative flex min-h-full shrink-0 flex-col gap-4 rounded-xl border border-stroke-subtle bg-card p-6 pt-7 shadow-card"
+              >
+                <span
+                  aria-hidden="true"
+                  className={[
+                    'absolute inset-x-0 top-0 h-1.5 rounded-t-xl',
+                    sectionColorOf(open.sectionId) ?? 'bg-stroke-strong',
+                  ].join(' ')}
+                />
+                <span
+                  aria-hidden="true"
+                  data-note-corner
+                  className={[
+                    'absolute top-0 right-0 size-9 rounded-tr-xl [clip-path:polygon(0_0,100%_0,100%_100%)]',
+                    sectionColorOf(open.sectionId) ?? 'bg-stroke-strong',
+                  ].join(' ')}
+                />
+                <div className="flex items-start gap-2 pr-8">
+                  <div className="min-w-0 flex-1">
+                    {draftTitle === null ? (
+                      <h1 className="truncate text-title font-semibold text-fg">{open.title}</h1>
+                    ) : (
+                      <Input
+                        autoFocus
+                        aria-label="Page name"
+                        value={draftTitle}
+                        onChange={(event) => setDraftTitle(event.target.value)}
+                        onBlur={commitTitle}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault();
+                            commitTitle();
+                          } else if (event.key === 'Escape') {
+                            setDraftTitle(null);
+                          }
+                        }}
+                      />
+                    )}
+                    {complaint !== null && (
+                      <p role="alert" className="mt-1 text-caption text-danger">
+                        {complaint}
+                      </p>
+                    )}
+                  </div>
+                  <label className="flex items-center gap-1 text-caption text-fg-secondary">
+                    <span className="sr-only">Section of {open.title}</span>
+                    <Select
+                      aria-label={`Section of ${open.title}`}
+                      value={open.sectionId ?? ''}
+                      className="w-40"
+                      onChange={(event) => {
+                        const target = event.target.value === '' ? null : event.target.value;
+                        filePage.mutate(
+                          { id: open.id, sectionId: target },
+                          {
+                            onSuccess: () => {
+                              setChosenSection(target);
+                              announce(
+                                `Moved ${open.title} to ${ordered.find((one) => one.id === target)?.name ?? QUICK_NOTES}`,
+                              );
+                            },
                           },
-                        },
-                      );
-                    }}
-                  >
-                    <option value="">{QUICK_NOTES}</option>
-                    {ordered.map((section) => (
-                      <option key={section.id} value={section.id}>
-                        {section.name}
-                      </option>
-                    ))}
-                  </Select>
-                </label>
-                <IconButton
-                  label={`Rename ${open.title}`}
-                  icon={<Rename20Regular />}
-                  onClick={() => setDraftTitle(open.title)}
-                />
-                <IconButton
-                  label={`Delete ${open.title}`}
-                  icon={<Delete20Regular />}
-                  onClick={() => setConfirming(true)}
-                />
-              </div>
+                        );
+                      }}
+                    >
+                      <option value="">{QUICK_NOTES}</option>
+                      {ordered.map((section) => (
+                        <option key={section.id} value={section.id}>
+                          {section.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
+                  <IconButton
+                    label={`Rename ${open.title}`}
+                    icon={<Rename20Regular />}
+                    onClick={() => setDraftTitle(open.title)}
+                  />
+                  <IconButton
+                    label={`Delete ${open.title}`}
+                    icon={<Delete20Regular />}
+                    onClick={() => setConfirming(true)}
+                  />
+                </div>
 
-              <MeetingLine pageId={open.id} />
+                <MeetingLine pageId={open.id} />
 
-              <AppliedTasks
-                key={`tasks-${open.id}`}
-                pageId={open.id}
-                pageTitle={open.title}
-                onOpenItem={onOpenItem}
-              />
-
-              {/* Keyed on the page: opening another one is a different document,
-                and an editor that kept its content would show the last one. */}
-              <Suspense fallback={<Skeleton />}>
-                <Editor
-                  key={open.id}
-                  ownerKind="page"
-                  ownerId={open.id}
-                  label={`Text of ${open.title}`}
-                  subject={open.title}
-                  fill
-                  onOpenPage={openPage}
+                <AppliedTasks
+                  key={`tasks-${open.id}`}
+                  pageId={open.id}
+                  pageTitle={open.title}
                   onOpenItem={onOpenItem}
-                  reveal={reveal}
                 />
-              </Suspense>
-            </div>
 
-            <aside
-              aria-label="What this page is connected to"
-              className="shrink-0 border-t border-stroke-subtle p-4 xl:w-80 xl:overflow-y-auto xl:border-t-0 xl:border-l"
-            >
-              <Connections page={open} onOpenPage={openPage} onOpenItem={onOpenItem} />
-            </aside>
+                {/* Keyed on the page: opening another one is a different document,
+                and an editor that kept its content would show the last one. */}
+                <Suspense fallback={<Skeleton />}>
+                  <Editor
+                    key={open.id}
+                    ownerKind="page"
+                    ownerId={open.id}
+                    label={`Text of ${open.title}`}
+                    subject={open.title}
+                    fill
+                    onOpenPage={openPage}
+                    onOpenItem={onOpenItem}
+                    reveal={reveal}
+                  />
+                </Suspense>
+
+                {/* What the page links to and what links to it, at its foot: read
+                  after the text, and never taking the text's width. */}
+                <footer
+                  aria-label="What this page is connected to"
+                  className="mt-2 border-t border-stroke-subtle pt-4"
+                >
+                  <Connections page={open} onOpenPage={openPage} onOpenItem={onOpenItem} />
+                </footer>
+              </article>
+            </div>
           </div>
         )}
       </div>

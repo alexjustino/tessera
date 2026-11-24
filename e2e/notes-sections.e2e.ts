@@ -150,7 +150,39 @@ describe('notes in sections', () => {
     );
   });
 
+  // The owner's UAT of 1.4.0: a coloured corner for every note, and the links at its foot
+  // instead of a column beside the text.
+  it('a page is a sheet in its section’s colour, with its links at its foot', async () => {
+    const { driver } = session;
+    await press('button[aria-label="Open Loose thought"]');
+    const sheet = await driver.waitForElement('article[data-note-sheet]');
+    await driver.waitFor('the colour', async () =>
+      (await sheet.attribute('data-note-colour')) === 'purple' ? true : null,
+    );
+    await driver.waitForElement('[data-note-corner]');
+    const layout = await driver.execute<{ below: boolean; wide: boolean }>(
+      "const a = document.querySelector('article[data-note-sheet]'); const f = a.querySelector('footer'); const e = a.querySelector('[contenteditable]'); return { below: f.getBoundingClientRect().top >= e.getBoundingClientRect().bottom - 1, wide: a.getBoundingClientRect().width > window.innerWidth * 0.5 };",
+    );
+    expect(layout.below).toBe(true);
+    expect(layout.wide).toBe(true);
+    expect(await driver.findAll('aside[aria-label="What this page is connected to"]')).toHaveLength(
+      0,
+    );
+    await session.screenshot('notes-sheet');
+  });
+
   // ── Negative cases ─────────────────────────────────────────────────────
+  it('a page filed nowhere wears no colour', async () => {
+    const { driver } = session;
+    await press('[data-section="quick"]');
+    await press('button[aria-label="New page"]');
+    const sheet = await driver.waitForElement('article[data-note-sheet]');
+    await driver.waitFor('no colour', async () =>
+      (await sheet.attribute('data-note-colour')) === 'none' ? true : null,
+    );
+    await driver.chord(Keys.ESCAPE);
+  });
+
   it('will not take a name already used, or Quick notes', async () => {
     const { driver } = session;
     await press('button[aria-label="New section"]');
