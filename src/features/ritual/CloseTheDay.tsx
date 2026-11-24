@@ -101,7 +101,7 @@ export function CloseTheDay({ pulse, onClose }: { pulse: Pulse; onClose: () => v
 
   return (
     <Modal open label="Close the day" onClose={onClose} width="lg">
-      <div className="flex flex-col gap-4 p-5" data-testid="close-the-day">
+      <div className="flex flex-col gap-4" data-testid="close-the-day">
         <header className="flex items-baseline justify-between gap-2">
           <h2 className="text-body-lg font-semibold text-fg">Close the day</h2>
           <span className="text-caption text-fg-secondary">Step {step} of 3</span>

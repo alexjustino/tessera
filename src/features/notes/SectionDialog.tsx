@@ -65,7 +65,7 @@ export function SectionDialog({
   return (
     <Modal open label={editing === null ? 'New section' : `Edit ${editing.name}`} onClose={onClose}>
       <form
-        className="flex flex-col gap-4 p-5"
+        className="flex flex-col gap-4"
         data-testid="section-dialog"
         onSubmit={(event) => {
           event.preventDefault();

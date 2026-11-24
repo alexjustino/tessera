@@ -112,7 +112,7 @@ export function AppliedTasks({
       </Button>
 
       <Modal open={picking} label={`Apply ${pageTitle} to a task`} onClose={close}>
-        <div className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-3">
           <h2 className="text-body-lg font-semibold text-fg">Apply {pageTitle} to a task</h2>
           <p className="text-caption text-fg-tertiary">
             The task shows this page on its row, and opens it from there.

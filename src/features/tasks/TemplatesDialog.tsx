@@ -148,7 +148,7 @@ export function TemplatesDialog({
             <h3 className="text-caption font-semibold text-fg-tertiary uppercase">
               Make tasks from
             </h3>
-            <label className="flex items-center gap-2 text-caption text-fg-tertiary">
+            <label className="flex items-center gap-2 whitespace-nowrap text-caption text-fg-tertiary">
               Starting on
               <Input
                 type="date"
