@@ -35,7 +35,7 @@ export function ConfirmDialog({
 }) {
   return (
     <Modal open={open} label={title} onClose={onCancel}>
-      <div className="flex flex-col gap-4 p-5">
+      <div className="flex flex-col gap-4">
         <h2 className="text-body-lg font-semibold text-fg">{title}</h2>
         <div className="text-body text-fg-secondary">{children}</div>
         <div className="flex justify-end gap-2">

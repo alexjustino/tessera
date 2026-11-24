@@ -74,7 +74,7 @@ export function BlockEditor({
   return (
     <Modal open label={suggested ? 'Suggested time' : 'Edit this block'} onClose={onClose}>
       <form
-        className="flex flex-col gap-3 p-4"
+        className="flex flex-col gap-3"
         data-testid="block-editor"
         onSubmit={(event) => {
           event.preventDefault();
