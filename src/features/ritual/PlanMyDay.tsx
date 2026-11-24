@@ -135,7 +135,7 @@ export function PlanMyDay({ pulse, onClose }: { pulse: Pulse; onClose: () => voi
 
   return (
     <Modal open label="Plan my day" onClose={onClose} width="lg">
-      <div className="flex flex-col gap-4 p-5" data-testid="plan-my-day">
+      <div className="flex flex-col gap-4" data-testid="plan-my-day">
         <header className="flex items-baseline justify-between gap-2">
           <h2 className="text-body-lg font-semibold text-fg">Plan my day</h2>
           <span className="text-caption text-fg-secondary">Step {step} of 3</span>

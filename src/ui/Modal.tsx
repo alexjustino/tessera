@@ -10,6 +10,12 @@ import { useFocusTrap } from './useFocusTrap';
  * click but is not a control, so the keyboard route is Escape or whatever the
  * content offers. Focus moves into the panel on open so a keyboard user is not
  * left on the page underneath.
+ *
+ * The panel owns the frame, so every dialog has the same one: a solid surface
+ * (a translucent one let the page show through in the dark theme), the same
+ * margin on every side, and a body that scrolls when it is taller than the window
+ * allows, instead of being cut off. Only a dialog that runs edge to edge, like
+ * the palette, asks for `bare`.
  */
 export function Modal({
   open,
@@ -17,6 +23,7 @@ export function Modal({
   onClose,
   children,
   width = 'md',
+  bare = false,
 }: {
   open: boolean;
   /** The accessible name. A dialog with no name is a dialog nobody can use. */
@@ -24,6 +31,8 @@ export function Modal({
   onClose: () => void;
   children: ReactNode;
   width?: 'md' | 'lg';
+  /** No margin: the content draws its own edges (the palette's search line and list). */
+  bare?: boolean;
 }) {
   const panel = useRef<HTMLDivElement>(null);
 
@@ -57,11 +66,16 @@ export function Modal({
         tabIndex={-1}
         className={[
           'relative flex max-h-[70vh] w-full flex-col overflow-hidden rounded-xl border border-stroke',
-          'bg-flyout shadow-dialog backdrop-blur-xl focus:outline-none',
+          'bg-card shadow-dialog focus:outline-none',
           width === 'lg' ? 'max-w-3xl' : 'max-w-xl',
         ].join(' ')}
       >
-        {children}
+        <div
+          data-dialog-body
+          className={bare ? 'flex min-h-0 flex-1 flex-col' : 'min-h-0 flex-1 overflow-y-auto p-5'}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

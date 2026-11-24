@@ -115,6 +115,13 @@ describe('templates', () => {
     const { driver } = session;
     await (await driver.findByXPath('//button[normalize-space(.)="Templates"]')).click();
     await driver.waitForText('Save what is shown');
+    // The owner found this dialog's words against its border: every edge of the
+    // content now sits a full margin inside the panel.
+    const inset = await driver.execute<number>(
+      "const d = document.querySelector('[role=dialog]'); const h = d.querySelector('h2'); return Math.round(h.getBoundingClientRect().left - d.getBoundingClientRect().left);",
+    );
+    expect(inset).toBeGreaterThanOrEqual(16);
+    await session.screenshot('templates-dialog-empty');
 
     const preview = await driver.waitForElement('[data-testid="template-preview"]');
     expect(await preview.text()).toContain('2 tasks · 1 dependency');
@@ -126,6 +133,7 @@ describe('templates', () => {
     const saved = await driver.waitForElement('[data-testid="template"]');
     expect(await saved.text()).toContain('Launch');
     expect(await saved.text()).toContain('2 tasks · 1 dependency');
+    await session.screenshot('templates-dialog');
   });
 
   it('makes the tasks again on another day, links kept and dates rebased', async () => {

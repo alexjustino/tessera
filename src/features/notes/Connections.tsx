@@ -15,7 +15,7 @@ import { Button } from '@/ui/Button';
 import { Kbd } from '@/ui/Kbd';
 
 /**
- * What a page is connected to, beside it: the links written in it and whether each
+ * What a page is connected to, at its foot: the links written in it and whether each
  * one finds its page, and what points back at it. The tasks it is applied to are under
  * its name, where they are seen.
  *
@@ -54,7 +54,7 @@ export function Connections({
   const missing = links.filter((link) => link.target === undefined).length;
 
   return (
-    <div className="flex flex-col gap-5" data-testid="connections">
+    <div className="grid gap-5 md:grid-cols-2" data-testid="connections">
       <section aria-label="Links on this page">
         <h2 className="mb-2 flex items-center gap-2 text-caption font-semibold text-fg-tertiary uppercase">
           <Link20Regular aria-hidden="true" />

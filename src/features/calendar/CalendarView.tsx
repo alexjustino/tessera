@@ -1826,7 +1826,7 @@ function NewEventDialog({
       }}
     >
       <form
-        className="flex flex-col gap-3 p-4"
+        className="flex flex-col gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           if (title.trim() === '') return;
