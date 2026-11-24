@@ -151,7 +151,7 @@ export function CommandPalette({
   const showingHits = !commandsOnly && debounced.trim().length > 0;
 
   return (
-    <Modal open={open} label="Command palette" onClose={close}>
+    <Modal open={open} label="Command palette" onClose={close} bare>
       <div className="flex items-center gap-2 border-b border-stroke-subtle px-4">
         <Search20Regular aria-hidden="true" className="shrink-0 text-fg-tertiary" />
         <input
