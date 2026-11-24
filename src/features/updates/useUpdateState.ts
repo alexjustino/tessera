@@ -1,4 +1,4 @@
-import { useSettings, useUpdateCheck } from '@/data/hooks';
+import { useSettings, useUpdateCheck, useUpdateShipped } from '@/data/hooks';
 import type { UpdateState } from '@/domain/updates';
 
 function instant(ms: number): string | null {
@@ -11,11 +11,13 @@ export function useUpdateState(): {
   check: ReturnType<typeof useUpdateCheck>;
 } {
   const settings = useSettings();
+  const shipped = useUpdateShipped();
   const check = useUpdateCheck();
   const on = settings.data?.updateCheck === true;
 
   let state: UpdateState;
-  if (!on) state = { kind: 'off' };
+  if (shipped.data === false) state = { kind: 'unshipped' };
+  else if (!on) state = { kind: 'off' };
   else if (check.isFetching) state = { kind: 'checking' };
   else if (check.isError) state = { kind: 'unreachable', checkedAt: instant(check.dataUpdatedAt) };
   else if (check.isSuccess && check.data !== null)

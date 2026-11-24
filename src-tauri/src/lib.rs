@@ -130,6 +130,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::system::system_info,
             os::updates::update_check,
+            os::updates::update_shipped,
             os::updates::update_install,
             commands::system::email_draft,
             commands::system::accent_ramp,

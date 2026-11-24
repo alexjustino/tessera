@@ -7,6 +7,9 @@
 
 import { describeAge } from './settings';
 
+/** Where every release is published, for a copy that does not update itself. */
+export const RELEASES_URL = 'https://github.com/alexjustino/tessera/releases';
+
 /** A newer release, as the host reports it. */
 export interface UpdateFound {
   version: string;
@@ -15,6 +18,8 @@ export interface UpdateFound {
 }
 
 export type UpdateState =
+  /** This copy was built without the owner's key, so it has no updater (ADR-065). */
+  | { kind: 'unshipped' }
   | { kind: 'off' }
   | { kind: 'checking' }
   | { kind: 'newest'; checkedAt: string }
@@ -24,6 +29,8 @@ export type UpdateState =
 /** The sentence under the Updates row in Settings. */
 export function describeUpdate(state: UpdateState, now: string): string {
   switch (state.kind) {
+    case 'unshipped':
+      return 'This copy does not update itself, and makes no request to the network. New releases are on the Releases page.';
     case 'off':
       return 'Off. Tessera makes no request to the network.';
     case 'checking':

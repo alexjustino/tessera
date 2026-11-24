@@ -10,6 +10,10 @@
 //! Nothing installs on its own. A check that finds a newer release keeps it
 //! until the person presses Install, and the plugin verifies the installer
 //! against the public key built into the application before it runs.
+//!
+//! A build that does not carry the owner's public key has no updater at all
+//! (ADR-065): every check and install is refused before anything leaves the
+//! machine, and the interface says new releases are on the Releases page.
 
 use std::sync::Mutex;
 use std::time::Duration;
@@ -26,6 +30,44 @@ const TIMEOUT: Duration = Duration::from_secs(20);
 
 /// Where the test suite may point a check instead of GitHub (see [`test_endpoint`]).
 pub const TEST_ENDPOINT_VAR: &str = "TESSERA_UPDATE_URL";
+
+/// What `tauri.conf.json` carries until the owner's public key replaces it.
+pub const PLACEHOLDER_KEY: &str = "OWNER-PUBLIC-KEY-PENDING";
+
+/// Whether this build updates itself (ADR-065): only with a real public key, or
+/// with the test suite's endpoint, which never reaches the network anyway.
+pub fn shipped(public_key: Option<&str>, test_endpoint: bool) -> bool {
+    if test_endpoint {
+        return true;
+    }
+    public_key.is_some_and(|key| {
+        let key = key.trim();
+        key != PLACEHOLDER_KEY && !key.contains("PENDING") && key.len() >= 40
+    })
+}
+
+/// The public key the bundle was built with, as `tauri.conf.json` declares it.
+fn configured_key(app: &AppHandle) -> Option<String> {
+    app.config()
+        .plugins
+        .0
+        .get("updater")?
+        .get("pubkey")?
+        .as_str()
+        .map(str::to_owned)
+}
+
+/// Whether this copy has an updater at all.
+fn in_this_build(app: &AppHandle) -> bool {
+    let endpoint = test_endpoint(std::env::var(TEST_ENDPOINT_VAR).ok().as_deref()).is_some();
+    shipped(configured_key(app).as_deref(), endpoint)
+}
+
+/// Whether this copy updates itself, for the interface to say so.
+#[tauri::command]
+pub fn update_shipped(app: AppHandle) -> bool {
+    in_this_build(&app)
+}
 
 /// The update the last check found, held until the person installs it.
 #[derive(Default)]
@@ -71,6 +113,10 @@ pub async fn update_check(
     db: State<'_, Db>,
     pending: State<'_, Pending>,
 ) -> Result<Option<Found>> {
+    if !in_this_build(&app) {
+        forget(&pending);
+        return Err(Error::InvalidInput("this copy does not update itself"));
+    }
     if !allowed(&db)? {
         forget(&pending);
         return Err(Error::InvalidInput("checking for updates is turned off"));
@@ -127,6 +173,10 @@ pub async fn update_install(
     db: State<'_, Db>,
     pending: State<'_, Pending>,
 ) -> Result<()> {
+    if !in_this_build(&app) {
+        forget(&pending);
+        return Err(Error::InvalidInput("this copy does not update itself"));
+    }
     // The switch covers the download too, not only the check.
     if !allowed(&db)? {
         forget(&pending);
@@ -156,6 +206,31 @@ pub async fn update_install(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_build_with_the_owners_key_updates_itself() {
+        let key = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXkK";
+        assert!(shipped(Some(key), false));
+    }
+
+    #[test]
+    fn the_test_suite_endpoint_stands_in_for_a_key() {
+        assert!(shipped(Some(PLACEHOLDER_KEY), true));
+    }
+
+    // ── Negative cases ─────────────────────────────────────────────────────
+    #[test]
+    fn a_build_with_the_placeholder_has_no_updater() {
+        assert!(!shipped(Some(PLACEHOLDER_KEY), false));
+        assert!(!shipped(Some("  OWNER-PUBLIC-KEY-PENDING  "), false));
+    }
+
+    #[test]
+    fn a_build_with_no_key_or_a_short_one_has_no_updater() {
+        assert!(!shipped(None, false));
+        assert!(!shipped(Some(""), false));
+        assert!(!shipped(Some("too-short-to-be-a-key"), false));
+    }
 
     #[test]
     fn a_test_endpoint_is_https_on_this_machine() {

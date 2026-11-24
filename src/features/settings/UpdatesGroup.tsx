@@ -1,9 +1,10 @@
-import { ArrowDownload20Regular, ArrowSync20Regular } from '@fluentui/react-icons';
+import { ArrowDownload20Regular, ArrowSync20Regular, Open20Regular } from '@fluentui/react-icons';
 import { useQueryClient } from '@tanstack/react-query';
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 import { describeError } from '@/data/errors';
 import { updateKey, useInstallUpdate } from '@/data/hooks';
-import { describeUpdate } from '@/domain/updates';
+import { describeUpdate, RELEASES_URL } from '@/domain/updates';
 import { useUpdateState } from '@/features/updates/useUpdateState';
 import { Button } from '@/ui/Button';
 import { InfoBar } from '@/ui/InfoBar';
@@ -34,6 +35,27 @@ export function UpdatesGroup({
     if (!next) client.removeQueries({ queryKey: updateKey });
     onChange(next);
   };
+
+  // Built without the owner's key: no switch to offer, only where releases are (ADR-065).
+  if (state.kind === 'unshipped') {
+    return (
+      <SettingGroup title="Updates">
+        <SettingRow
+          icon={<ArrowDownload20Regular />}
+          title="This copy"
+          description={<span data-testid="update-status">{describeUpdate(state, now)}</span>}
+        >
+          <Button
+            appearance="standard"
+            icon={<Open20Regular />}
+            onClick={() => void openUrl(RELEASES_URL)}
+          >
+            Open the Releases page
+          </Button>
+        </SettingRow>
+      </SettingGroup>
+    );
+  }
 
   return (
     <SettingGroup title="Updates">
