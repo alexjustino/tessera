@@ -162,10 +162,6 @@ export function ReportsPage() {
 
   return (
     <Page>
-      <PrintHeader
-        title={`Report — ${describePeriod(period)}`}
-        subtitle="Time tracked, tasks finished and time reserved, by task and by day."
-      />
       <header className="flex items-start justify-between gap-3 print:hidden">
         <div>
           <h1 className="text-title font-semibold text-fg">Reports</h1>
@@ -185,6 +181,12 @@ export function ReportsPage() {
           Print
         </Button>
       </header>
+      {/* After the screen's heading, which does not print: on paper this is the top, and
+          on screen the first heading is the one that shows. */}
+      <PrintHeader
+        title={`Report — ${describePeriod(period)}`}
+        subtitle="Time tracked, tasks finished and time reserved, by task and by day."
+      />
 
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         <TabStrip
