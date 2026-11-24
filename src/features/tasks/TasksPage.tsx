@@ -447,15 +447,6 @@ export function TasksPage({
 
   return (
     <Page className="h-full">
-      <PrintHeader
-        title={heading}
-        subtitle={[
-          place === 'tasks' && view !== undefined && view !== null ? view.name : null,
-          items.isSuccess ? `${result.matched} item${result.matched === 1 ? '' : 's'}` : null,
-        ]
-          .filter((part) => part !== null)
-          .join(' · ')}
-      />
       <header data-screen-header className="flex items-baseline justify-between gap-4 print:hidden">
         <div>
           <h1 className="text-title font-semibold text-fg">{heading}</h1>
@@ -512,6 +503,17 @@ export function TasksPage({
           )}
         </div>
       </header>
+      {/* After the screen's heading, which does not print: on paper this is the top, and
+          on screen the first heading is the one that shows. */}
+      <PrintHeader
+        title={heading}
+        subtitle={[
+          place === 'tasks' && view !== undefined && view !== null ? view.name : null,
+          items.isSuccess ? `${result.matched} item${result.matched === 1 ? '' : 's'}` : null,
+        ]
+          .filter((part) => part !== null)
+          .join(' · ')}
+      />
 
       {!planned.unplanned && place !== 'today' && place !== 'calendar' && (
         <p className="-mt-1 text-caption text-fg-tertiary print:hidden">

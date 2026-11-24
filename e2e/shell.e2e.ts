@@ -72,9 +72,12 @@ describe('shell', () => {
     const { driver } = session;
     const button = await driver.findByXPath(`//nav//button[normalize-space(.)="${label}"]`);
     await button.click();
+    // The rail moves first; the screen follows in a transition.
+    await driver.waitFor(`the rail on ${label}`, async () => {
+      const current = await driver.findByXPath('//nav//button[@aria-current="page"]');
+      return (await current.text()) === label ? true : null;
+    });
     await driver.waitForElement(marker);
-    const current = await driver.findByXPath('//nav//button[@aria-current="page"]');
-    expect(await current.text()).toBe(label);
   });
 
   it('Diagnostics reports the workspace the suite relocated it to', async () => {
