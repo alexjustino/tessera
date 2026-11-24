@@ -4367,7 +4367,7 @@ dependencies = [
 
 [[package]]
 name = "tessera"
-version = "1.4.0"
+version = "1.4.1"
 dependencies = [
  "base64 0.23.1",
  "chrono",

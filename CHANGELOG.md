@@ -7,12 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-11-24
+
+The owner's first look at the published 1.4.0, answered. Nothing in the workspace changes: no
+migration, and a 1.4.0 workspace opens as it was.
+
 ### Changed
 
+- **A note is a sheet in its section's colour.** The open page has a band along its top and a folded
+  corner in its section's colour (grey in Quick notes), every page in the list wears its section's
+  colour, and the page's links and backlinks sit at its foot, side by side, so the text has the
+  whole width.
 - **What prints is a document.** Every Print, from a list, Today or Reports, has a header with the
   mark, what it is and when it was printed, and a foot with the page number on every page. Tasks
   print as a table made for a pen: a box to tick, the task, its list, when it is due and its
   estimate, in the view's own groups, with the column names repeated on each page (ADR-066).
+
+### Fixed
+
+- **Dialogs keep a margin and a solid ground.** Templates, Import and Mosaic's reserve hour drew
+  their words against the border, and every dialog let the page show through in the dark theme.
+  Every dialog now has the same margin, a solid surface, and scrolls when it is taller than the
+  window instead of being cut off.
 
 ## [1.4.0] — 2026-11-24
 
