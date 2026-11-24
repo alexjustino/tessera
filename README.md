@@ -82,10 +82,14 @@ Maximising works; the hover flyout does not appear yet.
 
 ## Privacy
 
-Tessera makes **one kind of network request**: once a day it asks GitHub whether a newer release
-exists (ADR-062). The request carries nothing about you or your work, a newer release installs only
-when you press Install, and the installer is checked against Tessera's own key before it runs.
-Settings → Updates turns it off, and then Tessera makes **no network requests at all**.
+Tessera 1.4.0 makes **no network requests**. New releases are published on this repository's
+Releases page and installed over the old one; your workspace stays where it is.
+
+An update check is built in, and switches on in the first release signed with the project's key
+(ADR-062, ADR-065). From then, Tessera makes **one kind of network request**: once a day it asks
+GitHub whether a newer release exists. The request carries nothing about you or your work, a newer
+release installs only when you press Install, and the installer is checked against Tessera's own key
+before it runs. Settings → Updates turns it off, and then Tessera makes no network requests at all.
 
 There is no account, no sync, no analytics and no crash reporting. The Tauri content security
 policy blocks external origins, and the application declares the minimum set of capabilities it
