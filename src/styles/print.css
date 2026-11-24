@@ -85,12 +85,153 @@
   }
 
   /* ── The page itself ───────────────────────────────────────────────────── */
+  /* Every page says what it is part of and where it falls: the product at the
+     foot on the left, the page number on the right. Margin boxes do not inherit
+     the document's custom properties, so their grey is written here, the one
+     colour this file writes. */
   @page {
-    margin: 16mm;
+    margin: 14mm 14mm 16mm;
+
+    @bottom-left {
+      content: 'Tessera';
+      font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+      font-size: 8pt;
+      color: #616161;
+    }
+
+    @bottom-right {
+      content: 'Page ' counter(page) ' of ' counter(pages);
+      font-family: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+      font-size: 8pt;
+      color: #616161;
+    }
   }
 
   /* The content column is the paper's, not the window's. */
   .max-w-3xl {
     max-width: none !important;
+  }
+
+  /* ── A document, not a window (ADR-066) ────────────────────────────────── */
+
+  /* Paper is read closer than a screen: a smaller, denser body, in the same face. */
+  html {
+    font-size: 10.5pt;
+  }
+
+  /* The screen's own heading gives way to the document's header on paper. */
+  .print-screen-only {
+    display: none !important;
+  }
+
+  .print-header {
+    margin-bottom: 6mm;
+    padding-bottom: 3mm;
+    /* Ink, not the accent: the window applies its accent at run time, over the
+       paper palette, and a dark theme's accent is too pale to print. */
+    border-bottom: 1.5pt solid var(--color-fg);
+  }
+  .print-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 2mm;
+    font-size: 9pt;
+    font-weight: 600;
+    color: var(--color-fg-secondary);
+  }
+  .print-header-printed {
+    margin-left: auto;
+    font-weight: 400;
+  }
+  .print-header-title {
+    margin: 3mm 0 1mm;
+    font-size: 20pt;
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--color-fg);
+  }
+  .print-header-subtitle {
+    margin: 0;
+    font-size: 10pt;
+    color: var(--color-fg-secondary);
+  }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 9.5pt;
+    color: var(--color-fg);
+  }
+  /* The column names again on every page a long list runs onto. */
+  .print-table thead {
+    display: table-header-group;
+  }
+  .print-table thead th {
+    padding: 0 2mm 1.5mm;
+    border-bottom: 1pt solid var(--color-fg);
+    text-align: left;
+    font-size: 7.5pt;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-fg-secondary);
+  }
+  .print-table td {
+    padding: 1.6mm 2mm;
+    border-bottom: 0.5pt solid var(--color-stroke);
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+  .print-col-box {
+    width: 8mm;
+  }
+  .print-col-list {
+    width: 28mm;
+  }
+  .print-col-due {
+    width: 44mm;
+  }
+  .print-col-estimate {
+    width: 18mm;
+  }
+  .print-box {
+    display: inline-block;
+    width: 3.6mm;
+    height: 3.6mm;
+    border: 0.8pt solid var(--color-fg);
+    border-radius: 0.8mm;
+    font-size: 7.5pt;
+    line-height: 3.4mm;
+    text-align: center;
+  }
+  .print-done .print-task {
+    text-decoration: line-through;
+    color: var(--color-fg-secondary);
+  }
+  .print-late-word {
+    font-weight: 600;
+    color: var(--color-danger);
+  }
+  .print-group th {
+    padding: 4mm 2mm 1.2mm;
+    border-bottom: 1pt solid var(--color-stroke-strong);
+    text-align: left;
+    font-size: 10.5pt;
+    font-weight: 600;
+  }
+  .print-group-count {
+    margin-left: 2mm;
+    font-weight: 400;
+    color: var(--color-fg-secondary);
+  }
+  .print-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* A group's name never ends a page without its first task. */
+  .print-group {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 }

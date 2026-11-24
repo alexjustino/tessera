@@ -44,6 +44,7 @@ import { Page, PageColumns } from '@/ui/Page';
 import { Stat, StatRow } from '@/ui/Stat';
 import { TabStrip } from '@/ui/TabStrip';
 import { useNow } from '@/ui/useNow';
+import { PrintHeader } from '@/ui/PrintHeader';
 
 import { describeDay, describeHours, describePeriod } from './format';
 import { FigureRow } from './FigureRow';
@@ -161,7 +162,11 @@ export function ReportsPage() {
 
   return (
     <Page>
-      <header className="flex items-start justify-between gap-3">
+      <PrintHeader
+        title={`Report — ${describePeriod(period)}`}
+        subtitle="Time tracked, tasks finished and time reserved, by task and by day."
+      />
+      <header className="flex items-start justify-between gap-3 print:hidden">
         <div>
           <h1 className="text-title font-semibold text-fg">Reports</h1>
           <p className="mt-1 text-body text-fg-secondary">
@@ -181,7 +186,7 @@ export function ReportsPage() {
         </Button>
       </header>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 print:hidden">
         <TabStrip
           tabs={[
             { id: 'week', label: 'Week' },
