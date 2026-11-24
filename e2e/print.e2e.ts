@@ -83,6 +83,10 @@ describe('printing', () => {
 
   beforeAll(async () => {
     session = await startSession();
+    // The captures below were of the opening until this waited for it to go.
+    await session.driver.waitFor('the opening to go', async () =>
+      (await session.driver.findAll('#opening')).length === 0 ? true : null,
+    );
     const input = await session.driver.waitForElement('input[aria-label="New task"]');
     for (const line of [
       'Write the brief tomorrow at 10am',
@@ -145,9 +149,17 @@ describe('printing', () => {
     expect(await displayOf('nav[aria-label="Main"]')).toBe('none');
     expect(await displayOf('.print-hide')).toBe('none');
 
-    // The report itself is still there, and so is its heading.
-    const heading = await driver.find('h1');
-    expect(await heading.text()).toBe('Reports');
+    // The report itself is still there, under a document's header (ADR-066):
+    // what it is and which period, in place of the screen's heading.
+    expect(await displayOf('[data-print-header]')).not.toBe('none');
+    const title = await driver.find('[data-print-header] h1');
+    expect(await title.text()).toMatch(/^Report — /);
+    // The period's own line is inside the hidden controls, so ask whether it shows.
+    expect(
+      await driver.execute<boolean>(
+        'return document.querySelector(\'[data-testid="report-period"]\').checkVisibility();',
+      ),
+    ).toBe(false);
     expect(await displayOf('[data-testid="figure"]')).not.toBe('none');
 
     // Every figure's rows are on the page whether or not they were opened on
@@ -162,6 +174,37 @@ describe('printing', () => {
     );
     expect(shown).toBe(rows.length);
     await session.screenshot('print-report');
+  });
+
+  // The owner's UAT of 1.4.0: what prints must be a document, not the window.
+  it('a printed list is a document: a header, a table of the tasks, page numbers', async () => {
+    const { driver } = session;
+    await goTo('Tasks');
+    await driver.waitForElement('input[aria-label="New task"]');
+    expect(await displayOf('.print-table')).toBe('none');
+    expect(await displayOf('[data-print-header]')).toBe('none');
+
+    await media('print');
+    expect(await displayOf('[data-print-header]')).not.toBe('none');
+    expect(await (await driver.find('[data-print-header] h1')).text()).toBe('Tasks');
+    expect(await displayOf('.print-table')).toBe('table');
+    const rows = await driver.findAll('.print-table tbody tr[data-print-row]');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(await (await driver.find('.print-table')).text()).toContain('Review it');
+    // The screen's own heading and cards give way to the document.
+    expect(await displayOf('[data-screen-header]')).toBe('none');
+
+    // Every page says where it falls: the stylesheet's page has margin boxes.
+    const pageRule = await driver.execute<string>(
+      `const found = [];
+       const walk = (list) => { for (const rule of Array.from(list)) {
+         if (rule.constructor && rule.constructor.name === 'CSSPageRule') found.push(rule.cssText);
+         else if (rule.cssRules) walk(rule.cssRules); } };
+       for (const sheet of Array.from(document.styleSheets)) { try { walk(sheet.cssRules); } catch {} }
+       return found.join(' ');`,
+    );
+    expect(pageRule).toContain('counter(pages)');
+    await session.screenshot('print-tasks');
   });
 
   it('the page is ink on paper, whatever the window was', async () => {
