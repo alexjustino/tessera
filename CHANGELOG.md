@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **What prints is a document.** Every Print, from a list, Today or Reports, has a header with the
+  mark, what it is and when it was printed, and a foot with the page number on every page. Tasks
+  print as a table made for a pen: a box to tick, the task, its list, when it is due and its
+  estimate, in the view's own groups, with the column names repeated on each page (ADR-066).
+
 ## [1.4.0] — 2026-11-24
 
 The notebook, and the first round of what using it taught. 1.3 could count a week; the
