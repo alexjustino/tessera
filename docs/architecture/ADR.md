@@ -72,6 +72,7 @@ that a later one narrows says so and points at it.
 | [063](#adr-063) | The mark says what the product is for, and the installer looks like what it is | Accepted        |
 | [064](#adr-064) | The User Guide is in the product, written once, and shows what it says         | Accepted        |
 | [065](#adr-065) | A copy updates itself only when it carries the owner's key                     | Accepted        |
+| [066](#adr-066) | What prints is a document, not the window                                      | Accepted        |
 
 ---
 
@@ -1641,3 +1642,33 @@ without the updater. The owner chose to publish without it.
 
 **Cost accepted.** Copies of 1.4.0 never offer an update: the release that turns the updater on is
 installed over 1.4.0 by hand, once, like every release before it.
+
+## ADR-066 — What prints is a document, not the window {#adr-066}
+
+**Amends ADR-031.**
+
+**Context.** ADR-031 made paper a rendering: print tokens, chrome taken out, nothing cut in half,
+and a second rendering where a screen layout cannot survive a page. In the owner's UAT of 1.4.0 the
+printed list was still the window with its buttons gone, its cards and sizes made for a screen, and
+the owner asked that everything with a Print be laid out at a professional level. The print suite
+had been photographing the opening, not the page, so it had never shown what came out.
+
+**Decision.**
+
+1. **Every printed page is a document.** `PrintHeader` (paper only) carries the mark and the name,
+   what the document is (the list, Today, or "Report — " and its period) and when it was printed,
+   over a rule in the accent colour. The screen's own heading and controls do not print.
+2. **Every page says where it falls.** The stylesheet's `@page` has margin boxes: "Tessera" at the
+   foot on the left, "Page X of Y" on the right. They are the one place `print.css` writes a colour,
+   because margin boxes do not see the document's custom properties.
+3. **Tasks print as a table for a pen.** `TaskPrintTable` lays out what the view shows, in its
+   groups and order: a box to tick by hand, the task, its list, when it is due (and "late" when it
+   is), and its estimate. Its column names repeat on every page, no row is split, and a group's name
+   never ends a page alone. The screen's rows and Today's cards do not print. The timeline keeps the
+   rendering it already had for paper, and the calendar prints as it is.
+4. **Paper is read closer.** The printed body is 10.5 pt, in the same face.
+5. **The suite looks at the page.** It waits for the opening to go, checks the header, the table and
+   the page rule, and captures what prints.
+
+**Cost accepted.** A Board printed is the same table, not columns: paper has no columns to drag
+between, and a table of the same cards reads better than columns cut by the page edge.

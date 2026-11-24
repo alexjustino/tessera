@@ -51,6 +51,9 @@ import { GettingStarted, type SettingsCard } from '@/features/guide/GettingStart
 import { PropertyManager } from '@/features/properties/PropertyManager';
 import { Skeleton } from '@/ui/Skeleton';
 import { ListView } from '@/features/views/ListView';
+import { PrintHeader } from '@/ui/PrintHeader';
+
+import { TaskPrintTable } from './TaskPrintTable';
 import { QueryBar } from '@/features/views/QueryBar';
 import { ComingUp } from './ComingUp';
 import { ListActions } from './ListActions';
@@ -432,17 +435,30 @@ export function TasksPage({
     setCompleted.mutate({ id: task.id, completed });
   };
 
+  const heading =
+    place === 'tasks' && list !== undefined
+      ? list.name
+      : place === 'board' && list !== undefined && collectionId !== INBOX
+        ? `Board · ${list.name}`
+        : PLACES[place].title;
+  // Paper gets a table of its own, except where a view already draws one for paper
+  // (the timeline) or is not a list of tasks at all (the calendar).
+  const ownPaper = view?.kind === 'timeline' || view?.kind === 'calendar' || place === 'calendar';
+
   return (
     <Page className="h-full">
-      <header className="flex items-baseline justify-between gap-4">
+      <PrintHeader
+        title={heading}
+        subtitle={[
+          place === 'tasks' && view !== undefined && view !== null ? view.name : null,
+          items.isSuccess ? `${result.matched} item${result.matched === 1 ? '' : 's'}` : null,
+        ]
+          .filter((part) => part !== null)
+          .join(' · ')}
+      />
+      <header data-screen-header className="flex items-baseline justify-between gap-4 print:hidden">
         <div>
-          <h1 className="text-title font-semibold text-fg">
-            {place === 'tasks' && list !== undefined
-              ? list.name
-              : place === 'board' && list !== undefined && collectionId !== INBOX
-                ? `Board · ${list.name}`
-                : PLACES[place].title}
-          </h1>
+          <h1 className="text-title font-semibold text-fg">{heading}</h1>
           {PLACES[place].say !== null && (
             <p className="mt-1 text-body text-fg-secondary">{PLACES[place].say}</p>
           )}
@@ -498,7 +514,7 @@ export function TasksPage({
       </header>
 
       {!planned.unplanned && place !== 'today' && place !== 'calendar' && (
-        <p className="-mt-1 text-caption text-fg-tertiary">
+        <p className="-mt-1 text-caption text-fg-tertiary print:hidden">
           {formatDuration(planned.durationMinutes)} of work on the longest route
           {planned.longestChain.length > 1 && `, through ${planned.longestChain.length} tasks`}
           {planned.unestimatedOnPath.length > 0 &&
@@ -534,14 +550,16 @@ export function TasksPage({
       )}
 
       {place === 'tasks' && items.isSuccess && (
-        <TasksOverview
-          items={items.data}
-          blocked={blockedIds}
-          properties={properties.data ?? []}
-          values={values.data ?? {}}
-          slice={slice}
-          onSlice={setSlice}
-        />
+        <div className="print:hidden">
+          <TasksOverview
+            items={items.data}
+            blocked={blockedIds}
+            properties={properties.data ?? []}
+            values={values.data ?? {}}
+            slice={slice}
+            onSlice={setSlice}
+          />
+        </div>
       )}
 
       {place === 'tasks' && (views.data ?? []).length > 0 && (
@@ -598,30 +616,31 @@ export function TasksPage({
         {/* Inside what scrolls: above it, the guide would squeeze the list to nothing. */}
         {/* The day starts here: plan it, and later close it (ADR-061). */}
         {place === 'today' && items.isSuccess && (
-          <div className="mb-3">
+          <div className="mb-3 print:hidden">
             <RitualCard pulse={pulse} />
           </div>
         )}
         {/* Today and the inbox carry the guide; a list of one's own is about its work. */}
         {(place === 'today' || (place === 'tasks' && collectionId === INBOX)) &&
           items.isSuccess && (
-            <div className="mb-3">
+            <div className="mb-3 print:hidden">
               <GettingStarted items={items.data} onOpenSettings={onOpenSettings} />
             </div>
           )}
         {place === 'today' && items.isSuccess && (
-          <div className="mb-4 flex flex-col gap-3">
+          <div className="mb-4 flex flex-col gap-3 print:hidden">
             <NowCard items={items.data} onFocus={onFocus} onOpen={setDetailId} />
             <ReplanCard />
             <TodayOverview pulse={pulse} />
           </div>
         )}
         <div
-          className={
+          className={[
             place === 'today'
               ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]'
-              : 'contents'
-          }
+              : 'contents',
+            ownPaper ? '' : 'print:hidden',
+          ].join(' ')}
         >
           <div className={place === 'today' ? 'min-w-0' : 'contents'}>
             <Suspense fallback={<Skeleton />}>
@@ -759,6 +778,9 @@ export function TasksPage({
             </aside>
           )}
         </div>
+        {!ownPaper && items.isSuccess && (
+          <TaskPrintTable groups={result.groups} listNameOf={(id) => listNames.get(id)} />
+        )}
       </div>
 
       <TemplatesDialog
