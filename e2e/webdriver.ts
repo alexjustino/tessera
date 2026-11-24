@@ -318,9 +318,15 @@ export class Driver {
         const matches = await this.findAllByXPath(
           `//*[contains(normalize-space(.), "${escaped}")]`,
         );
-        // The deepest match is the one that actually holds the text.
+        // The deepest match is the one that actually holds the text. It must also show
+        // it: an ancestor's text includes hidden children's (the table that only prints,
+        // for one), and a wait satisfied by text nobody can see proves nothing.
+        const wanted = text.replace(/\s+/g, ' ').toLowerCase();
         for (const candidate of matches.reverse()) {
-          if (await candidate.displayed()) return candidate;
+          if (!(await candidate.displayed())) continue;
+          // Case aside: a heading styled in capitals reads in capitals.
+          const shown = (await candidate.text()).replace(/\s+/g, ' ').toLowerCase();
+          if (shown.includes(wanted)) return candidate;
         }
         return null;
       },

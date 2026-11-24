@@ -53,6 +53,10 @@ describe('a Trello board', () => {
 
   beforeAll(async () => {
     session = await startSession();
+    // The suite reads the whole window's text, so the opening must be gone first.
+    await session.driver.waitFor('the opening to go', async () =>
+      (await session.driver.findAll('#opening')).length === 0 ? true : null,
+    );
     await session.driver.waitForElement('input[aria-label="New task"]');
   });
 
