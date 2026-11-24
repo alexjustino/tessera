@@ -16,3 +16,16 @@ export type ChipTone = (typeof CHIP_TONES)[number];
 export function toChipTone(value: string | null | undefined): ChipTone {
   return CHIP_TONES.includes(value as ChipTone) ? (value as ChipTone) : 'neutral';
 }
+
+/** The same tone as a solid fill, for a chart mark. */
+export function toneFill(tone: ChipTone): string {
+  const fill: Record<ChipTone, string> = {
+    neutral: 'bg-stroke-strong',
+    info: 'bg-info',
+    success: 'bg-success',
+    caution: 'bg-caution',
+    danger: 'bg-danger',
+    accent: 'bg-accent',
+  };
+  return fill[tone];
+}

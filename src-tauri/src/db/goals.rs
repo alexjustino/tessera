@@ -31,6 +31,8 @@ pub struct Goal {
     pub updated_at: String,
     /// A weekly budget of working minutes — the goal's envelope (1.3, M5).
     pub weekly_minutes: Option<i64>,
+    /// A focus kept up over time, with no finish line (1.4, U6).
+    pub ongoing: bool,
 }
 
 /// One task counting towards one goal.
@@ -58,6 +60,7 @@ pub struct GoalPatch {
     /// `Some(None)` removes the envelope; `None` leaves it as it was.
     #[serde(default, deserialize_with = "double_option")]
     pub weekly_minutes: Option<Option<i64>>,
+    pub ongoing: Option<bool>,
 }
 
 /// Distinguish "not sent" from "sent as null", for a field that is nullable.
@@ -80,11 +83,12 @@ fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Goal> {
         created_at: row.get(6)?,
         updated_at: row.get(7)?,
         weekly_minutes: row.get(8)?,
+        ongoing: row.get(9)?,
     })
 }
 
 const COLUMNS: &str =
-    "id, name, measure, target, due_day, position, created_at, updated_at, weekly_minutes FROM goal";
+    "id, name, measure, target, due_day, position, created_at, updated_at, weekly_minutes, ongoing FROM goal";
 
 /// A week has 10 080 minutes; an envelope larger than the week is a typo.
 fn check_weekly(minutes: Option<i64>) -> Result<Option<i64>> {
@@ -216,12 +220,13 @@ pub fn update(conn: &Connection, id: &str, patch: GoalPatch) -> Result<Goal> {
         Some(value) => check_weekly(value)?,
         None => current.weekly_minutes,
     };
+    let ongoing = patch.ongoing.unwrap_or(current.ongoing);
 
     conn.execute(
         "UPDATE goal SET name = ?2, measure = ?3, target = ?4, due_day = ?5, weekly_minutes = ?6,
-         updated_at = ?7
+         updated_at = ?7, ongoing = ?8
          WHERE id = ?1",
-        params![id, name, measure, target, day, weekly, now()],
+        params![id, name, measure, target, day, weekly, now(), ongoing],
     )?;
     get(conn, id)
 }
@@ -471,5 +476,21 @@ mod tests {
             update(&conn, &made.id, patch).unwrap().due_day.as_deref(),
             Some("2027-03-01")
         );
+    }
+
+    #[test]
+    fn a_goal_can_have_no_finish_line_and_get_one_back() {
+        let conn = workspace();
+        let made = create(&conn, "Stay fit", "tasks", 1, None, "m").unwrap();
+        assert!(!made.ongoing);
+
+        let patch: GoalPatch = serde_json::from_str(r#"{"ongoing":true}"#).unwrap();
+        let focus = update(&conn, &made.id, patch).unwrap();
+        assert!(focus.ongoing);
+        // The number it had is kept, so going back loses nothing.
+        assert_eq!(focus.target, made.target);
+
+        let patch: GoalPatch = serde_json::from_str(r#"{"ongoing":false}"#).unwrap();
+        assert!(!update(&conn, &made.id, patch).unwrap().ongoing);
     }
 }

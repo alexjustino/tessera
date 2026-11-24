@@ -36,6 +36,29 @@ describe('the year view', () => {
       session.driver.find('button[data-day][aria-current="date"]'),
     );
 
+  /**
+   * The cell of the day the task's time went on. Reserving takes the first free time,
+   * which late in the day is tomorrow, so the test asks rather than assumes.
+   */
+  const reservedCell = async () => {
+    const { driver } = session;
+    const day = await driver.executeAsync<string>(
+      `const done = arguments[arguments.length - 1];
+       const year = new Date().getFullYear();
+       window.__TAURI_INTERNALS__
+         .invoke('events_list', {
+           from: new Date(year, 0, 1).toISOString(),
+           to: new Date(year + 1, 11, 31).toISOString(),
+         })
+         .then((events) => {
+           const start = new Date(events.find((e) => e.title === 'Plan the offsite').starts_at_utc);
+           const pad = (n) => String(n).padStart(2, '0');
+           done(start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate()));
+         });`,
+    );
+    return driver.waitFor(`the cell for ${day}`, () => driver.find(`button[data-day="${day}"]`));
+  };
+
   beforeAll(async () => {
     session = await startSession();
     const { driver } = session;
@@ -71,13 +94,13 @@ describe('the year view', () => {
     await driver.waitForText('More than the day has');
   });
 
-  it('colours today by what the calendar reserved on it', async () => {
+  it('colours a day by what the calendar reserved on it', async () => {
     const { driver } = session;
     const before = await (await todayCell()).attribute('data-level');
     expect(['free', 'off']).toContain(before);
 
-    // Back to the week, reserve time for the task with the keyboard — it lands
-    // on today's first working slot — and return to the year.
+    // Back to the week, reserve time for the task with the keyboard, in the first
+    // free time, and return to the year.
     await clickScale('Week');
     await click('button[aria-label="Reserve time for Plan the offsite"]');
     await driver.chord(Keys.ENTER);
@@ -88,15 +111,15 @@ describe('the year view', () => {
     );
 
     await clickScale('Year');
-    const today = await todayCell();
-    const after = await today.attribute('data-level');
+    const cell = await reservedCell();
+    const after = await cell.attribute('data-level');
     expect(after).not.toBe('free');
     expect(after).not.toBe('off');
-    expect(await today.attribute('aria-label')).toContain('reserved');
+    expect(await cell.attribute('aria-label')).toContain('reserved');
 
     // The one coloured cell is the evidence; put it in the frame.
     await driver.execute('arguments[0].scrollIntoView({ block: "center" })', [
-      { [ELEMENT]: today.id },
+      { [ELEMENT]: cell.id },
     ]);
     await session.screenshot('year');
   });
@@ -130,8 +153,8 @@ describe('the year view', () => {
     await driver.waitForText('Not scheduled');
     await clickScale('Year');
 
-    const today = await todayCell();
-    expect(await today.attribute('data-level')).not.toBe('free');
-    expect(await today.attribute('aria-label')).toContain('reserved');
+    const cell = await reservedCell();
+    expect(await cell.attribute('data-level')).not.toBe('free');
+    expect(await cell.attribute('aria-label')).toContain('reserved');
   });
 });

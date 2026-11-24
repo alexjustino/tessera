@@ -2,10 +2,11 @@
 
 use serde::Serialize;
 use tauri::{AppHandle, State};
+use tauri_plugin_opener::OpenerExt;
 
 use crate::db::{migrations, Db};
-use crate::error::Result;
-use crate::os::accent;
+use crate::error::{Error, Result};
+use crate::os::{accent, email};
 
 /// What the About and Diagnostics screens read. Never a hand-typed constant:
 /// the version comes from the running binary.
@@ -43,4 +44,29 @@ pub fn system_info(app: AppHandle, db: State<'_, Db>) -> Result<SystemInfo> {
 #[tauri::command]
 pub fn accent_ramp() -> accent::AccentRamp {
     accent::read()
+}
+
+/// Write an email draft and hand it to the person's mail program.
+///
+/// Pointed at a workspace of its own, as the end-to-end suite is, it writes there
+/// and opens nothing, so a test run never starts a mail program on the machine.
+#[tauri::command]
+pub fn email_draft(app: AppHandle, subject: String, html: String, text: String) -> Result<String> {
+    let own_folder = std::env::var_os("TESSERA_DATA_DIR");
+    let folder = own_folder
+        .as_ref()
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir)
+        .join(if own_folder.is_some() {
+            "email-drafts"
+        } else {
+            "Tessera drafts"
+        });
+    let path = email::write_draft(&folder, &subject, &html, &text)?;
+    if own_folder.is_none() {
+        app.opener()
+            .open_path(path.to_string_lossy(), None::<&str>)
+            .map_err(|_| Error::InvalidInput("no mail program opened that draft"))?;
+    }
+    Ok(path.to_string_lossy().into_owned())
 }

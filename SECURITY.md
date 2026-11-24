@@ -27,13 +27,31 @@ Please do not disclose publicly until a fix is released, or until we agree a dat
 ## Threat model
 
 Tessera is a **single-user, local-first desktop application**. It has no server, no account,
-and no network surface.
+and no listening network surface. 1.4.0 makes no outbound request; from the first release
+signed with the project's key, its one outbound request is the update check (ADR-065).
 
 Security properties the project commits to:
 
-- **No network access.** The application makes no outbound requests. The Tauri content
-  security policy blocks external origins. There is no sync, no telemetry, no analytics,
-  no crash reporting and no update check.
+- **No updater without the owner's key** (ADR-065). A build that carries the placeholder public
+  key, as 1.4.0 does, has no updater: the host refuses every check and install before anything
+  leaves the machine, and Settings points at the Releases page instead.
+- **One outbound request, which can be turned off** (ADR-062), in a release signed with the
+  project's key. Once a day, and when the person
+  presses Check now, the host asks GitHub for the release manifest of `alexjustino/tessera`. The
+  request carries no identifier and nothing from the workspace. With Settings → Updates off, the
+  host refuses the check and the application makes no outbound request at all. The Tauri content
+  security policy still blocks external origins in the web view. There is no sync, no telemetry,
+  no analytics and no crash reporting.
+- **What the check reveals.** The request carries no identifier and nothing from the workspace;
+  its user agent names the updater library, not Tessera's version or the operating system. GitHub
+  sees what any request shows: the address it comes from and the time. GitHub also publishes how
+  many times each release file was downloaded, so the count of checks is public, roughly one per
+  copy per day. A system proxy, if one is set, is used.
+- **Updates are verified before they run.** An update is downloaded only when the person presses
+  Install, and the plugin checks it against the Ed25519 public key built into the application,
+  together with the version it was signed for, so an older signed installer cannot be passed off
+  as a newer one. The private key exists only as a secret of the repository's release workflow,
+  given to one step that signs two files; the build and every third-party action run without it.
 - **Minimum capabilities.** Tauri 2 capabilities are declared explicitly, one by one.
   Shell execution is not granted. Filesystem access is scoped to the application data
   directory.
@@ -50,10 +68,16 @@ user account, or with physical access to an unlocked machine, can read the datab
 The database is not encrypted at rest in 1.0.0. If that matters for your data, use full-disk
 encryption (BitLocker).
 
+The same attacker can replace a verified update in the moment between its check and its run: the
+installer waits in your user's temporary folder. For the per-user setup that gains nothing they did
+not have; for the MSI, Windows asks before it elevates, and names an unknown publisher because the
+installers are not code-signed (ADR-015). Code signing is what would close that gap.
+
 ## Distribution integrity
 
-Releases are built by GitHub Actions from a tagged commit and attached to the GitHub Release.
-Verify what you install came from this repository's Releases page.
+Releases are built by GitHub Actions from a tagged commit and attached to the GitHub Release,
+with a `SHA256SUMS.txt` beside the installers. Verify what you install came from this
+repository's Releases page and that its SHA-256 matches (`Get-FileHash` in PowerShell).
 
 Installers are **not** code-signed today: Windows SmartScreen will warn on first run. That is
 expected, and is a cost decision rather than a security posture — it is recorded in the

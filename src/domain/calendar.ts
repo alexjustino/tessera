@@ -423,3 +423,31 @@ export interface WorkHours {
 export function workingSpan(day: string, hours: readonly WorkHours[]): WorkHours | null {
   return hours.find((candidate) => candidate.weekday === weekdayOf(day)) ?? null;
 }
+
+/** The hours worth showing first: from the earliest start to the latest end across these days. */
+export function workingWindow(
+  days: readonly string[],
+  hours: readonly WorkHours[],
+): { startsMinute: number; endsMinute: number } {
+  const spans = days
+    .map((day) => workingSpan(day, hours))
+    .filter((span): span is WorkHours => span !== null);
+  if (spans.length === 0) return { startsMinute: 9 * 60, endsMinute: 18 * 60 };
+  return {
+    startsMinute: Math.min(...spans.map((span) => span.startsMinute)),
+    endsMinute: Math.max(...spans.map((span) => span.endsMinute)),
+  };
+}
+
+/** How tall an hour can be so the working window fits, without becoming unreadable or absurd. */
+export function fittedHourHeight(
+  available: number,
+  window: {
+    startsMinute: number;
+    endsMinute: number;
+  },
+): number {
+  const hours = (window.endsMinute - window.startsMinute) / 60;
+  if (hours <= 0 || available <= 0) return 48;
+  return Math.min(96, Math.max(28, Math.floor(available / hours)));
+}

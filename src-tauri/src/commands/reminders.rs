@@ -45,6 +45,41 @@ pub fn reminders_resume(scheduler: State<'_, Scheduler>) -> Result<()> {
 }
 
 #[tauri::command]
+pub fn warnings_list(db: State<'_, Db>, item_id: String) -> Result<Vec<reminders::Warning>> {
+    let conn = db.0.lock().expect("the database lock was poisoned");
+    reminders::warnings_for_item(&conn, &item_id)
+}
+
+#[tauri::command]
+pub fn warning_add(
+    db: State<'_, Db>,
+    scheduler: State<'_, Scheduler>,
+    item_id: String,
+    fire_at: String,
+) -> Result<reminders::Warning> {
+    let warning = {
+        let conn = db.0.lock().expect("the database lock was poisoned");
+        reminders::add_warning(&conn, &item_id, &fire_at)?
+    };
+    scheduler.nudge();
+    Ok(warning)
+}
+
+#[tauri::command]
+pub fn warning_remove(
+    db: State<'_, Db>,
+    scheduler: State<'_, Scheduler>,
+    id: String,
+) -> Result<()> {
+    {
+        let conn = db.0.lock().expect("the database lock was poisoned");
+        reminders::remove_warning(&conn, &id)?;
+    }
+    scheduler.nudge();
+    Ok(())
+}
+
+#[tauri::command]
 pub fn reminder_snooze(
     db: State<'_, Db>,
     scheduler: State<'_, Scheduler>,

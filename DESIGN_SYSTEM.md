@@ -147,19 +147,21 @@ cannot be undone later without touching every screen.
 
 ### The mark
 
-The product's own icon is `src-tauri/icons/tessera.svg`: four tiles, one of them
-lighter and a hair apart — the tessera being set. It is drawn to survive sixteen
-pixels in the tray: four shapes, one accent, no stroke thinner than the gap
-between tiles. The blue is the Windows 11 default accent, the value the token
-layer starts from.
+The product's own icon is `src-tauri/icons/tessera.svg`: four tiles on a blue ground, and the
+fourth is a task that is done — green, with its check (ADR-063). A to-do list says what it is for
+before its name is read. It is drawn to survive sixteen pixels in the tray: four shapes, one
+accent, no stroke thinner than the gap between tiles. The blue is the Windows 11 default accent,
+the value the token layer starts from; the green is the one colour that means done.
 
-Every raster the platform needs is generated from that one file, never edited by
-hand:
+Every raster the platform needs is generated from that one file, never edited by hand — each
+size drawn from the vector at that size, so the tray's sixteen pixels are drawn for sixteen:
 
 ```bash
-node -e "require('sharp')('src-tauri/icons/tessera.svg').resize(1024,1024).png().toFile('src-tauri/icons/tessera-1024.png')"
-npx tauri icon src-tauri/icons/tessera-1024.png --output src-tauri/icons
+python scripts/make-brand.py
 ```
+
+It writes the PNGs, the `.ico` (16 to 256), the `.icns`, the window's copy and the four installer
+pictures, with headless Edge doing the drawing.
 
 The same file is `src/assets/mark.svg`, shown beside the name in the title bar
 and on About, so the window, the tray, the installer and the screen all carry one
@@ -172,6 +174,17 @@ Fluent curves and durations, from the token layer: `--ease-easy`, `--ease-decele
 from where it was — it does not decorate.
 
 Loading shows a skeleton of the shape that is coming, not a spinner.
+
+**The opening is the one flourish.** The mark, set tile by tile as the window opens, because it
+marks a real change of state: nothing there, then the workspace. The ground arrives, three tiles
+are set, the fourth lands as a task and its check is drawn, then the name. A first opening says
+"Welcome" and what Tessera is for; after that, the time of day and the date. It plays once, in
+about two seconds, takes no press and is gone as soon as there is something to show.
+
+**The guide's scenes are the one other place things move** (ADR-064). A scene is a small drawing of
+Tessera doing one thing, and the motion is the explanation: it plays once when the scene comes
+into view, again on **Replay**, and never in a loop. Every colour in it is a token, so it is right
+in both themes. Under reduced motion it is shown finished.
 
 **`prefers-reduced-motion` is honoured globally**, in `global.css`, not per component. A
 component cannot forget it. Nothing animates in a loop.
@@ -209,8 +222,48 @@ first — not inline in the feature.
 `Skeleton` · `EmptyState` · `Toast` · `InfoBar` · `Kbd` · `Resizer` · `VirtualList`
 
 Present today: `Button`, `IconButton`, `Card`, `InfoBar`, `Input`, `Select`, `Checkbox`, `Chip`,
-`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`, `TileGrid`. The rest arrive with the slice that first
+`Drawer`, `Modal`, `ConfirmDialog`, `ChoiceGroup`, `TabStrip`, `EmptyState`, `Kbd`, `TileGrid`, `Page`, `PageColumns`, `Stat`, `StatRow`, `Sparkline`, `Meter`, `ColumnChart`, `StackBar`, `BarList`, `ProgressRing`, `Toggle`, `SettingGroup`, `SettingRow`. The rest arrive with the slice that first
 needs them, and arrive _here_.
+
+### Figures and charts
+
+A dashboard is built from these and nothing else: `Stat` for one number and what it is measured
+against, `Meter` for how much of something is used, `ColumnChart` for change over a run of days,
+`StackBar` for the parts of a whole, `BarList` for things ranked. Marks are thin, a value is never
+only a height or a colour (a word, a tooltip or a table says it too), and only the tallest column
+and the one the reader stands in carry a number. A figure that has not earned a reading shows a
+dash and says why.
+
+Identity is `--series-1` to `--series-6`, in that order, for telling goals apart. It is checked with
+the palette validator in both themes and is never used for state: late, done and at risk keep the
+`--state-*` tokens.
+
+### A screen fails on its own
+
+Each screen sits in an `ErrorBoundary`. A render that throws says so and that the work is safe, and the
+rail stays, so going elsewhere is the way out. A blank window with no way out is the one failure a person
+cannot read (ADR-048).
+
+### A suggestion is dashed
+
+Time the plan proposes is drawn with a dashed border and says so, because it is not there yet. A dashed
+block is never counted as reserved, and pressing or moving it is what makes it solid (ADR-046).
+
+### Dragging
+
+With `usePointerDrag`, or dnd-kit on the board, and never HTML5 drag and drop, which the host takes for itself
+on Windows. What is carried shows where it will land and what it would land on. Nothing hidden sits on a thing
+that can be dragged: a control with opacity 0 still takes the press (ADR-049).
+
+### Settings
+
+One section at a time, chosen from a list on the left. A section is `SettingGroup`s of `SettingRow`s:
+what it is on the left in one line, the control on the right, as Windows 11 lays them out. A switch
+(`Toggle`) takes effect at once; a long explanation opens on request or does not exist.
+
+A destination is framed by `Page` and sets no width of its own, so it fills the window it is
+given. Screens made of cards put them in `PageColumns`. Only long running text keeps a reading
+measure.
 
 ### A grid of tiles
 

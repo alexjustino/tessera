@@ -62,12 +62,26 @@ export function columnKeyToStorage(key: string | null): string {
 }
 
 /** Turn the engine's groups into columns, applying the board's settings. */
-export function toColumns(groups: readonly Group[], config: BoardConfig): Column[] {
-  return groups.map((group) => {
+export function toColumns(
+  groups: readonly Group[],
+  config: BoardConfig,
+  /** The field the columns group by, to name the empty column after it. */
+  fieldName: string | null = null,
+): Column[] {
+  // The column with no value goes first: it is where a new card lands, and at the far
+  // end of a wide board it is off the screen, and the board looks empty.
+  const ordered = [
+    ...groups.filter((group) => group.key === null),
+    ...groups.filter((group) => group.key !== null),
+  ];
+  return ordered.map((group) => {
     const storageKey = columnKeyToStorage(group.key);
     return {
       key: group.key,
-      label: group.label,
+      label:
+        group.key === null && fieldName !== null && fieldName.trim() !== ''
+          ? `No ${fieldName.trim().toLowerCase()}`
+          : group.label,
       color: group.color,
       rows: group.rows,
       wipLimit: config.wipLimits[storageKey] ?? null,

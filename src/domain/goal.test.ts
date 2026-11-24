@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Figure } from './report';
+
 import {
   checkName,
   checkTarget,
@@ -187,5 +189,32 @@ describe('where a goal stands', () => {
     expect(describeProgress(done, goal({ target: 1 }), hours)).toBe('2 of 1 task');
     const timed = goal({ measure: 'minutes', target: 120 });
     expect(describeProgress({ ...done, value: 90 }, timed, hours)).toBe('90m of 120m');
+  });
+});
+
+describe('a goal with no finish line', () => {
+  const NOW = '2026-11-02T15:00:00.000Z';
+  const figure = { id: 'f', label: 'Progress', value: 3, rows: [] } as unknown as Figure;
+  const focus: Goal = {
+    id: 'g',
+    name: 'Stay fit',
+    measure: 'tasks',
+    target: 1,
+    dueDay: null,
+    position: 'a',
+    ongoing: true,
+  };
+
+  it('is never achieved, however much it has counted', () => {
+    expect(isAchieved(figure, focus)).toBe(false);
+  });
+
+  it('says what has added up, with nothing to reach', () => {
+    expect(describeProgress(figure, focus, String)).toBe('3 tasks finished so far');
+  });
+
+  // ── Negative case ──────────────────────────────────────────────────────
+  it('is never late, even with an old date left on it', () => {
+    expect(stateOf(figure, { ...focus, dueDay: '2020-01-01' }, NOW, 'UTC')).toBe('ongoing');
   });
 });

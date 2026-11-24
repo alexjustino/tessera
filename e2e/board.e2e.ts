@@ -29,9 +29,9 @@ describe('the board', () => {
     );
 
   /**
-   * Pick a card up by its handle, walk it left until it is over `droppable`, and drop.
+   * Pick a card up by its handle, walk it right until it is over `droppable`, and drop.
    *
-   * Tasks start in "No value", the last column, and an arrow key goes to the
+   * Tasks start in the column with no status, the first one, and an arrow key goes to the
    * nearest thing that way, which is often a card in the same column. So the walk
    * reads where it got to, rather than counting presses. Space, because
    * `Keys.ENTER` is the numeric keypad's key, which the drag library ignores.
@@ -48,7 +48,7 @@ describe('the board', () => {
     );
     await driver.waitFor(`${title} to reach ${droppable}`, async () => {
       if ((await spoken()).includes(`moved over droppable area ${droppable}.`)) return true;
-      await driver.chord(Keys.ARROW_LEFT);
+      await driver.chord(Keys.ARROW_RIGHT);
       await new Promise((resolve) => setTimeout(resolve, 200));
       return null;
     });

@@ -241,6 +241,11 @@ describe('a calendar file', () => {
   it('undo takes the series, its exceptions and the task with it', async () => {
     const { driver } = session;
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Add from another product"]',
+      )
+    ).click();
     const undo = await driver.waitFor('the Undo control', () =>
       driver.find('button[aria-label^="Undo the import"]'),
     );
@@ -257,7 +262,10 @@ describe('a calendar file', () => {
 
     await goTo('Calendar');
     await goToWeekOf('2026-11-17');
-    expect(await standUps()).toHaveLength(0);
+    // The week is read again after the undo; until it is, the old occurrences are drawn.
+    await driver.waitFor('the stand-ups gone', async () =>
+      (await standUps()).length === 0 ? true : null,
+    );
     await driver.chord(Keys.ESCAPE);
   });
 });

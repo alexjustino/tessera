@@ -3,11 +3,12 @@ import { useMemo, useState } from 'react';
 import { describeError } from '@/data/errors';
 import { useSetWorkHours, useWorkHours } from '@/data/hooks';
 import type { WorkHours } from '@/domain/calendar';
+import { useGuideAnswer } from '@/features/guide/useGuideAnswer';
 import { Button } from '@/ui/Button';
-import { Card } from '@/ui/Card';
 import { Checkbox } from '@/ui/Checkbox';
 import { InfoBar } from '@/ui/InfoBar';
 import { Input } from '@/ui/Input';
+import { SettingBody, SettingGroup } from '@/ui/Setting';
 import { announce } from '@/ui/announce';
 
 const DAYS = [
@@ -54,6 +55,7 @@ function toMinutes(clock: string): number | null {
 export function WorkHoursCard() {
   const hours = useWorkHours();
   const save = useSetWorkHours();
+  const answer = useGuideAnswer();
   const [draft, setDraft] = useState<WorkHours[] | null>(null);
 
   const stored = useMemo(() => hours.data ?? [], [hours.data]);
@@ -92,89 +94,92 @@ export function WorkHoursCard() {
   };
 
   return (
-    <Card
+    <SettingGroup
       title="Working hours"
-      description="The week the calendar shades, the year view measures against, and the review counts. A day that is off has no hours."
+      description="What the calendar shades and every figure counts against."
     >
-      <div className="flex flex-col gap-2">
-        {hours.error !== null && (
-          <InfoBar severity="danger" title="The working week could not be read">
-            {describeError(hours.error)}
-          </InfoBar>
-        )}
-        {save.error !== null && (
-          <InfoBar severity="danger" title="The working week was not saved">
-            {describeError(save.error)}
-          </InfoBar>
-        )}
+      <SettingBody>
+        <div className="flex flex-col gap-2">
+          {hours.error !== null && (
+            <InfoBar severity="danger" title="The working week could not be read">
+              {describeError(hours.error)}
+            </InfoBar>
+          )}
+          {save.error !== null && (
+            <InfoBar severity="danger" title="The working week was not saved">
+              {describeError(save.error)}
+            </InfoBar>
+          )}
 
-        <ul className="flex flex-col gap-1">
-          {DAYS.map(({ weekday, label }) => {
-            const day = dayOf(weekday);
-            return (
-              <li key={weekday} className="flex items-center gap-3">
-                <span className="w-28 shrink-0">
-                  <Checkbox
-                    checked={day !== undefined}
-                    onChange={(on) => toggle(weekday, on)}
-                    label={label}
-                  />
-                </span>
-                <span className="w-24 text-body text-fg-secondary">{label}</span>
-                {day === undefined ? (
-                  <span className="text-caption text-fg-tertiary">Off</span>
-                ) : (
-                  <span className="flex items-center gap-2">
-                    <Input
-                      type="time"
-                      aria-label={`${label} starts`}
-                      value={toClock(day.startsMinute)}
-                      className="w-28"
-                      onChange={(event) => setTime(weekday, 'startsMinute', event.target.value)}
-                    />
-                    <span className="text-caption text-fg-tertiary">to</span>
-                    <Input
-                      type="time"
-                      aria-label={`${label} ends`}
-                      value={toClock(day.endsMinute)}
-                      className="w-28"
-                      onChange={(event) => setTime(weekday, 'endsMinute', event.target.value)}
+          <ul className="flex flex-col gap-1">
+            {DAYS.map(({ weekday, label }) => {
+              const day = dayOf(weekday);
+              return (
+                <li key={weekday} className="flex items-center gap-3">
+                  <span className="w-28 shrink-0">
+                    <Checkbox
+                      checked={day !== undefined}
+                      onChange={(on) => toggle(weekday, on)}
+                      label={label}
                     />
                   </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  <span className="w-24 text-body text-fg-secondary">{label}</span>
+                  {day === undefined ? (
+                    <span className="text-caption text-fg-tertiary">Off</span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Input
+                        type="time"
+                        aria-label={`${label} starts`}
+                        value={toClock(day.startsMinute)}
+                        className="w-28"
+                        onChange={(event) => setTime(weekday, 'startsMinute', event.target.value)}
+                      />
+                      <span className="text-caption text-fg-tertiary">to</span>
+                      <Input
+                        type="time"
+                        aria-label={`${label} ends`}
+                        value={toClock(day.endsMinute)}
+                        className="w-28"
+                        onChange={(event) => setTime(weekday, 'endsMinute', event.target.value)}
+                      />
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
 
-        {complaint !== null && (
-          <p role="alert" className="text-caption text-danger">
-            {complaint}
-          </p>
-        )}
-
-        <div className="flex items-center gap-2">
-          <Button
-            appearance="accent"
-            disabled={!dirty || complaint !== null || save.isPending}
-            onClick={() =>
-              save.mutate(week, {
-                onSuccess: () => {
-                  setDraft(null);
-                  announce('Working hours saved');
-                },
-              })
-            }
-          >
-            Save working hours
-          </Button>
-          {dirty && (
-            <Button appearance="subtle" onClick={() => setDraft(null)}>
-              Cancel
-            </Button>
+          {complaint !== null && (
+            <p role="alert" className="text-caption text-danger">
+              {complaint}
+            </p>
           )}
+
+          <div className="flex items-center gap-2">
+            <Button
+              appearance="accent"
+              disabled={!dirty || complaint !== null || save.isPending}
+              onClick={() =>
+                save.mutate(week, {
+                  onSuccess: () => {
+                    answer({ guideHoursSet: true });
+                    setDraft(null);
+                    announce('Working hours saved');
+                  },
+                })
+              }
+            >
+              Save working hours
+            </Button>
+            {dirty && (
+              <Button appearance="subtle" onClick={() => setDraft(null)}>
+                Cancel
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
-    </Card>
+      </SettingBody>
+    </SettingGroup>
   );
 }

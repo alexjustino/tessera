@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import path from 'node:path';
 
 /**
  * What Windows hands a screen reader.
@@ -43,6 +44,15 @@ function powershell(script: string, timeoutMs = 60_000): Promise<string> {
   });
 }
 
+/**
+ * The binary under test, and only that one: a person may have an installed Tessera
+ * open beside the suite, and its window is theirs to keep and not what is being read.
+ */
+const UNDER_TEST = path.resolve(
+  process.env.TESSERA_E2E_APP ??
+    path.join(import.meta.dirname, '..', 'src-tauri', 'target', 'debug', 'tessera.exe'),
+);
+
 const PRELUDE = `
 $ErrorActionPreference = 'Stop';
 $ProgressPreference = 'SilentlyContinue';
@@ -53,7 +63,7 @@ function Describe($e) {
   $c = $e.Current;
   [pscustomobject]@{ name = [string]$c.Name; type = [string]$c.ControlType.ProgrammaticName; says = [string]$c.LocalizedControlType };
 }
-$proc = Get-Process tessera -ErrorAction Stop | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1;
+$proc = Get-Process tessera -ErrorAction Stop | Where-Object { $_.Path -eq '${UNDER_TEST.replace(/'/g, "''")}' -and $_.MainWindowHandle -ne 0 } | Select-Object -First 1;
 `;
 
 /** Every named element in the application's published accessibility tree. */

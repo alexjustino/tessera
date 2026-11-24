@@ -145,6 +145,10 @@ export async function moveEvent(id: string, startsAt: string, endsAt: string): P
   await invoke<RawEvent>('event_move', { id, startsAtUtc: startsAt, endsAtUtc: endsAt });
 }
 
+export async function renameEvent(id: string, title: string): Promise<void> {
+  await invoke<RawEvent>('event_rename', { id, title });
+}
+
 export async function deleteEvent(id: string): Promise<void> {
   await invoke<void>('event_delete', { id });
 }

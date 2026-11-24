@@ -402,6 +402,26 @@ export function describe(shown: Preview): string {
 
 // ── The first importer through the door: Tessera's own export ─────────────
 
+/** A task's subtasks, in their order, as the checklist the import door can write. */
+function checklistOf(steps: readonly Record<string, unknown>[]): ImportedBlock[] {
+  const ordered = [...steps].sort((a, b) =>
+    String(a.position ?? '') < String(b.position ?? '') ? -1 : 1,
+  );
+  return [
+    {
+      type: 'taskList',
+      content: {
+        type: 'taskList',
+        content: ordered.map((step) => ({
+          type: 'taskItem',
+          attrs: { checked: Boolean(step.completed_at) },
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: String(step.title) }] }],
+        })),
+      },
+    },
+  ];
+}
+
 /**
  * Another workspace's export, as a plan — additive, where the 1.0 import was
  * a replacement. Reads the export's own tables (collections, items, values,
@@ -475,6 +495,15 @@ export function fromTesseraExport(raw: unknown): ImportPlan | null {
     notesByOwner.set(row.owner_id, [...(notesByOwner.get(row.owner_id) ?? []), text]);
   }
 
+  // A subtask comes in as a line of its task's checklist: the import door adds tasks,
+  // and its rows have no parent to point at.
+  const stepsOf = new Map<string, Record<string, unknown>[]>();
+  const known = new Set(rows('item').map((row) => row.id));
+  for (const row of rows('item')) {
+    if (typeof row.parent_item_id !== 'string' || !known.has(row.parent_item_id)) continue;
+    stepsOf.set(row.parent_item_id, [...(stepsOf.get(row.parent_item_id) ?? []), row]);
+  }
+
   const tasks: ImportedTask[] = [];
   let orphaned = 0;
   let archived = 0;
@@ -484,6 +513,7 @@ export function fromTesseraExport(raw: unknown): ImportPlan | null {
       continue;
     }
     if (typeof row.id !== 'string' || typeof row.title !== 'string') continue;
+    if (typeof row.parent_item_id === 'string' && known.has(row.parent_item_id)) continue;
     const collection =
       typeof row.collection_id === 'string' ? collectionsById.get(row.collection_id) : undefined;
     if (collection === undefined) {
@@ -501,6 +531,7 @@ export function fromTesseraExport(raw: unknown): ImportPlan | null {
       estimateMinutes: typeof row.estimate_minutes === 'number' ? row.estimate_minutes : null,
       isMilestone: row.is_milestone === 1 || row.is_milestone === true,
       values: valuesByItem.get(row.id) ?? {},
+      ...(stepsOf.has(row.id) ? { blocks: checklistOf(stepsOf.get(row.id) ?? []) } : {}),
     });
   }
   if (orphaned > 0) {

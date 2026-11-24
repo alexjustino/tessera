@@ -165,6 +165,11 @@ describe('the import door', () => {
     );
 
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Add from another product"]',
+      )
+    ).click();
     await driver.waitForText('Recent imports');
     const row = await driver.waitForElement('[data-testid="import-batch"]');
     expect(await row.text()).toContain('2 tasks');
@@ -195,6 +200,11 @@ describe('the import door', () => {
     await session.restart();
     const { driver } = session;
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Add from another product"]',
+      )
+    ).click();
     await driver.waitForText('Nothing has been imported yet');
     expect((await titles()).length).toBe(0); // Settings shows no rows; sanity only
   });

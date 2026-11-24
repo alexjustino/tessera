@@ -34,7 +34,7 @@
  */
 
 import { addLocalDays, type Occurrence, type WorkHours } from './calendar';
-import { capacityOf, plannedByDay } from './capacity';
+import { capacityOf, workingMinutesLeft, plannedByDay } from './capacity';
 import type { Goal, GoalLink } from './goal';
 import type { Edge } from './graph';
 import type { Item } from './item';
@@ -68,6 +68,11 @@ export interface LedgerInput {
    * prices the estimates as typed.
    */
   scale?: number;
+  /**
+   * The minute of `today` it is now. What has gone of today cannot hold work,
+   * so without it, work given to this morning simply vanishes in the afternoon.
+   */
+  minuteNow?: number;
 }
 
 /** A change being considered. Nothing is saved by considering it. */
@@ -161,7 +166,12 @@ export function project(input: LedgerInput): Projection {
   const future = input.occurrences.filter((o) => localDay(o.endsAt, input.zone) >= input.today);
   const reserved = plannedByDay(future, input.zone);
   const free = days.map((day) =>
-    Math.max(0, capacityOf(day, input.hours, input.daysOff) - (reserved.get(day) ?? 0)),
+    Math.max(
+      0,
+      (day === input.today && input.minuteNow !== undefined
+        ? workingMinutesLeft(day, input.hours, input.daysOff, input.minuteNow)
+        : capacityOf(day, input.hours, input.daysOff)) - (reserved.get(day) ?? 0),
+    ),
   );
 
   // Time already reserved for a task, and the last day it is reserved on.
@@ -241,7 +251,7 @@ export function project(input: LedgerInput): Projection {
 }
 
 /** Minutes reserved for a task on each day from today: [itemId, minutes, day]. */
-function blocksOf(
+export function blocksOf(
   occurrences: readonly Occurrence[],
   zone: string,
   today: string,
@@ -265,10 +275,12 @@ function blocksOf(
  * then by position and id so ties never depend on the order rows arrived in —
  * and never a task before one that blocks it.
  */
-function orderOf(
+export function orderOf(
   tasks: readonly Item[],
   edges: readonly Edge[],
   dueDays: ReadonlyMap<string, string>,
+  /** Sorts tasks with the same date, before their position does. */
+  rankOf?: (itemId: string) => number,
 ): Item[] {
   const rank = (a: Item, b: Item): number => {
     const da = dueDays.get(a.id);
@@ -278,6 +290,8 @@ function orderOf(
       if (db === undefined) return -1;
       return da < db ? -1 : 1;
     }
+    const byRank = rankOf === undefined ? 0 : rankOf(a.id) - rankOf(b.id);
+    if (byRank !== 0) return byRank;
     if (a.position !== b.position) return a.position < b.position ? -1 : 1;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   };

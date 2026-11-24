@@ -179,4 +179,15 @@ describe('goals', () => {
     const held = await session.driver.findAll('button[aria-label^="Take "]');
     expect(held).toHaveLength(2);
   });
+
+  it('can be an ongoing focus, with nothing to reach and no date', async () => {
+    const { driver } = session;
+    await clickXPath('//button[normalize-space(.)="Ongoing focus"]');
+    await driver.waitForText('Ongoing focus, no end date');
+    expect(await driver.findAll('input[aria-label="Target"]')).toHaveLength(0);
+    expect(await driver.findAll('input[aria-label="Due day"]')).toHaveLength(0);
+    await session.screenshot('goals-ongoing');
+    await clickXPath('//button[normalize-space(.)="Until I reach a target"]');
+    await driver.waitForElement('input[aria-label="Target"]');
+  });
 });

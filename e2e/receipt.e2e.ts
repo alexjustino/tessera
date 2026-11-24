@@ -19,17 +19,22 @@ const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
  * Escape puts the draft back and the receipt goes away.
  */
 
-/** The working days, Monday to Friday, from today: [first, second]. */
+function iso(day: Date): string {
+  const y = day.getFullYear();
+  const m = String(day.getMonth() + 1).padStart(2, '0');
+  const d = String(day.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/** The working days, Monday to Friday, after today: [first, second]. */
 function workingDays(): [string, string] {
   const out: string[] = [];
   const day = new Date();
+  day.setDate(day.getDate() + 1);
   while (out.length < 2) {
     const weekday = day.getDay();
     if (weekday >= 1 && weekday <= 5) {
-      const y = day.getFullYear();
-      const m = String(day.getMonth() + 1).padStart(2, '0');
-      const d = String(day.getDate()).padStart(2, '0');
-      out.push(`${y}-${m}-${d}`);
+      out.push(iso(day));
     }
     day.setDate(day.getDate() + 1);
   }
@@ -121,6 +126,16 @@ describe('the price of yes', () => {
 
   beforeAll(async () => {
     session = await startSession();
+    // Today is taken out, because what is left of it depends on the hour the suite
+    // runs at, and the arithmetic below has to be checkable on paper.
+    await session.driver.executeAsync(
+      `const done = arguments[arguments.length - 1];
+       window.__TAURI_INTERNALS__
+         .invoke('day_off_set', { day: arguments[0], label: 'Out of the arithmetic' })
+         .then(done, (error) => done(String(error)));`,
+      [iso(new Date())],
+    );
+    await session.restart();
     const { driver } = session;
     const input = await driver.waitForElement('input[aria-label="New task"]');
     for (const title of ['First', 'Second']) {

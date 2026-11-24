@@ -17,6 +17,18 @@
  * no room below it and would break the "always insertable between" guarantee,
  * so it is rejected rather than quietly accepted.
  *
+ * Appending is the ordinary way to add a row, so it has its own rule. A key made
+ * only of the top digit has no room above it, and nothing can sort above it
+ * without starting with it. Adding a digit there every few appends makes keys grow
+ * with the length of the list, so a counter starts instead: after the run of `'z'`,
+ * a head from `'a'` to `'y'` says how many digits follow, 1 to 25.
+ *
+ *     z  za1  za2  ...  zaz  zb01  zb02  ...  zbzz  zc001  ...
+ *
+ * The head is read only to choose the next key. Keys are still only ever compared
+ * as strings, so a stored key that happens to look like a counter just continues
+ * as one, in order, and nothing needs to know which code wrote which key.
+ *
  * This module is pure: no I/O, no React, no host. See ADR-006.
  */
 
@@ -24,6 +36,14 @@
 const DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
 const FIRST = DIGITS[0]!;
+const TOP = DIGITS.at(-1)!;
+
+/** The lowest digit a key can end in. */
+const LOWEST_END = DIGITS[1]!;
+
+/** The heads of a counter. Each gives a width one more than the head before it. */
+const FIRST_HEAD = 'a';
+const LAST_HEAD = 'y';
 
 /** Thrown when a caller asks for something the ordering cannot express. */
 export class OrderingError extends Error {
@@ -51,43 +71,108 @@ function assertValid(key: string | null, role: string): void {
 }
 
 /**
- * The recursive core: a digit string strictly between `lower` and `upper`.
+ * The core: a digit string strictly between `lower` and `upper`.
  *
  * `lower` is `''` for "before everything"; `upper` is `null` for "after
  * everything". Both are digit strings without an integer part.
+ *
+ * A loop and not recursion, because descending costs one step per digit and a
+ * stored key can be very long: appends used to add a digit every five. Recursing
+ * here overflowed the stack at a key of 6,000 to 7,000 digits, on a call as
+ * ordinary as adding a row.
  */
-function midpoint(lower: string, upper: string | null): string {
-  if (upper !== null) {
-    // Strip the longest common prefix and solve the remainder. Missing digits
-    // on the left read as the lowest digit, which is what makes `'a'` sort
-    // before `'a5'`.
-    let shared = 0;
-    while (shared < upper.length && (lower[shared] ?? FIRST) === upper[shared]) {
-      shared += 1;
+function midpoint(initialLower: string, initialUpper: string | null): string {
+  let lower = initialLower;
+  let upper = initialUpper;
+  let prefix = '';
+
+  for (;;) {
+    if (upper !== null) {
+      // Strip the longest common prefix and solve the remainder. Missing digits
+      // on the left read as the lowest digit, which is what makes `'a'` sort
+      // before `'a5'`.
+      let shared = 0;
+      while (shared < upper.length && (lower[shared] ?? FIRST) === upper[shared]) {
+        shared += 1;
+      }
+      if (shared > 0) {
+        prefix += upper.slice(0, shared);
+        lower = lower.slice(shared);
+        upper = upper.slice(shared);
+        continue;
+      }
     }
-    if (shared > 0) {
-      return upper.slice(0, shared) + midpoint(lower.slice(shared), upper.slice(shared));
+
+    const lowerDigit = lower.length > 0 ? DIGITS.indexOf(lower[0]!) : 0;
+    const upperDigit = upper !== null ? DIGITS.indexOf(upper[0]!) : DIGITS.length;
+
+    if (upperDigit - lowerDigit > 1) {
+      // There is room for a digit in between; take the middle one.
+      const middle = Math.round((lowerDigit + upperDigit) / 2);
+      return prefix + DIGITS[middle]!;
+    }
+
+    // The two digits are adjacent, so the answer has to be longer than one digit.
+    if (upper !== null && upper.length > 1) {
+      // `upper` has more to it, so its own first digit is already strictly above
+      // `lower` and strictly below `upper`.
+      return prefix + upper.slice(0, 1);
+    }
+
+    // Descend: keep the lower digit and find room in the next position.
+    prefix += DIGITS[lowerDigit]!;
+    lower = lower.slice(1);
+    upper = null;
+  }
+}
+
+/**
+ * One more than `digits`, read as a number, or null if every digit is the top one.
+ *
+ * A carry leaves `'0'` in the last place, which no key may end in, so the count
+ * goes straight past it.
+ */
+function increment(digits: string): string | null {
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    const digit = DIGITS.indexOf(digits[index]!);
+    if (digit < DIGITS.length - 1) {
+      const carried = digits.length - 1 - index;
+      const rest = carried > 0 ? FIRST.repeat(carried - 1) + LOWEST_END : '';
+      return digits.slice(0, index) + DIGITS[digit + 1]! + rest;
     }
   }
+  return null;
+}
 
-  const lowerDigit = lower.length > 0 ? DIGITS.indexOf(lower[0]!) : 0;
-  const upperDigit = upper !== null ? DIGITS.indexOf(upper[0]!) : DIGITS.length;
+/**
+ * The key after everything, given the last key.
+ *
+ * Only a key that starts with the top digit can reach the counter. Any other still
+ * has room in its first digit, and takes the same key it always has.
+ */
+function after(lower: string): string {
+  let run = 0;
+  while (lower[run] === TOP) run += 1;
+  if (run === 0) return midpoint(lower, null);
 
-  if (upperDigit - lowerDigit > 1) {
-    // There is room for a digit in between; take the middle one.
-    const middle = Math.round((lowerDigit + upperDigit) / 2);
-    return DIGITS[middle]!;
+  const prefix = lower.slice(0, run);
+  if (run === lower.length) return prefix + FIRST_HEAD + LOWEST_END;
+
+  const head = lower[run]!;
+  const width = head.charCodeAt(0) - FIRST_HEAD.charCodeAt(0) + 1;
+  const digits = lower.slice(run + 1, run + 1 + width);
+  if (head < FIRST_HEAD || head > LAST_HEAD || digits.length < width) {
+    return midpoint(lower, null);
   }
 
-  // The two digits are adjacent, so the answer has to be longer than one digit.
-  if (upper !== null && upper.length > 1) {
-    // `upper` has more to it, so its own first digit is already strictly above
-    // `lower` and strictly below `upper`.
-    return upper.slice(0, 1);
-  }
+  // Anything after the digits came from an insert, and the next count clears it.
+  const next = increment(digits);
+  if (next !== null) return prefix + head + next;
 
-  // Descend: keep the lower digit and find room in the next position.
-  return DIGITS[lowerDigit]! + midpoint(lower.slice(1), null);
+  // This width is spent, so the next head starts the next one.
+  if (head === LAST_HEAD) return prefix + TOP + FIRST_HEAD + LOWEST_END;
+  const nextHead = String.fromCharCode(head.charCodeAt(0) + 1);
+  return prefix + nextHead + FIRST.repeat(width) + LOWEST_END;
 }
 
 /**
@@ -110,6 +195,8 @@ export function between(lower: string | null, upper: string | null): string {
         'the lower key must sort strictly before the upper key',
     );
   }
+
+  if (lower !== null && upper === null) return after(lower);
 
   return midpoint(lower ?? '', upper);
 }

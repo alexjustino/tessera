@@ -19,6 +19,7 @@ import {
 import { formatDuration } from '@/domain/criticalPath';
 import { describeQueue, nextAfter, pickFocus } from '@/domain/focus';
 import { against, elapsedClock, minutesForItem, runningEntry } from '@/domain/time';
+import { Subtasks } from '@/features/tasks/Subtasks';
 import { Button } from '@/ui/Button';
 import { EmptyState } from '@/ui/EmptyState';
 import { InfoBar } from '@/ui/InfoBar';
@@ -184,6 +185,10 @@ export function FocusMode({
           >
             Next
           </Button>
+        </div>
+
+        <div className="w-full max-w-md text-left">
+          <Subtasks key={task.id} task={task} siblings={all} compact />
         </div>
 
         <p className="text-caption text-fg-tertiary">

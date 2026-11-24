@@ -3,6 +3,8 @@
  */
 
 import { invoke } from '@tauri-apps/api/core';
+
+import type { Warning } from '@/domain/warnings';
 import { disable, enable, isEnabled } from '@tauri-apps/plugin-autostart';
 
 export interface PendingReminder {
@@ -57,6 +59,28 @@ export async function snoozeReminder(id: string, minutes: number): Promise<void>
 
 export async function dismissReminder(id: string): Promise<void> {
   await invoke<void>('reminder_dismiss', { id });
+}
+
+interface RawWarning {
+  id: string;
+  fire_at: string;
+  fired: boolean;
+}
+
+function toWarning(raw: RawWarning): Warning {
+  return { id: raw.id, fireAt: raw.fire_at, fired: raw.fired };
+}
+
+export async function listWarnings(itemId: string): Promise<Warning[]> {
+  return (await invoke<RawWarning[]>('warnings_list', { itemId })).map(toWarning);
+}
+
+export async function addWarning(input: { itemId: string; fireAt: string }): Promise<Warning> {
+  return toWarning(await invoke<RawWarning>('warning_add', input));
+}
+
+export async function removeWarning(id: string): Promise<void> {
+  await invoke<void>('warning_remove', { id });
 }
 
 export async function refreshTray(): Promise<void> {

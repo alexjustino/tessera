@@ -25,6 +25,12 @@ pub enum Error {
 
     #[error("{0}")]
     InvalidInput(&'static str),
+
+    #[error("GitHub could not be reached to look for a newer release")]
+    UpdateUnreachable,
+
+    #[error("the update could not be downloaded, verified or installed")]
+    UpdateFailed,
 }
 
 /// What the frontend receives. `kind` is stable and machine-readable; `message`
@@ -49,6 +55,8 @@ impl Serialize for Error {
             Error::Accent => "accent",
             Error::NotFound => "not_found",
             Error::InvalidInput(_) => "invalid_input",
+            Error::UpdateUnreachable => "update_unreachable",
+            Error::UpdateFailed => "update_failed",
         };
         // The detail goes to the log; the frontend gets the sentence.
         log::error!("{kind}: {self:?}");

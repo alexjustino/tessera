@@ -3,6 +3,15 @@ name: Release
 # Tagging `vX.Y.Z` on `main` builds the Windows installers and attaches them to
 # the GitHub Release. A release artefact always comes from a tagged commit that
 # passed the gates — never from a developer machine.
+#
+# A release that carries the owner's public key is one installed copies update
+# themselves from (ADR-062); one without it, like 1.4.0, has no updater and is
+# published unsigned for updates (ADR-065). Where there is a key, it is the root
+# of trust for every installed copy. So: actions are pinned by commit, not by a
+# tag that can be moved; the build runs without the key; the key is handed to one
+# step that signs two files and nothing else; and the signatures are checked
+# against the public key the copies carry before anything is published. One
+# build: what the bundle check passed is what is signed and published.
 
 on:
   push:
@@ -13,20 +22,43 @@ permissions:
 
 jobs:
   build:
-    name: Build Windows installers
+    name: Build, sign and publish a draft
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      # A release updates itself only when it carries the owner's public key and
+      # the secret that signs for it (ADR-065). Neither: an installable release
+      # with no updater, as 1.4.0 is. Only one of them: a release whose updates
+      # nobody could install, or a key nobody signs with. It stops before building.
+      - name: The updater key, both halves or neither, and the tag is the version
+        id: updater
+        shell: pwsh
+        env:
+          HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
+        run: |
+          $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
+          $key = $config.plugins.updater.pubkey
+          $placeholder = $key -match 'PENDING' -or $key.Length -lt 40
+          $secret = $env:HAS_KEY -eq 'true'
+          if ($placeholder -and $secret) { throw 'The signing secret is set, but the public key in tauri.conf.json is still the placeholder.' }
+          if (-not $placeholder -and -not $secret) { throw 'The public key is set, but the TAURI_SIGNING_PRIVATE_KEY secret is missing.' }
+          if ("v$($config.version)" -ne '${{ github.ref_name }}') {
+            throw "The tag ${{ github.ref_name }} is not the version $($config.version)."
+          }
+          $signed = if ($secret) { 'true' } else { 'false' }
+          "signed=$signed" >> $env:GITHUB_OUTPUT
+          Write-Host "Updater in this release: $signed"
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
           cache: npm
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: src-tauri
 
@@ -43,16 +75,105 @@ jobs:
       - name: Check the bundle
         run: npm run check:bundle
 
-      - uses: tauri-apps/tauri-action@v1
+      # The only step that sees the key. It runs the project's own pinned CLI on
+      # two files; no build, no install script, no third-party action.
+      - name: Sign the installers
+        if: steps.updater.outputs.signed == 'true'
+        shell: pwsh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Tessera ${{ github.ref_name }}
-          releaseBody: |
-            See CHANGELOG.md for what changed.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $bundle = 'src-tauri/target/release/bundle'
+          foreach ($file in @("$bundle/nsis/Tessera_${version}_x64-setup.exe", "$bundle/msi/Tessera_${version}_x64_en-US.msi")) {
+            npx tauri signer sign --app-version $version $file
+            if ($LASTEXITCODE -ne 0) { throw "$file could not be signed." }
+          }
 
-            The installers are not code-signed: Windows SmartScreen will warn on
-            first run. Verify the download came from this Releases page.
-          releaseDraft: true
-          prerelease: false
+      - name: Check the signatures as an installed copy will
+        if: steps.updater.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $bundle = 'src-tauri/target/release/bundle'
+          foreach ($file in @("$bundle/nsis/Tessera_${version}_x64-setup.exe", "$bundle/msi/Tessera_${version}_x64_en-US.msi")) {
+            node scripts/verify-update-signature.mjs $file "$file.sig" $version
+            if ($LASTEXITCODE -ne 0) { throw "$file does not verify." }
+          }
+
+      # What installed copies read. A copy takes the same kind of installer it came
+      # from; the bare platform key is for a copy that cannot tell.
+      - name: Write latest.json
+        if: steps.updater.outputs.signed == 'true'
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.TrimStart('v')
+          $bundle = 'src-tauri/target/release/bundle'
+          $base = "https://github.com/${{ github.repository }}/releases/download/$tag"
+          $nsis = "Tessera_${version}_x64-setup.exe"
+          $msi = "Tessera_${version}_x64_en-US.msi"
+          $changelog = Get-Content CHANGELOG.md -Raw
+          $section = [regex]::Match($changelog, "(?ms)^## \[$([regex]::Escape($version))\][^\n]*\n(.*?)(?=^## \[)")
+          $notes = if ($section.Success) { $section.Groups[1].Value.Trim() } else { "See the release on GitHub." }
+          $manifest = [ordered]@{
+            version = $version
+            notes = $notes
+            pub_date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            platforms = [ordered]@{
+              'windows-x86_64-nsis' = @{ signature = (Get-Content "$bundle/nsis/$nsis.sig" -Raw).Trim(); url = "$base/$nsis" }
+              'windows-x86_64-msi' = @{ signature = (Get-Content "$bundle/msi/$msi.sig" -Raw).Trim(); url = "$base/$msi" }
+              'windows-x86_64' = @{ signature = (Get-Content "$bundle/nsis/$nsis.sig" -Raw).Trim(); url = "$base/$nsis" }
+            }
+          }
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8NoBOM latest.json
+
+      # What a person compares a download against, published beside it.
+      - name: Write the checksums
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $bundle = 'src-tauri/target/release/bundle'
+          $files = @("$bundle/nsis/Tessera_${version}_x64-setup.exe", "$bundle/msi/Tessera_${version}_x64_en-US.msi")
+          $lines = foreach ($file in $files) {
+            "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLower())  $(Split-Path $file -Leaf)"
+          }
+          $lines | Set-Content -Encoding utf8NoBOM SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
+      # A draft on purpose: somebody reads the notes before the world does, and a
+      # draft is not served at releases/latest, so no copy is offered it yet.
+      - name: Publish a draft release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIGNED: ${{ steps.updater.outputs.signed }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.TrimStart('v')
+          $bundle = 'src-tauri/target/release/bundle'
+          $updates = if ($env:SIGNED -eq 'true') {
+            "Copies of this release update themselves from here, after checking each installer against Tessera's own key."
+          } else {
+            'This release does not update itself: newer releases are published here, and installed over it.'
+          }
+          $notes = @"
+          See CHANGELOG.md for what changed.
+
+          The installers are not code-signed: Windows SmartScreen will warn on first run. Verify
+          the download came from this Releases page, and that its SHA-256 matches SHA256SUMS.txt
+          (in PowerShell: Get-FileHash .\<file>). $updates
+          "@
+          $files = @(
+            "$bundle/nsis/Tessera_${version}_x64-setup.exe",
+            "$bundle/msi/Tessera_${version}_x64_en-US.msi",
+            'SHA256SUMS.txt'
+          )
+          if ($env:SIGNED -eq 'true') {
+            $files += "$bundle/nsis/Tessera_${version}_x64-setup.exe.sig"
+            $files += "$bundle/msi/Tessera_${version}_x64_en-US.msi.sig"
+            $files += 'latest.json'
+          }
+          gh release create $tag --draft --title "Tessera $tag" --notes $notes @files
+          if ($LASTEXITCODE -ne 0) { throw 'The draft release was not created.' }

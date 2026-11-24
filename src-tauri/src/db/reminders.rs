@@ -5,6 +5,7 @@
 //! either fired or been dismissed; snoozing clears the firing so the same row
 //! comes round again, rather than minting a second reminder for the same thing.
 
+use chrono::{DateTime, SecondsFormat, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::Serialize;
 use uuid::Uuid;
@@ -94,13 +95,14 @@ pub fn for_item(conn: &Connection, item_id: &str) -> Result<Option<PendingRemind
 
 /// Make the reminder table agree with an item's `remind_at`.
 ///
-/// An item owns at most one live reminder. Setting a new time replaces the old
-/// row rather than adding beside it — two toasts for one task is the kind of
-/// bug that gets a product uninstalled — and clearing the time removes it.
+/// An item owns at most one reminder of this kind. Setting a new time replaces
+/// the old row rather than adding beside it, and clearing the time removes it.
+/// Warnings are a different kind, asked for one at a time, and are left alone.
 pub fn sync_for_item(conn: &Connection, item_id: &str, remind_at: Option<&str>) -> Result<()> {
     conn.execute(
         "DELETE FROM reminder
-         WHERE owner_kind = 'item' AND owner_id = ?1 AND fired_at IS NULL",
+         WHERE owner_kind = 'item' AND owner_id = ?1 AND fired_at IS NULL
+           AND kind = 'absolute'",
         params![item_id],
     )?;
 
@@ -110,6 +112,121 @@ pub fn sync_for_item(conn: &Connection, item_id: &str, remind_at: Option<&str>) 
              VALUES (?1, 'item', ?2, ?3, 'absolute')",
             params![Uuid::now_v7().to_string(), item_id, fire_at],
         )?;
+    }
+    Ok(())
+}
+
+/// A warning before a task is due: one alarm of as many as the person sets.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct Warning {
+    pub id: String,
+    pub fire_at: String,
+    pub fired: bool,
+}
+
+const WARNING: &str = "warning";
+
+fn parse_instant(value: &str) -> Result<DateTime<Utc>> {
+    DateTime::parse_from_rfc3339(value)
+        .map(|instant| instant.with_timezone(&Utc))
+        .map_err(|_| Error::InvalidInput("that is not a date and time"))
+}
+
+fn stamp(instant: DateTime<Utc>) -> String {
+    instant.to_rfc3339_opts(SecondsFormat::Millis, true)
+}
+
+/// A task's warnings, soonest first, the ones that went off included.
+pub fn warnings_for_item(conn: &Connection, item_id: &str) -> Result<Vec<Warning>> {
+    let mut statement = conn.prepare(
+        "SELECT id, fire_at, fired_at IS NOT NULL FROM reminder
+         WHERE owner_kind = 'item' AND owner_id = ?1 AND kind = ?2 AND dismissed_at IS NULL
+         ORDER BY fire_at",
+    )?;
+    let rows = statement.query_map(params![item_id, WARNING], |row| {
+        Ok(Warning {
+            id: row.get(0)?,
+            fire_at: row.get(1)?,
+            fired: row.get(2)?,
+        })
+    })?;
+    Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+}
+
+/// Add a warning. The same instant twice is one alarm, not two.
+pub fn add_warning(conn: &Connection, item_id: &str, fire_at: &str) -> Result<Warning> {
+    let fire_at = stamp(parse_instant(fire_at)?);
+    let exists: bool = conn.query_row(
+        "SELECT EXISTS (SELECT 1 FROM item WHERE id = ?1)",
+        params![item_id],
+        |row| row.get(0),
+    )?;
+    if !exists {
+        return Err(Error::NotFound);
+    }
+    if let Some(same) = warnings_for_item(conn, item_id)?
+        .into_iter()
+        .find(|warning| warning.fire_at == fire_at)
+    {
+        return Ok(same);
+    }
+    let id = Uuid::now_v7().to_string();
+    conn.execute(
+        "INSERT INTO reminder (id, owner_kind, owner_id, fire_at, kind)
+         VALUES (?1, 'item', ?2, ?3, ?4)",
+        params![id, item_id, fire_at, WARNING],
+    )?;
+    Ok(Warning {
+        id,
+        fire_at,
+        fired: false,
+    })
+}
+
+pub fn remove_warning(conn: &Connection, id: &str) -> Result<()> {
+    let changed = conn.execute(
+        "DELETE FROM reminder WHERE id = ?1 AND kind = ?2",
+        params![id, WARNING],
+    )?;
+    if changed == 0 {
+        return Err(Error::NotFound);
+    }
+    Ok(())
+}
+
+/// Keep a task's waiting warnings in step with its due time.
+///
+/// A warning counts back from the due time, so when that moves they move by the
+/// same amount, and with no due time left they have nothing to count back from.
+/// One that already went off is a record of what happened, and stays.
+pub fn follow_due(
+    conn: &Connection,
+    item_id: &str,
+    before: Option<&str>,
+    after: Option<&str>,
+) -> Result<()> {
+    match (before, after) {
+        (Some(old), Some(new)) if old != new => {
+            let by = parse_instant(new)? - parse_instant(old)?;
+            let waiting: Vec<Warning> = warnings_for_item(conn, item_id)?
+                .into_iter()
+                .filter(|warning| !warning.fired)
+                .collect();
+            for warning in waiting {
+                conn.execute(
+                    "UPDATE reminder SET fire_at = ?2, snoozed_until = NULL WHERE id = ?1",
+                    params![warning.id, stamp(parse_instant(&warning.fire_at)? + by)],
+                )?;
+            }
+        }
+        (Some(_), None) => {
+            conn.execute(
+                "DELETE FROM reminder
+                 WHERE owner_kind = 'item' AND owner_id = ?1 AND kind = ?2 AND fired_at IS NULL",
+                params![item_id, WARNING],
+            )?;
+        }
+        _ => {}
     }
     Ok(())
 }
@@ -295,5 +412,100 @@ mod tests {
         ));
         assert!(matches!(dismiss(&conn, "nope"), Err(Error::NotFound)));
         assert_eq!(owner_item(&conn, "nope").unwrap(), None);
+    }
+
+    #[test]
+    fn a_task_holds_as_many_warnings_as_it_is_given() {
+        let mut conn = workspace();
+        let item = an_item(&mut conn, "Ship");
+        add_warning(&conn, &item, "2030-01-05T09:00:00.000Z").unwrap();
+        add_warning(&conn, &item, "2030-01-06T09:00:00.000Z").unwrap();
+        add_warning(&conn, &item, "2030-01-06T15:00:00.000Z").unwrap();
+        assert_eq!(warnings_for_item(&conn, &item).unwrap().len(), 3);
+        assert_eq!(pending(&conn).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn the_same_instant_twice_is_one_alarm() {
+        let mut conn = workspace();
+        let item = an_item(&mut conn, "Ship");
+        let first = add_warning(&conn, &item, "2030-01-05T09:00:00.000Z").unwrap();
+        let again = add_warning(&conn, &item, "2030-01-05T09:00:00Z").unwrap();
+        assert_eq!(first.id, again.id);
+        assert_eq!(warnings_for_item(&conn, &item).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn the_one_reminder_does_not_disturb_the_warnings() {
+        let mut conn = workspace();
+        let item = an_item(&mut conn, "Ship");
+        add_warning(&conn, &item, "2030-01-05T09:00:00.000Z").unwrap();
+        sync_for_item(&conn, &item, Some("2030-01-07T09:00:00.000Z")).unwrap();
+        sync_for_item(&conn, &item, None).unwrap();
+        assert_eq!(warnings_for_item(&conn, &item).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn warnings_move_with_the_due_time() {
+        let mut conn = workspace();
+        let item = an_item(&mut conn, "Ship");
+        add_warning(&conn, &item, "2030-01-05T09:00:00.000Z").unwrap();
+        follow_due(
+            &conn,
+            &item,
+            Some("2030-01-10T09:00:00.000Z"),
+            Some("2030-01-12T09:00:00.000Z"),
+        )
+        .unwrap();
+        assert_eq!(
+            warnings_for_item(&conn, &item).unwrap()[0].fire_at,
+            "2030-01-07T09:00:00.000Z"
+        );
+    }
+
+    #[test]
+    fn a_warning_that_went_off_stays_where_it_was() {
+        let mut conn = workspace();
+        let item = an_item(&mut conn, "Ship");
+        let gone = add_warning(&conn, &item, "2030-01-05T09:00:00.000Z").unwrap();
+        mark_fired(&conn, &gone.id).unwrap();
+        follow_due(
+            &conn,
+            &item,
+            Some("2030-01-10T09:00:00.000Z"),
+            Some("2030-01-12T09:00:00.000Z"),
+        )
+        .unwrap();
+        follow_due(&conn, &item, Some("2030-01-12T09:00:00.000Z"), None).unwrap();
+        let left = warnings_for_item(&conn, &item).unwrap();
+        assert_eq!(left[0].fire_at, "2030-01-05T09:00:00.000Z");
+        assert!(left[0].fired);
+    }
+
+    #[test]
+    fn clearing_the_due_time_clears_what_was_counting_down_to_it() {
+        let mut conn = workspace();
+        let item = an_item(&mut conn, "Ship");
+        add_warning(&conn, &item, "2030-01-05T09:00:00.000Z").unwrap();
+        follow_due(&conn, &item, Some("2030-01-10T09:00:00.000Z"), None).unwrap();
+        assert!(warnings_for_item(&conn, &item).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_finished_task_owes_no_warnings() {
+        let mut conn = workspace();
+        let item = an_item(&mut conn, "Ship");
+        add_warning(&conn, &item, "2030-01-05T09:00:00.000Z").unwrap();
+        set_completed(&conn, &item, true).unwrap();
+        assert!(pending(&conn).unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_warning_needs_a_real_time_and_a_real_task() {
+        let mut conn = workspace();
+        let item = an_item(&mut conn, "Ship");
+        assert!(add_warning(&conn, &item, "soon").is_err());
+        assert!(add_warning(&conn, "nobody", "2030-01-05T09:00:00.000Z").is_err());
+        assert!(remove_warning(&conn, "nothing").is_err());
     }
 }

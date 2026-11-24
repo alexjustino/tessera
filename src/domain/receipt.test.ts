@@ -200,6 +200,29 @@ describe('the projection', () => {
   });
 });
 
+describe('the projection from now', () => {
+  const sized = item('a', { estimateMinutes: 8 * H });
+
+  it('gives today only what is left of it', () => {
+    // 09:00–17:00 and it is 13:00: four hours today, four tomorrow.
+    const found = project(ledger({ items: [sized], minuteNow: 13 * H }));
+    expect(found.finishes.get('a')).toBe('2026-11-03');
+  });
+
+  it('moves everything to tomorrow once the working day is over', () => {
+    const found = project(
+      ledger({ items: [item('a', { estimateMinutes: H })], minuteNow: 20 * H }),
+    );
+    expect(found.finishes.get('a')).toBe('2026-11-03');
+  });
+
+  // ── Negative case ──────────────────────────────────────────────────────
+  it('gives today all of it before the day starts', () => {
+    const found = project(ledger({ items: [sized], minuteNow: 7 * H }));
+    expect(found.finishes.get('a')).toBe(TODAY);
+  });
+});
+
 describe('the receipt', () => {
   it('a new day of work due today pushes A and B one day each, and nothing is late', () => {
     const r = receipt({ kind: 'task', title: 'Brief', minutes: DAY, dueAt: due('2026-11-02') });

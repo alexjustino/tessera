@@ -8,7 +8,8 @@ import {
 import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 
 import { describeError } from '@/data/errors';
-import { useSearch } from '@/data/hooks';
+import { useCollections, useSearch } from '@/data/hooks';
+import { INBOX } from '@/domain/lists';
 import { GROUP_LABELS, rankCommands, type RankedCommand } from '@/domain/palette';
 import { splitSnippet, type SearchHit } from '@/domain/search';
 import { Chip } from '@/ui/Chip';
@@ -16,7 +17,7 @@ import { InfoBar } from '@/ui/InfoBar';
 import { Kbd } from '@/ui/Kbd';
 import { Modal } from '@/ui/Modal';
 
-import { COMMANDS, type CommandId } from './commands';
+import { COMMANDS, type CommandId, type PaletteCommand } from './commands';
 
 /** How long typing pauses before the index is asked. */
 const SEARCH_DEBOUNCE_MS = 120;
@@ -70,9 +71,23 @@ export function CommandPalette({
   }, [open, query, commandsOnly]);
 
   const hits = useSearch(open ? debounced : '');
+  const collections = useCollections();
+  // Each of the person's own lists is somewhere to go (ADR-053).
+  const listCommands = useMemo<PaletteCommand[]>(
+    () =>
+      (collections.data ?? [])
+        .filter((list) => list.id !== INBOX)
+        .map((list) => ({
+          id: `list.${list.id}` as const,
+          title: `Go to ${list.name}`,
+          group: 'navigate',
+          keywords: ['list'],
+        })),
+    [collections.data],
+  );
 
   const entries = useMemo<Entry[]>(() => {
-    const ranked = rankCommands(query, COMMANDS);
+    const ranked = rankCommands(query, [...COMMANDS, ...listCommands]);
     const commands = query.trim().length === 0 ? ranked : ranked.slice(0, COMMANDS_BESIDE_HITS);
     const list: Entry[] = commands.map((item) => ({
       kind: 'command',
@@ -81,10 +96,10 @@ export function CommandPalette({
       heading: GROUP_LABELS[item.command.group],
     }));
     if (!commandsOnly) {
-      for (const hit of hits.data ?? []) {
+      for (const [index, hit] of (hits.data ?? []).entries()) {
         list.push({
           kind: 'hit',
-          key: `h:${hit.ownerKind}:${hit.ownerId}`,
+          key: `h:${hit.ownerKind}:${hit.ownerId}:${index}`,
           hit,
           heading: hit.ownerKind === 'event' ? 'Events' : 'Tasks',
         });
@@ -95,7 +110,7 @@ export function CommandPalette({
       const previous = list[index - 1];
       return previous && previous.heading === entry.heading ? { ...entry, heading: null } : entry;
     });
-  }, [query, commandsOnly, hits.data]);
+  }, [query, commandsOnly, hits.data, listCommands]);
 
   // The selection is clamped rather than reset on every keystroke, so a person
   // who arrowed down and kept typing does not jump back to the top.

@@ -1,4 +1,14 @@
-import { Add20Regular, Delete20Regular, Dismiss12Regular } from '@fluentui/react-icons';
+import {
+  Add20Regular,
+  CheckmarkCircle16Regular,
+  ChevronDown20Regular,
+  ChevronUp20Regular,
+  Clock16Regular,
+  Delete20Regular,
+  Dismiss12Regular,
+  Target16Regular,
+  Warning16Regular,
+} from '@fluentui/react-icons';
 import { useMemo, useState } from 'react';
 
 import { describeError } from '@/data/errors';
@@ -29,6 +39,7 @@ import {
   type Goal,
   type Measure,
 } from '@/domain/goal';
+import { seriesOf } from '@/domain/mosaicHistory';
 import { between } from '@/domain/ordering';
 import { traceable, type Figure } from '@/domain/report';
 import { systemZone } from '@/domain/schedule';
@@ -39,12 +50,20 @@ import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { EmptyState } from '@/ui/EmptyState';
+import { ChoiceGroup } from '@/ui/ChoiceGroup';
 import { IconButton } from '@/ui/IconButton';
 import { InfoBar } from '@/ui/InfoBar';
 import { Input } from '@/ui/Input';
+import { Page } from '@/ui/Page';
+import { ProgressRing } from '@/ui/ProgressRing';
 import { Select } from '@/ui/Select';
+import { Stat, StatRow } from '@/ui/Stat';
 import { announce } from '@/ui/announce';
 import { useNow } from '@/ui/useNow';
+
+/** The easy question first: is there a finish line at all? */
+const GOAL_KINDS = ['target', 'ongoing'] as const;
+const GOAL_KIND_LABELS = { target: 'Until I reach a target', ongoing: 'Ongoing focus' };
 
 /**
  * Goals — what you meant to get done, and how far it has got.
@@ -93,7 +112,37 @@ export function GoalsPage() {
   const [chosen, setChosen] = useState('');
 
   const all = useMemo(() => goals.data ?? [], [goals.data]);
-  const open = all.find((goal) => goal.id === openId) ?? all[0] ?? null;
+  // Cards first, so the page reads as scores: one opens when it is pressed. A lone
+  // goal has nothing to be compact beside, so it opens by itself.
+  const open =
+    all.find((goal) => goal.id === openId) ??
+    (all.length === 1 && openId !== '' ? (all[0] ?? null) : null);
+  const series = useMemo(() => seriesOf(all), [all]);
+
+  // How the goals stand together: the figures at the top of the page.
+  const standing = useMemo(() => {
+    let achieved = 0;
+    let late = 0;
+    let onTrack = 0;
+    let week = 0;
+    for (const goal of all) {
+      const held = itemsOf(goal, links.data ?? [], items.data ?? []);
+      const reading = progressOf(goal, held, entries.data ?? [], now, zone);
+      const state = stateOf(reading, goal, now, zone);
+      const forecast = forecasts.get(goal.id);
+      if (state === 'achieved') achieved += 1;
+      else if (
+        state === 'overdue' ||
+        (goal.dueDay !== null &&
+          forecast !== undefined &&
+          (forecast.plain === null || forecast.plain > goal.dueDay))
+      ) {
+        late += 1;
+      } else onTrack += 1;
+      week += goal.weeklyMinutes ?? 0;
+    }
+    return { achieved, late, onTrack, week };
+  }, [all, links.data, items.data, entries.data, now, zone, forecasts]);
 
   const inside = useMemo(
     () => (open === null ? [] : itemsOf(open, links.data ?? [], items.data ?? [])),
@@ -135,7 +184,7 @@ export function GoalsPage() {
     goals.error ?? links.error ?? create.error ?? update.error ?? remove.error ?? link.error;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
+    <Page>
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-title font-semibold text-fg">Goals</h1>
         <Button icon={<Add20Regular />} onClick={add}>
@@ -149,6 +198,41 @@ export function GoalsPage() {
         </InfoBar>
       )}
 
+      {all.length > 0 && (
+        <StatRow label="How the goals stand">
+          <Stat
+            testId="goals-track"
+            label="On track"
+            icon={<Target16Regular />}
+            value={standing.onTrack}
+            note={`Of ${all.length} ${all.length === 1 ? 'goal' : 'goals'}`}
+          />
+          <Stat
+            testId="goals-late"
+            label="At risk"
+            icon={<Warning16Regular />}
+            value={standing.late}
+            tone={standing.late > 0 ? 'danger' : 'neutral'}
+            note={standing.late > 0 ? 'Past or heading past the date' : 'Nothing heading late'}
+          />
+          <Stat
+            testId="goals-achieved"
+            label="Achieved"
+            icon={<CheckmarkCircle16Regular />}
+            value={standing.achieved}
+            tone={standing.achieved > 0 ? 'success' : 'neutral'}
+            note={standing.achieved > 0 ? 'Reached' : 'None yet'}
+          />
+          <Stat
+            testId="goals-week"
+            label="Promised each week"
+            icon={<Clock16Regular />}
+            value={standing.week === 0 ? '—' : hoursSaid(standing.week)}
+            note={standing.week === 0 ? 'No goal holds a weekly budget' : 'Across the goals'}
+          />
+        </StatRow>
+      )}
+
       {all.length === 0 ? (
         <EmptyState
           title="No goals yet"
@@ -160,7 +244,7 @@ export function GoalsPage() {
           }
         />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid items-start gap-3 [grid-template-columns:repeat(auto-fill,minmax(19rem,1fr))]">
           {all.map((goal) => (
             <GoalCard
               key={goal.id}
@@ -172,6 +256,7 @@ export function GoalsPage() {
               zone={zone}
               forecast={forecasts.get(goal.id) ?? null}
               sample={sample}
+              slot={series.get(goal.id)}
               onOpen={() => setOpenId(goal.id === open?.id ? '' : goal.id)}
               onDelete={() => setConfirming(goal)}
             >
@@ -179,8 +264,8 @@ export function GoalsPage() {
                 <div className="flex flex-col gap-4 border-t border-stroke-subtle pt-3">
                   <FigureRow figure={{ ...figure, label: 'Progress' }} broken={broken} big />
 
-                  <div className="flex flex-wrap items-end gap-3">
-                    <label className="flex flex-col gap-1">
+                  <div className="flex flex-wrap items-start gap-3">
+                    <label className="flex min-w-64 flex-1 flex-col gap-1">
                       <span className="text-caption text-fg-tertiary">Name</span>
                       <Input
                         aria-label="Goal name"
@@ -195,102 +280,132 @@ export function GoalsPage() {
                         }}
                       />
                     </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-caption text-fg-tertiary">Counting</span>
-                      <Select
-                        aria-label="What this goal counts"
-                        value={goal.measure}
-                        className="w-auto"
-                        onChange={(event) =>
+                    <div className="flex flex-col gap-1">
+                      <ChoiceGroup
+                        label="How long it runs"
+                        options={GOAL_KINDS}
+                        labels={GOAL_KIND_LABELS}
+                        value={goal.ongoing === true ? 'ongoing' : 'target'}
+                        onChange={(kind) =>
                           update.mutate({
                             id: goal.id,
-                            patch: { measure: event.target.value as Measure },
-                          })
-                        }
-                      >
-                        {MEASURES.map((measure) => (
-                          <option key={measure.id} value={measure.id}>
-                            {measure.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-caption text-fg-tertiary">
-                        Target {goal.measure === 'minutes' ? '(minutes)' : '(tasks)'}
-                      </span>
-                      <Input
-                        aria-label="Target"
-                        type="number"
-                        min={1}
-                        step={1}
-                        defaultValue={String(goal.target)}
-                        className="w-28"
-                        onBlur={(event) => {
-                          const target = Number(event.target.value);
-                          if (target === goal.target || checkTarget(target) !== null) {
-                            event.target.value = String(goal.target);
-                            return;
-                          }
-                          update.mutate({ id: goal.id, patch: { target } });
-                        }}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span className="text-caption text-fg-tertiary">By</span>
-                      <Input
-                        aria-label="Due day"
-                        type="date"
-                        defaultValue={goal.dueDay ?? ''}
-                        className="w-40"
-                        onChange={(event) =>
-                          update.mutate({
-                            id: goal.id,
-                            patch: {
-                              dueDay: event.target.value === '' ? null : event.target.value,
-                            },
+                            patch:
+                              kind === 'ongoing'
+                                ? { ongoing: true, dueDay: null }
+                                : { ongoing: false },
                           })
                         }
                       />
-                    </label>
+                    </div>
+                    {goal.ongoing !== true && (
+                      <>
+                        <label className="flex flex-col gap-1">
+                          <span className="text-caption text-fg-tertiary">
+                            Target {goal.measure === 'minutes' ? '(minutes)' : '(tasks)'}
+                          </span>
+                          <Input
+                            aria-label="Target"
+                            type="number"
+                            min={1}
+                            step={1}
+                            defaultValue={String(goal.target)}
+                            className="w-28"
+                            onBlur={(event) => {
+                              const target = Number(event.target.value);
+                              if (target === goal.target || checkTarget(target) !== null) {
+                                event.target.value = String(goal.target);
+                                return;
+                              }
+                              update.mutate({ id: goal.id, patch: { target } });
+                            }}
+                          />
+                        </label>
+                        <label className="flex flex-col gap-1">
+                          <span className="text-caption text-fg-tertiary">By (optional)</span>
+                          <Input
+                            aria-label="Due day"
+                            type="date"
+                            defaultValue={goal.dueDay ?? ''}
+                            className="w-40"
+                            onChange={(event) =>
+                              update.mutate({
+                                id: goal.id,
+                                patch: {
+                                  dueDay: event.target.value === '' ? null : event.target.value,
+                                },
+                              })
+                            }
+                          />
+                        </label>
+                      </>
+                    )}
                   </div>
 
-                  <label className="flex flex-col gap-1">
-                    <span className="text-caption text-fg-tertiary">
-                      Hours each week (optional) — the goal&apos;s envelope in the Mosaic
-                    </span>
-                    <Input
-                      aria-label="Hours each week"
-                      type="number"
-                      min={0}
-                      max={168}
-                      step={0.5}
-                      placeholder="No envelope"
-                      defaultValue={
-                        goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
-                          ? ''
-                          : String(goal.weeklyMinutes / 60)
-                      }
-                      className="w-40"
-                      onBlur={(event) => {
-                        const text = event.target.value.trim();
-                        const hours = Number(text);
-                        const minutes = text === '' || hours === 0 ? null : Math.round(hours * 60);
-                        if (
-                          minutes !== null &&
-                          (!Number.isFinite(hours) || hours < 0 || hours > 168)
-                        ) {
-                          event.target.value =
+                  <details className="group/details">
+                    <summary className="cursor-pointer text-body text-fg-secondary hover:text-fg">
+                      More details
+                    </summary>
+                    <div className="mt-3 flex flex-wrap items-start gap-3">
+                      <label className="flex flex-col gap-1">
+                        <span className="text-caption text-fg-tertiary">Counting</span>
+                        <Select
+                          aria-label="What this goal counts"
+                          value={goal.measure}
+                          className="w-auto"
+                          onChange={(event) =>
+                            update.mutate({
+                              id: goal.id,
+                              patch: { measure: event.target.value as Measure },
+                            })
+                          }
+                        >
+                          {MEASURES.map((measure) => (
+                            <option key={measure.id} value={measure.id}>
+                              {measure.label}
+                            </option>
+                          ))}
+                        </Select>
+                      </label>
+
+                      <label className="flex flex-col gap-1">
+                        <span className="text-caption text-fg-tertiary">
+                          Hours each week (optional) — the goal&apos;s envelope in the Mosaic
+                        </span>
+                        <Input
+                          aria-label="Hours each week"
+                          type="number"
+                          min={0}
+                          max={168}
+                          step={0.5}
+                          placeholder="No envelope"
+                          defaultValue={
                             goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
                               ? ''
-                              : String(goal.weeklyMinutes / 60);
-                          return;
-                        }
-                        if (minutes === (goal.weeklyMinutes ?? null)) return;
-                        update.mutate({ id: goal.id, patch: { weeklyMinutes: minutes } });
-                      }}
-                    />
-                  </label>
+                              : String(goal.weeklyMinutes / 60)
+                          }
+                          className="w-40"
+                          onBlur={(event) => {
+                            const text = event.target.value.trim();
+                            const hours = Number(text);
+                            const minutes =
+                              text === '' || hours === 0 ? null : Math.round(hours * 60);
+                            if (
+                              minutes !== null &&
+                              (!Number.isFinite(hours) || hours < 0 || hours > 168)
+                            ) {
+                              event.target.value =
+                                goal.weeklyMinutes === null || goal.weeklyMinutes === undefined
+                                  ? ''
+                                  : String(goal.weeklyMinutes / 60);
+                              return;
+                            }
+                            if (minutes === (goal.weeklyMinutes ?? null)) return;
+                            update.mutate({ id: goal.id, patch: { weeklyMinutes: minutes } });
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </details>
 
                   <section aria-label="Tasks in this goal">
                     <h3 className="mb-2 text-caption font-semibold text-fg-tertiary uppercase">
@@ -377,11 +492,20 @@ export function GoalsPage() {
         The goal goes; the tasks in it stay exactly as they are. A goal keeps no work of its own —
         only the intention, and which rows counted for it.
       </ConfirmDialog>
-    </div>
+    </Page>
   );
 }
 
-/** One goal in the list: its name, where it stands, and a bar. */
+function hoursSaid(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours}h` : `${hours}h ${rest}m`;
+}
+
+/**
+ * One goal: closed it is a card with its score and how it stands, pressed it opens
+ * across the row with everything that can be changed.
+ */
 function GoalCard({
   goal,
   open,
@@ -391,10 +515,13 @@ function GoalCard({
   zone,
   forecast,
   sample,
+  slot,
   onOpen,
   onDelete,
   children,
 }: {
+  /** Which colour the goal wears, the one its tiles have in the Mosaic. */
+  slot: number | undefined;
   goal: Goal;
   open: boolean;
   items: ReturnType<typeof itemsOf>;
@@ -415,77 +542,85 @@ function GoalCard({
   const hours = (minutes: number) => formatDuration(minutes);
 
   const says =
-    state === 'achieved'
-      ? 'Achieved'
-      : state === 'overdue'
-        ? `${Math.abs(left ?? 0)} ${Math.abs(left ?? 0) === 1 ? 'day' : 'days'} past its date`
-        : state === 'due'
-          ? `${left} ${left === 1 ? 'day' : 'days'} left`
-          : `${remainingOf(figure, goal)} to go`;
+    state === 'ongoing'
+      ? 'Ongoing focus, no end date'
+      : state === 'achieved'
+        ? 'Achieved'
+        : state === 'overdue'
+          ? `${Math.abs(left ?? 0)} ${Math.abs(left ?? 0) === 1 ? 'day' : 'days'} past its date`
+          : state === 'due'
+            ? `${left} ${left === 1 ? 'day' : 'days'} left`
+            : `${goal.measure === 'minutes' ? hours(remainingOf(figure, goal)) : remainingOf(figure, goal)} to go`;
 
   return (
-    <li>
-      <Card>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-expanded={open}
-              aria-label={`${open ? 'Close' : 'Open'} ${goal.name}`}
-              onClick={onOpen}
-              className="min-w-0 flex-1 truncate text-left text-body-lg font-semibold text-fg"
-            >
-              {goal.name}
-            </button>
-            <span
-              className={[
-                'shrink-0 text-caption',
-                state === 'achieved'
-                  ? 'text-success'
-                  : state === 'overdue'
-                    ? 'text-danger'
-                    : 'text-fg-tertiary',
-              ].join(' ')}
-            >
-              {says}
-            </span>
-            <IconButton
-              label={`Delete ${goal.name}`}
-              icon={<Delete20Regular />}
-              onClick={onDelete}
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div
-              role="progressbar"
-              aria-label={`${goal.name} progress`}
-              aria-valuemin={0}
-              aria-valuemax={goal.target}
-              aria-valuenow={figure.value}
-              aria-valuetext={describeProgress(figure, goal, hours)}
-              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-card-hover"
-            >
-              <div
-                className={[
-                  'h-full rounded-full transition-[width] duration-200 ease-easy',
-                  state === 'achieved' ? 'bg-success' : 'bg-accent',
-                ].join(' ')}
-                style={{ width: `${Math.round(share * 100)}%` }}
-              />
+    <li className={open ? 'col-span-full' : ''} data-goal={goal.id}>
+      <div
+        className="rounded-xl border-l-4 border-l-transparent"
+        style={slot === undefined ? undefined : { borderLeftColor: `var(--series-${slot})` }}
+      >
+        <Card>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <ProgressRing
+                share={goal.ongoing === true ? null : share}
+                tone={state === 'achieved' ? 'success' : 'accent'}
+                label={`${goal.name} progress`}
+                valueText={describeProgress(figure, goal, hours)}
+                max={goal.target}
+                value={figure.value}
+              >
+                {goal.ongoing === true
+                  ? goal.measure === 'minutes'
+                    ? hours(figure.value)
+                    : figure.value
+                  : `${Math.round(share * 100)}%`}
+              </ProgressRing>
+              <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  aria-label={`${open ? 'Close' : 'Open'} ${goal.name}`}
+                  onClick={onOpen}
+                  className="flex w-full items-center gap-1 text-left text-body-lg font-semibold text-fg"
+                >
+                  <span className="min-w-0 truncate">{goal.name}</span>
+                  <span aria-hidden="true" className="shrink-0 text-fg-tertiary">
+                    {open ? <ChevronUp20Regular /> : <ChevronDown20Regular />}
+                  </span>
+                </button>
+                <p className="truncate text-caption tabular-nums text-fg-secondary">
+                  {describeProgress(figure, goal, hours)}
+                </p>
+                <p
+                  className={[
+                    'text-caption',
+                    state === 'achieved'
+                      ? 'text-success'
+                      : state === 'overdue'
+                        ? 'text-danger'
+                        : 'text-fg-tertiary',
+                  ].join(' ')}
+                >
+                  {says}
+                </p>
+              </div>
+              {open && (
+                <IconButton
+                  label={`Delete ${goal.name}`}
+                  icon={<Delete20Regular />}
+                  onClick={onDelete}
+                />
+              )}
             </div>
-            <span className="shrink-0 text-caption tabular-nums text-fg-secondary">
-              {describeProgress(figure, goal, hours)}
-            </span>
+
+            {open && forecast !== null && state !== 'achieved' && state !== 'ongoing' && (
+              <ForecastLine forecast={forecast} sample={sample} dueDay={goal.dueDay} />
+            )}
+
+            {children}
           </div>
-
-          {forecast !== null && state !== 'achieved' && (
-            <ForecastLine forecast={forecast} sample={sample} dueDay={goal.dueDay} />
-          )}
-
-          {children}
-        </div>
-      </Card>
+        </Card>
+      </div>
     </li>
   );
 }

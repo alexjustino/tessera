@@ -91,9 +91,22 @@ function itemsOf(columns: readonly Column[]): Item[] {
 const ROWS = [row('a', 'a', 'todo'), row('b', 'b', 'todo'), row('c', 'c', 'doing'), row('d', 'd')];
 
 describe('columns come from the engine, not from a store of their own', () => {
-  it('makes one column per declared option, plus one for no value', () => {
+  it('makes one column per declared option, and one for no value first', () => {
+    // First, because a new card has no value, and at the far end of a wide board the
+    // column it lands in is off the screen.
     const columns = board(ROWS);
-    expect(columns.map((column) => column.key)).toEqual(['todo', 'doing', 'done', null]);
+    expect(columns.map((column) => column.key)).toEqual([null, 'todo', 'doing', 'done']);
+  });
+
+  it('names the column with no value after the field', () => {
+    const named = toColumns(
+      board(ROWS).map((column) => ({ ...column, color: null })),
+      EMPTY_BOARD_CONFIG,
+      'Status',
+    );
+    expect(named[0]?.label).toBe('No status');
+    // Without a field to name it after, it keeps the engine's word.
+    expect(board(ROWS)[0]?.label).toBe('No value');
   });
 
   it('keeps a declared column even when nothing is in it', () => {
@@ -105,7 +118,9 @@ describe('columns come from the engine, not from a store of their own', () => {
 
   it('puts cards with no value in their own column', () => {
     const columns = board(ROWS);
-    expect(columns.at(-1)?.rows.map((r) => r.item.id)).toEqual(['d']);
+    expect(columns.find((column) => column.key === null)?.rows.map((r) => r.item.id)).toEqual([
+      'd',
+    ]);
   });
 });
 
@@ -117,7 +132,7 @@ describe('work-in-progress limits', () => {
     ).find((column) => column.key === 'todo')!;
 
   it('reports no limit when none is set', () => {
-    expect(wipState(board(ROWS)[0]!)).toBe('none');
+    expect(wipState(board(ROWS).find((column) => column.key === 'todo')!)).toBe('none');
   });
 
   it('distinguishes under, at and over the limit', () => {

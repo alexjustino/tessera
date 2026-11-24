@@ -107,3 +107,8 @@ export async function probeNotification(): Promise<ToastOutcome> {
     note: raw.note,
   };
 }
+
+/** Write an email draft and open it in the person's mail program. Tessera sends nothing. */
+export async function draftEmail(subject: string, html: string, text: string): Promise<void> {
+  await invoke<string>('email_draft', { subject, html, text });
+}

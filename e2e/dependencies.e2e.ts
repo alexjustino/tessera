@@ -80,14 +80,14 @@ describe('dependencies', () => {
     const { driver } = session;
     const blocked = await driver.waitFor('the Blocked chip', async () => {
       const chips = await driver.findAllByXPath(
-        '//li[contains(normalize-space(.), "Build it")][not(.//li)]//span[normalize-space(.)="Waiting"]',
+        '//li[contains(normalize-space(.), "Build it")][not(.//li)]//span[normalize-space(.)="Waiting"][not(ancestor::*[@data-testid="overview"])]',
       );
       return chips[0] ?? null;
     });
     expect(await blocked.displayed()).toBe(true);
 
     const onBlocker = await driver.findAllByXPath(
-      '//li[contains(normalize-space(.), "Design it")][not(.//li)]//span[normalize-space(.)="Waiting"]',
+      '//li[contains(normalize-space(.), "Design it")][not(.//li)]//span[normalize-space(.)="Waiting"][not(ancestor::*[@data-testid="overview"])]',
     );
     expect(onBlocker.length).toBe(0);
   });
@@ -102,7 +102,7 @@ describe('dependencies', () => {
 
     await driver.waitFor('the chip is gone', async () => {
       const chips = await driver.findAllByXPath(
-        '//li[contains(normalize-space(.), "Build it")][not(.//li)]//span[normalize-space(.)="Waiting"]',
+        '//li[contains(normalize-space(.), "Build it")][not(.//li)]//span[normalize-space(.)="Waiting"][not(ancestor::*[@data-testid="overview"])]',
       );
       return chips.length === 0 ? true : null;
     });
@@ -158,7 +158,9 @@ describe('dependencies', () => {
     await closeDetail();
 
     await driver.waitFor('no chip anywhere', async () => {
-      const chips = await driver.findAllByXPath('//span[normalize-space(.)="Waiting"]');
+      const chips = await driver.findAllByXPath(
+        '//span[normalize-space(.)="Waiting"][not(ancestor::*[@data-testid="overview"])]',
+      );
       return chips.length === 0 ? true : null;
     });
   });

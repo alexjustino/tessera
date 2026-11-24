@@ -104,7 +104,15 @@ pub fn import_inspect(path: String) -> Result<Counts> {
     let document = export::read_export(Path::new(&path))?;
     let rows = |table: &str| document.tables.get(table).map_or(0, |r| r.len() as i64);
     Ok(Counts {
-        items: rows("item"),
+        // Tasks: a subtask is a step inside one (ADR-051).
+        items: document.tables.get("item").map_or(0, |rows| {
+            rows.iter()
+                .filter(|row| {
+                    row.get("parent_item_id")
+                        .map_or(true, |parent| parent.is_null())
+                })
+                .count() as i64
+        }),
         events: rows("event"),
         blocks: rows("block"),
     })

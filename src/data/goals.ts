@@ -16,6 +16,7 @@ interface RawGoal {
   created_at: string;
   updated_at: string;
   weekly_minutes: number | null;
+  ongoing: boolean;
 }
 
 interface RawLink {
@@ -35,6 +36,7 @@ function toGoal(raw: RawGoal): Goal {
     dueDay: raw.due_day,
     position: raw.position,
     weeklyMinutes: raw.weekly_minutes,
+    ongoing: raw.ongoing,
   };
 }
 
@@ -68,12 +70,15 @@ export interface GoalPatch {
   dueDay?: string | null;
   /** Minutes a week, or null to remove the envelope. */
   weeklyMinutes?: number | null;
+  /** A focus kept up over time, with no finish line. */
+  ongoing?: boolean;
 }
 
 export async function updateGoal(id: string, patch: GoalPatch): Promise<Goal> {
   const body: Record<string, unknown> = {};
   if (patch.name !== undefined) body.name = patch.name;
   if (patch.measure !== undefined) body.measure = patch.measure;
+  if (patch.ongoing !== undefined) body.ongoing = patch.ongoing;
   if (patch.target !== undefined) body.target = patch.target;
   // Sent only when the caller means it: absent leaves the day alone, null
   // clears it, and the host tells the two apart.

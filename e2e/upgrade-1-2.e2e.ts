@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { startSession, type Session } from './session';
+import { openDiagnostics, startSession, type Session } from './session';
 
 const ELEMENT = 'element-6066-11e4-a52e-4f735466cecf';
 
@@ -46,7 +46,7 @@ describe('a 1.2 workspace in 1.3', () => {
   });
 
   it('is migrated to the current schema, and Diagnostics says so', async () => {
-    await goTo('Diagnostics');
+    await openDiagnostics(session);
     await session.driver.waitForText('up to date');
   });
 
@@ -62,6 +62,7 @@ describe('a 1.2 workspace in 1.3', () => {
     await driver.waitForText('Launch');
     await driver.waitFor('the goal forecast', () => driver.find('[data-testid="forecast"]'));
 
+    await (await driver.findByXPath('//summary[normalize-space(.)="More details"]')).click();
     const hours = await driver.waitFor('the hours field', () =>
       driver.find('input[aria-label="Hours each week"]'),
     );
@@ -82,6 +83,11 @@ describe('a 1.2 workspace in 1.3', () => {
     const { driver } = session;
     await driver.waitForElement('[data-testid="mosaic-summary"]');
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Working time"]',
+      )
+    ).click();
     await driver.waitForText('Days off');
     const field = await driver.waitForElement('input[aria-label="Day off"]');
     await driver.execute(

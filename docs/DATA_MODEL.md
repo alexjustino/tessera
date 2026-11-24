@@ -25,21 +25,25 @@ calls a board and what Notion calls a database.
 
 ## Tables
 
-| Table                 | Holds                                                   |
-| --------------------- | ------------------------------------------------------- |
-| `workspace`           | one row: name, settings, `schema_version`               |
-| `collection`          | a list / board / database                               |
-| `property`            | a typed field declared on a collection                  |
-| `item`                | a unit of work, optionally nested under another         |
-| `item_property_value` | the entity-attribute-value store for property values    |
-| `tag`, `item_tag`     | global labels                                           |
-| `block`               | the document, for an item, an event or a page           |
-| `view`                | a saved query: filters, sorts, grouping, visible fields |
-| `reminder`            | a pending alert for an item or an event                 |
-| `activity`            | the history and undo trail                              |
-| `search_fts`          | FTS5 over titles and flattened block text               |
-| `item_dependency`     | one edge of the graph: this task waits for that one     |
-| `time_entry`          | an interval on a task; a null end is a running timer    |
+| Table                 | Holds                                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `workspace`           | one row: name, settings, `schema_version`                                                                                         |
+| `collection`          | a list / board / database                                                                                                         |
+| `property`            | a typed field declared on a collection                                                                                            |
+| `item`                | a task, or one step inside a task (one level, ADR-051)                                                                            |
+| `item_property_value` | the entity-attribute-value store for property values                                                                              |
+| `tag`, `item_tag`     | global labels                                                                                                                     |
+| `block`               | the document, for an item, an event or a page. Inline nodes `pageLink` and `taskLink` hold an identity beside the words they show |
+| `view`                | a saved query: filters, sorts, grouping, visible fields                                                                           |
+| `reminder`            | a pending alert for an item or an event; kind `warning`                                                                           |
+| `activity`            | the history and undo trail                                                                                                        |
+| `search_fts`          | FTS5 over titles and flattened block text                                                                                         |
+| `item_dependency`     | one edge of the graph: this task waits for that one                                                                               |
+| `time_entry`          | an interval on a task; a null end is a running timer                                                                              |
+| `item_page`           | a task and a page a person paired (ADR-041)                                                                                       |
+| `event_page`          | an occurrence of a meeting and its notes (ADR-054)                                                                                |
+| `day_review`          | a day planned and closed, and what it came to (ADR-061)                                                                           |
+| `section`             | a named, coloured group of pages (ADR-057); `page.section_id`                                                                     |
 
 Arriving with the calendar slice: `calendar`, `event`, `event_exception`, `time_block`,
 `work_hours`. Arriving later: `page`.

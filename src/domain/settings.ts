@@ -34,6 +34,12 @@ export interface Settings {
   quickCaptureShortcut: Shortcut;
   backupsEnabled: boolean;
   backupsKeep: number;
+  /** Getting started: answers only the person can give. */
+  guideHoursSet: boolean;
+  guideDaysOffSet: boolean;
+  guideDismissed: boolean;
+  /** Ask GitHub once a day whether a newer release exists (ADR-062). */
+  updateCheck: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -42,6 +48,10 @@ export const DEFAULT_SETTINGS: Settings = {
   quickCaptureShortcut: 'Ctrl+Alt+Space',
   backupsEnabled: true,
   backupsKeep: 7,
+  guideHoursSet: false,
+  guideDaysOffSet: false,
+  guideDismissed: false,
+  updateCheck: true,
 };
 
 function oneOf<T extends string>(list: readonly T[], value: unknown, fallback: T): T {
@@ -70,6 +80,11 @@ export function readSettings(raw: unknown): Settings {
       Number.isInteger(keep) && keep >= 1 && keep <= MAX_BACKUPS_KEPT
         ? keep
         : DEFAULT_SETTINGS.backupsKeep,
+    guideHoursSet: source.guideHoursSet === true,
+    guideDaysOffSet: source.guideDaysOffSet === true,
+    guideDismissed: source.guideDismissed === true,
+    // On unless the person turned it off: a document from before 1.4 has no word on it.
+    updateCheck: source.updateCheck !== false,
   };
 }
 

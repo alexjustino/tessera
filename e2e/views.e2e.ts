@@ -49,9 +49,8 @@ describe('views', () => {
     await driver.waitForText('Stand-up');
     // Tomorrow's report and the undated plant are not today's.
     await driver.waitFor('only today', async () => {
-      const report = await driver.findAllByXPath(
-        '//*[contains(normalize-space(text()), "Write the report")]',
-      );
+      // By its checkbox: Coming up names it too, as what is not today's.
+      const report = await driver.findAll('input[aria-label="Complete Write the report"]');
       return report.length === 0 ? true : null;
     });
   });

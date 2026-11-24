@@ -10,11 +10,11 @@ import { describeError } from '@/data/errors';
 import { useBackupNow, useBackupsStatus, useRestoreBackup } from '@/data/hooks';
 import { describeAge, formatBytes, type Settings } from '@/domain/settings';
 import { Button } from '@/ui/Button';
-import { Card } from '@/ui/Card';
-import { Checkbox } from '@/ui/Checkbox';
 import { ConfirmDialog } from '@/ui/ConfirmDialog';
 import { InfoBar } from '@/ui/InfoBar';
 import { Select } from '@/ui/Select';
+import { SettingBody, SettingGroup, SettingRow } from '@/ui/Setting';
+import { Toggle } from '@/ui/Toggle';
 
 const KEEP_OPTIONS = [3, 7, 14, 30] as const;
 
@@ -68,18 +68,22 @@ export function BackupsCard({
   };
 
   return (
-    <Card
-      title="Backups"
-      description="A copy of the workspace file, taken on the first start of each day and kept in rotation."
-      actions={
-        <span className="flex gap-1">
-          <Button
-            appearance="subtle"
-            icon={<FolderOpen20Regular />}
-            onClick={() => void revealBackups()}
-          >
-            Open folder
-          </Button>
+    <>
+      {failure && (
+        <InfoBar severity="danger" title="The backup could not be completed">
+          {describeError(failure)}
+        </InfoBar>
+      )}
+      {restored && (
+        <InfoBar severity="success" title="The workspace was restored">
+          {restored} The state before the restore was backed up first, and is in the list.
+        </InfoBar>
+      )}
+
+      <SettingGroup
+        title="Automatic backups"
+        description="A copy of the workspace file, kept in rotation beside it."
+        actions={
           <Button
             appearance="accent"
             icon={<Save20Regular />}
@@ -88,35 +92,17 @@ export function BackupsCard({
           >
             {backupNow.isPending ? 'Backing up…' : 'Back up now'}
           </Button>
-        </span>
-      }
-    >
-      <div className="flex flex-col gap-3">
-        {failure && (
-          <InfoBar severity="danger" title="The backup could not be completed">
-            {describeError(failure)}
-          </InfoBar>
-        )}
-        {restored && (
-          <InfoBar severity="success" title="The workspace was restored">
-            {restored} The state before the restore was backed up first, and is in the list.
-          </InfoBar>
-        )}
-
-        <label className="flex items-center gap-2 text-body text-fg">
-          <Checkbox
+        }
+      >
+        <SettingRow title="Back up every day" description="On the first start of each day.">
+          <Toggle
             checked={settings.backupsEnabled}
             label="Back up daily"
             disabled={busy}
             onChange={(on) => onChange({ backupsEnabled: on })}
           />
-          <span>Back up on the first start of each day</span>
-        </label>
-
-        <label className="flex items-center gap-3 text-body text-fg">
-          <span className="w-28 shrink-0 text-caption font-semibold text-fg-tertiary uppercase">
-            Keep
-          </span>
+        </SettingRow>
+        <SettingRow title="How many to keep" description="The oldest goes when a new one is taken.">
           <span className="w-40">
             <Select
               aria-label="How many backups to keep"
@@ -134,12 +120,32 @@ export function BackupsCard({
               )}
             </Select>
           </span>
-        </label>
+        </SettingRow>
+      </SettingGroup>
 
-        <div>
-          <p className="mb-1 text-caption font-semibold text-fg-tertiary uppercase">
-            In the folder
-          </p>
+      <SettingGroup
+        title="In the folder"
+        description={
+          status.data
+            ? `The workspace now holds ${status.data.counts.items} tasks, ${status.data.counts.events} events and ${status.data.counts.blocks} blocks.`
+            : undefined
+        }
+        actions={
+          <span className="flex gap-1">
+            <Button
+              appearance="subtle"
+              icon={<FolderOpen20Regular />}
+              onClick={() => void revealBackups()}
+            >
+              Open folder
+            </Button>
+            <Button onClick={() => void askToRestoreFile()} disabled={restore.isPending}>
+              Restore from a file…
+            </Button>
+          </span>
+        }
+      >
+        <SettingBody>
           {status.data === undefined ? (
             <div className="h-10 animate-pulse rounded-md bg-card-hover" aria-hidden="true" />
           ) : status.data.backups.length === 0 ? (
@@ -171,19 +177,8 @@ export function BackupsCard({
               ))}
             </ul>
           )}
-          <p className="mt-2 text-caption text-fg-tertiary">
-            {status.data
-              ? `Now: ${status.data.counts.items} tasks, ${status.data.counts.events} events, ${status.data.counts.blocks} blocks.`
-              : ''}
-          </p>
-        </div>
-
-        <div>
-          <Button onClick={() => void askToRestoreFile()} disabled={restore.isPending}>
-            Restore from a file…
-          </Button>
-        </div>
-      </div>
+        </SettingBody>
+      </SettingGroup>
 
       <ConfirmDialog
         open={candidate !== null}
@@ -197,6 +192,6 @@ export function BackupsCard({
         Everything in the workspace now will be replaced by {candidate?.label}. A backup of the
         current state is taken first, so this can be undone from the same list.
       </ConfirmDialog>
-    </Card>
+    </>
   );
 }

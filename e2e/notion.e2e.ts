@@ -209,6 +209,11 @@ describe('a Notion database', () => {
   it('undo takes the rows and the properties it created', async () => {
     const { driver } = session;
     await goTo('Settings');
+    await (
+      await driver.findByXPath(
+        '//nav[@aria-label="Settings sections"]//button[normalize-space(.)="Add from another product"]',
+      )
+    ).click();
     const undo = await driver.waitFor('the Undo control', () =>
       driver.find('button[aria-label^="Undo the import"]'),
     );

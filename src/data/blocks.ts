@@ -8,6 +8,7 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import type { Block, BlockChanges, DocNode } from '@/domain/document';
+import type { MarkedBlock } from '@/domain/markers';
 import type { Link } from '@/domain/page';
 
 interface RawBlock {
@@ -21,6 +22,26 @@ interface RawBlock {
 
 function toBlock(raw: RawBlock): Block {
   return { id: raw.id, type: raw.type, position: raw.position, content: raw.content };
+}
+
+/** Every block with a marker in it, across the workspace. */
+export async function listMarkedBlocks(): Promise<MarkedBlock[]> {
+  const raw = await invoke<
+    Array<{
+      block_id: string;
+      owner_kind: MarkedBlock['ownerKind'];
+      owner_id: string;
+      owner_title: string;
+      content: DocNode | null;
+    }>
+  >('blocks_marked');
+  return raw.map((row) => ({
+    blockId: row.block_id,
+    ownerKind: row.owner_kind,
+    ownerId: row.owner_id,
+    ownerTitle: row.owner_title,
+    content: row.content ?? { type: 'paragraph' },
+  }));
 }
 
 export async function listBlocks(ownerKind: string, ownerId: string): Promise<Block[]> {

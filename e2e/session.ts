@@ -66,7 +66,13 @@ async function waitForDriver(): Promise<void> {
   throw new Error('tauri-driver did not come up on port 4444');
 }
 
-function startDriverProcess(dataDir: string): ChildProcess {
+/**
+ * Where a session's update check goes (ADR-062): never GitHub. Nothing listens on
+ * the discard port, so the check fails at once, as it does on a machine offline.
+ */
+const NO_UPDATES = 'https://127.0.0.1:9/latest.json';
+
+function startDriverProcess(dataDir: string, updateUrl: string): ChildProcess {
   const child = spawn(
     'tauri-driver',
     [
@@ -78,7 +84,14 @@ function startDriverProcess(dataDir: string): ChildProcess {
       nativeDriver(),
     ],
     {
-      env: { ...process.env, TESSERA_DATA_DIR: dataDir },
+      env: {
+        ...process.env,
+        TESSERA_DATA_DIR: dataDir,
+        // The engine's own profile too: an installed Tessera holds the default
+        // one while it runs, and a second engine on it exits at once.
+        WEBVIEW2_USER_DATA_FOLDER: path.join(dataDir, 'webview'),
+        TESSERA_UPDATE_URL: updateUrl,
+      },
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
     },
@@ -218,6 +231,19 @@ export interface SessionOptions {
    * place: the fixture stays what it was.
    */
   seedWorkspace?: string;
+  /** Where the update check goes: an `https` address on this machine. */
+  updateUrl?: string;
+}
+
+/** Diagnostics has no place in the rail: it opens from About. */
+export async function openDiagnostics(session: Session): Promise<void> {
+  const { driver } = session;
+  await (await driver.findByXPath('//nav//button[normalize-space(.)="About"]')).click();
+  const open = await driver.waitFor('the way into Diagnostics', () =>
+    driver.findByXPath('//button[normalize-space(.)="Open diagnostics"]'),
+  );
+  await open.click();
+  await driver.waitForText('What Tessera can see of this machine');
 }
 
 export async function startSession(options: SessionOptions = {}): Promise<Session> {
@@ -229,7 +255,8 @@ export async function startSession(options: SessionOptions = {}): Promise<Sessio
   if (options.seedWorkspace !== undefined) {
     await copyFile(options.seedWorkspace, path.join(dataDir, 'tessera.sqlite3'));
   }
-  let process_ = startDriverProcess(dataDir);
+  const updateUrl = options.updateUrl ?? NO_UPDATES;
+  let process_ = startDriverProcess(dataDir, updateUrl);
   let driver: Driver;
   try {
     await waitForDriver();
@@ -259,11 +286,30 @@ export async function startSession(options: SessionOptions = {}): Promise<Sessio
     },
     async restart() {
       await teardown(driver, process_);
-      process_ = startDriverProcess(dataDir);
+      process_ = startDriverProcess(dataDir, updateUrl);
       await waitForDriver();
       driver = await createSession();
       session.driver = driver;
     },
   };
   return session;
+}
+
+/**
+ * Make every hour of every day working time, and open the window again so it reads it.
+ *
+ * A test that reserves "the next free time" otherwise depends on when it runs: on a
+ * Friday evening the next free hour is on Monday, off the week on screen, and the
+ * test fails every night and every weekend. Near midnight the next hour can still be
+ * tomorrow; that is the one window this does not close.
+ */
+export async function workEveryHour(session: Session): Promise<void> {
+  const written = await session.driver.executeAsync<unknown>(
+    'const done = arguments[arguments.length - 1]; window.__TAURI_INTERNALS__.invoke("work_hours_set", { hours: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts_minute: 0, ends_minute: 1440 })) }).then(() => done(true), (e) => done(JSON.stringify(e)));',
+  );
+  if (written !== true) throw new Error(`the working hours were not written: ${String(written)}`);
+  await session.restart();
+  await session.driver.waitFor('the opening to go', async () =>
+    (await session.driver.findAll('#opening')).length === 0 ? true : null,
+  );
 }

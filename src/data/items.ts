@@ -9,7 +9,9 @@
 import { invoke } from '@tauri-apps/api/core';
 
 import type { Capture } from '@/domain/capture';
-import type { Collection, Item } from '@/domain/item';
+import { positionForNewItem, type Collection, type Item } from '@/domain/item';
+
+import { listProperties } from './properties';
 import type { PropertyValue } from '@/domain/property';
 import type { Schedule } from '@/domain/schedule';
 
@@ -76,12 +78,111 @@ export async function listCollections(): Promise<Collection[]> {
   return raw.map(toCollection);
 }
 
+/**
+ * Where a task captured into another list lands: after that list's last task, with
+ * that list's own Priority, because a property belongs to its list (ADR-053).
+ */
+export async function landingIn(
+  collectionId: string,
+): Promise<{ position: string; priorityPropertyId: string | null }> {
+  const [items, properties] = await Promise.all([
+    listItems(collectionId, true),
+    listProperties(collectionId),
+  ]);
+  return {
+    position: positionForNewItem(items),
+    priorityPropertyId: properties.find((property) => property.type === 'priority')?.id ?? null,
+  };
+}
+
+/** A new list, set up the way Tasks is (ADR-053). */
+export async function createList(name: string, position: string): Promise<Collection> {
+  return toCollection(await invoke<RawCollection>('list_create', { name, position }));
+}
+
+export async function renameList(id: string, name: string): Promise<Collection> {
+  return toCollection(await invoke<RawCollection>('list_rename', { id, name }));
+}
+
+export async function colorList(id: string, color: string | null): Promise<Collection> {
+  return toCollection(await invoke<RawCollection>('list_color', { id, color }));
+}
+
+export async function deleteList(id: string): Promise<void> {
+  await invoke('list_delete', { id });
+}
+
+/** Move a task and its subtasks to another list, its values with it where they fit. */
+export async function moveToList(
+  id: string,
+  collectionId: string,
+  position: string,
+): Promise<Item> {
+  return toItem(await invoke<RawItem>('item_move_to_list', { id, collectionId, position }));
+}
+
 export async function listItems(
   collectionId: string | null,
   includeCompleted: boolean,
 ): Promise<Item[]> {
   const raw = await invoke<RawItem[]>('items_list', { collectionId, includeCompleted });
   return raw.map(toItem);
+}
+
+/** What the host hands back after a replan, and takes again to undo it (ADR-052). */
+export interface ReplanUndo {
+  schedules: Array<{
+    item_id: string;
+    start_at: string | null;
+    due_at: string | null;
+    remind_at: string | null;
+    recurrence_rrule: string | null;
+    recurrence_mode: string | null;
+  }>;
+  event_ids: string[];
+}
+
+/** Every late task's new date and blocks, written as one. */
+export async function replanItems(input: {
+  calendarId: string;
+  tz: string;
+  changes: ReadonlyArray<{
+    itemId: string;
+    dueAt: string;
+    remindAt: string | null;
+    blocks: ReadonlyArray<{ startsAt: string; endsAt: string }>;
+  }>;
+}): Promise<ReplanUndo> {
+  return invoke<ReplanUndo>('items_replan', {
+    calendarId: input.calendarId,
+    tz: input.tz,
+    changes: input.changes.map((change) => ({
+      item_id: change.itemId,
+      due_at: change.dueAt,
+      remind_at: change.remindAt,
+      blocks: change.blocks.map((block) => ({
+        starts_at: block.startsAt,
+        ends_at: block.endsAt,
+      })),
+    })),
+  });
+}
+
+export async function undoReplan(undo: ReplanUndo): Promise<void> {
+  await invoke('items_replan_undo', { undo });
+}
+
+/** Every subtask in the workspace (ADR-051). */
+export async function listSubtasks(): Promise<Item[]> {
+  return (await invoke<RawItem[]>('subtasks_list')).map(toItem);
+}
+
+export async function addSubtask(parentId: string, title: string, position: string): Promise<Item> {
+  return toItem(await invoke<RawItem>('subtask_add', { parentId, title, position }));
+}
+
+export async function promoteSubtask(id: string, position: string): Promise<Item> {
+  return toItem(await invoke<RawItem>('subtask_promote', { id, position }));
 }
 
 /**

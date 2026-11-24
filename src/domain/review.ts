@@ -21,8 +21,8 @@
  */
 
 import { daysIn, summed, type Figure, type Period, type ReportRow } from './report';
-import { capacityOf } from './capacity';
-import { workingSpan, type WorkHours } from './calendar';
+import { capacityOf, workingMinutesLeft } from './capacity';
+import type { WorkHours } from './calendar';
 import { blockersOf, type Edge } from './graph';
 import { isCompleted, type Item } from './item';
 import { itemsOf, isAchieved, progressOf, type Goal, type GoalLink } from './goal';
@@ -206,13 +206,14 @@ function capacityLeft(input: ReviewInput, now: string, zone: string): number {
   const here = localPlace(now, zone);
   return daysIn(input.period)
     .filter((day) => day >= here.day)
-    .reduce((total, day) => {
-      const whole = capacityOf(day, input.hours, input.daysOff);
-      const span = day === here.day ? workingSpan(day, input.hours) : null;
-      if (span === null) return total + whole;
-      const gone = Math.max(0, here.minute - span.startsMinute);
-      return total + Math.max(0, whole - gone);
-    }, 0);
+    .reduce(
+      (total, day) =>
+        total +
+        (day === here.day
+          ? workingMinutesLeft(day, input.hours, input.daysOff, here.minute)
+          : capacityOf(day, input.hours, input.daysOff)),
+      0,
+    );
 }
 
 function inPeriod(day: string, period: Period): boolean {

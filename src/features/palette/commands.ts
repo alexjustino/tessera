@@ -16,7 +16,9 @@ export type CommandId =
   | 'reminders.resume'
   | 'theme.system'
   | 'theme.light'
-  | 'theme.dark';
+  | 'theme.dark'
+  /** Go to one of the person's own lists (ADR-053). */
+  | `list.${string}`;
 
 export interface PaletteCommand extends Command {
   id: CommandId;
@@ -27,6 +29,16 @@ export const COMMANDS: readonly PaletteCommand[] = [
   { id: 'go.tasks', title: 'Go to Tasks', group: 'navigate', keywords: ['list', 'table'] },
   { id: 'go.board', title: 'Go to Board', group: 'navigate', keywords: ['kanban', 'columns'] },
   { id: 'go.calendar', title: 'Go to Calendar', group: 'navigate', keywords: ['agenda', 'week'] },
+  { id: 'go.mosaic', title: 'Go to Mosaic', group: 'navigate', keywords: ['tiles', 'week'] },
+  { id: 'go.notes', title: 'Go to Notes', group: 'navigate', keywords: ['pages', 'notebook'] },
+  { id: 'go.goals', title: 'Go to Goals', group: 'navigate', keywords: ['target', 'habit'] },
+  { id: 'go.review', title: 'Go to Review', group: 'navigate', keywords: ['weekly', 'gaps'] },
+  {
+    id: 'go.guide',
+    title: 'Open the Guide',
+    group: 'navigate',
+    keywords: ['help', 'manual', 'how', 'f1'],
+  },
   {
     id: 'go.settings',
     title: 'Go to Settings',

@@ -5,8 +5,8 @@ name: Install proof
 # It is Windows Server with tools on it rather than somebody's Windows 11, and it
 # has WebView2 already, so the runtime's bootstrapper is not proved here.
 #
-# It walks the path a person walks: the published 1.2.0, a workspace with a task
-# in it, 1.3 installed on top, the task still there and the schema migrated, the
+# It walks the path a person walks: the published 1.3.0, a workspace with a task
+# in it, this build installed on top, the task still there and the schema migrated, the
 # interface appearing, then uninstall, which must leave the data. The WebDriver
 # suites cannot run here (ADR-016); they run on the release binary on a developer
 # machine (docs/RELEASE.md, step 5).
@@ -55,17 +55,17 @@ jobs:
             if (Test-Path $path) { throw "$path already exists: this is not a clean machine" }
           }
 
-      - name: Install the published 1.2.0 and leave a workspace
+      - name: Install the published 1.3.0 and leave a workspace
         run: |
-          gh release download v1.2.0 --pattern '*setup.exe' --dir old
+          gh release download v1.3.0 --pattern '*setup.exe' --dir old
           $setup = (Get-ChildItem old\*setup.exe).FullName
           Start-Process -FilePath $setup -ArgumentList '/S' -Wait
           $exe = "$env:LOCALAPPDATA\Tessera\tessera.exe"
-          if (-not (Test-Path $exe)) { throw 'the 1.2.0 installer did not put the program where expected' }
+          if (-not (Test-Path $exe)) { throw 'the 1.3.0 installer did not put the program where expected' }
           $app = Start-Process -FilePath $exe -PassThru
           $file = "$env:APPDATA\io.github.alexjustino.tessera\tessera.sqlite3"
           for ($i = 0; $i -lt 60 -and -not (Test-Path $file); $i++) { Start-Sleep -Seconds 1 }
-          if (-not (Test-Path $file)) { throw '1.2.0 never made a workspace' }
+          if (-not (Test-Path $file)) { throw '1.3.0 never made a workspace' }
           Start-Sleep -Seconds 5
           Stop-Process -Name tessera -Force
           Start-Sleep -Seconds 2

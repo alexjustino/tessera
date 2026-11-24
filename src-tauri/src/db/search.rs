@@ -45,7 +45,7 @@ pub fn search(conn: &Connection, query: &str, limit: i64) -> Result<Vec<SearchHi
     let limit = limit.clamp(1, MAX_HITS);
 
     let sql = format!(
-        "SELECT s.owner_kind, s.owner_id,
+        "SELECT s.owner_kind, COALESCE(i.parent_item_id, s.owner_id),
                 highlight(search_fts, 2, {HIT_OPEN}, {HIT_CLOSE}),
                 snippet(search_fts, 3, {HIT_OPEN}, {HIT_CLOSE}, '…', {SNIPPET_TOKENS}),
                 COALESCE(i.completed_at IS NOT NULL, 0)
@@ -153,6 +153,27 @@ mod tests {
 
     const OPEN: char = '\u{1}';
     const CLOSE: char = '\u{2}';
+
+    #[test]
+    fn finding_a_step_leads_to_the_task_it_is_part_of() {
+        let mut conn = workspace();
+        let parent = crate::db::items::create_item(
+            &mut conn,
+            crate::db::models::NewItem {
+                collection_id: "tasks".into(),
+                title: "Commission the bay".into(),
+                position: "V".into(),
+            },
+        )
+        .unwrap();
+        crate::db::items::add_subtask(&mut conn, &parent.id, "Check the relays", "a").unwrap();
+
+        let hits = search(&conn, "relays", 10).unwrap();
+
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].owner_id, parent.id);
+        assert!(hits[0].title.contains("relays"));
+    }
 
     #[test]
     fn finds_an_item_by_a_word_and_by_a_prefix() {
