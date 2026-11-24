@@ -4,13 +4,14 @@ name: Release
 # the GitHub Release. A release artefact always comes from a tagged commit that
 # passed the gates — never from a developer machine.
 #
-# Since 1.4.0 installed copies update themselves from what this publishes
-# (ADR-062), which makes the signing key the root of trust for every one of them.
-# So: actions are pinned by commit, not by a tag that can be moved; the build runs
-# without the key; the key is handed to one step that signs two files and nothing
-# else; and the signatures are checked against the public key the copies carry
-# before anything is published. One build: what the bundle check passed is what
-# is signed and published.
+# A release that carries the owner's public key is one installed copies update
+# themselves from (ADR-062); one without it, like 1.4.0, has no updater and is
+# published unsigned for updates (ADR-065). Where there is a key, it is the root
+# of trust for every installed copy. So: actions are pinned by commit, not by a
+# tag that can be moved; the build runs without the key; the key is handed to one
+# step that signs two files and nothing else; and the signatures are checked
+# against the public key the copies carry before anything is published. One
+# build: what the bundle check passed is what is signed and published.
 
 on:
   push:
@@ -25,26 +26,30 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # A release that could not be signed, or signed with a key the copies do not
-      # carry, would publish updates nobody can install. It stops before building.
-      - name: The updater key is in place
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # A release updates itself only when it carries the owner's public key and
+      # the secret that signs for it (ADR-065). Neither: an installable release
+      # with no updater, as 1.4.0 is. Only one of them: a release whose updates
+      # nobody could install, or a key nobody signs with. It stops before building.
+      - name: The updater key, both halves or neither, and the tag is the version
+        id: updater
         shell: pwsh
         env:
           HAS_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
         run: |
-          if ($env:HAS_KEY -ne 'true') { throw 'The TAURI_SIGNING_PRIVATE_KEY secret is missing.' }
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: The public key is the owner's, and the tag is the version
-        shell: pwsh
-        run: |
           $config = Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json
           $key = $config.plugins.updater.pubkey
-          if ($key -match 'PENDING' -or $key.Length -lt 40) { throw 'The updater public key is not set.' }
+          $placeholder = $key -match 'PENDING' -or $key.Length -lt 40
+          $secret = $env:HAS_KEY -eq 'true'
+          if ($placeholder -and $secret) { throw 'The signing secret is set, but the public key in tauri.conf.json is still the placeholder.' }
+          if (-not $placeholder -and -not $secret) { throw 'The public key is set, but the TAURI_SIGNING_PRIVATE_KEY secret is missing.' }
           if ("v$($config.version)" -ne '${{ github.ref_name }}') {
             throw "The tag ${{ github.ref_name }} is not the version $($config.version)."
           }
+          $signed = if ($secret) { 'true' } else { 'false' }
+          "signed=$signed" >> $env:GITHUB_OUTPUT
+          Write-Host "Updater in this release: $signed"
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
@@ -73,6 +78,7 @@ jobs:
       # The only step that sees the key. It runs the project's own pinned CLI on
       # two files; no build, no install script, no third-party action.
       - name: Sign the installers
+        if: steps.updater.outputs.signed == 'true'
         shell: pwsh
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -86,6 +92,7 @@ jobs:
           }
 
       - name: Check the signatures as an installed copy will
+        if: steps.updater.outputs.signed == 'true'
         shell: pwsh
         run: |
           $version = '${{ github.ref_name }}'.TrimStart('v')
@@ -98,6 +105,7 @@ jobs:
       # What installed copies read. A copy takes the same kind of installer it came
       # from; the bare platform key is for a copy that cannot tell.
       - name: Write latest.json
+        if: steps.updater.outputs.signed == 'true'
         shell: pwsh
         run: |
           $tag = '${{ github.ref_name }}'
@@ -140,23 +148,32 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIGNED: ${{ steps.updater.outputs.signed }}
         run: |
           $tag = '${{ github.ref_name }}'
           $version = $tag.TrimStart('v')
           $bundle = 'src-tauri/target/release/bundle'
-          $notes = @'
+          $updates = if ($env:SIGNED -eq 'true') {
+            "Copies of this release update themselves from here, after checking each installer against Tessera's own key."
+          } else {
+            'This release does not update itself: newer releases are published here, and installed over it.'
+          }
+          $notes = @"
           See CHANGELOG.md for what changed.
 
           The installers are not code-signed: Windows SmartScreen will warn on first run. Verify
           the download came from this Releases page, and that its SHA-256 matches SHA256SUMS.txt
-          (in PowerShell: Get-FileHash .\<file>). Copies of 1.4.0 and later update themselves
-          from here, after checking each installer against Tessera's own key.
-          '@
-          gh release create $tag --draft --title "Tessera $tag" --notes $notes `
-            "$bundle/nsis/Tessera_${version}_x64-setup.exe" `
-            "$bundle/nsis/Tessera_${version}_x64-setup.exe.sig" `
-            "$bundle/msi/Tessera_${version}_x64_en-US.msi" `
-            "$bundle/msi/Tessera_${version}_x64_en-US.msi.sig" `
-            latest.json `
-            SHA256SUMS.txt
+          (in PowerShell: Get-FileHash .\<file>). $updates
+          "@
+          $files = @(
+            "$bundle/nsis/Tessera_${version}_x64-setup.exe",
+            "$bundle/msi/Tessera_${version}_x64_en-US.msi",
+            'SHA256SUMS.txt'
+          )
+          if ($env:SIGNED -eq 'true') {
+            $files += "$bundle/nsis/Tessera_${version}_x64-setup.exe.sig"
+            $files += "$bundle/msi/Tessera_${version}_x64_en-US.msi.sig"
+            $files += 'latest.json'
+          }
+          gh release create $tag --draft --title "Tessera $tag" --notes $notes @files
           if ($LASTEXITCODE -ne 0) { throw 'The draft release was not created.' }

@@ -68,9 +68,10 @@ that a later one narrows says so and points at it.
 | [059](#adr-059) | A list explains itself where it is made, and wears a colour                    | Accepted        |
 | [060](#adr-060) | A board starts with the column that has no value                               | Accepted        |
 | [061](#adr-061) | The day is planned and closed through what Tessera already knows               | Accepted        |
-| [062](#adr-062) | Tessera asks GitHub once a day whether a newer release exists                  | Accepted        |
+| [062](#adr-062) | Tessera asks GitHub once a day whether a newer release exists                  | Amended by 065  |
 | [063](#adr-063) | The mark says what the product is for, and the installer looks like what it is | Accepted        |
 | [064](#adr-064) | The User Guide is in the product, written once, and shows what it says         | Accepted        |
+| [065](#adr-065) | A copy updates itself only when it carries the owner's key                     | Accepted        |
 
 ---
 
@@ -1519,6 +1520,10 @@ check at an address on the machine through `TESSERA_UPDATE_URL`, which the host 
 `e2e/updates.e2e.ts` counts the connections: one at start and one per Check now with the setting on,
 and none at all with it off.
 
+**Amended by ADR-065.** 1.4.0 ships without the updater: a build updates itself only when it
+carries the owner's public key, and 1.4.0 carries the placeholder. Everything above describes the
+updater as built, and as it switches on in the first release signed with that key.
+
 ## ADR-063 — The mark says what the product is for, and the installer looks like what it is {#adr-063}
 
 **Context.** On 2026-11-23 the owner asked for a more sophisticated icon and opening, and for an
@@ -1603,3 +1608,36 @@ told a person using it what it does.
 now has a third place to change, after the code and its ADR, and the test only catches a
 difference between the guide's two copies, not between the guide and the behaviour: keeping the
 text true stays part of each slice's definition of done.
+
+## ADR-065 — A copy updates itself only when it carries the owner's key {#adr-065}
+
+**Amends ADR-062.**
+
+**Context.** ADR-062 built the update check, on by default, and the release workflow refused to
+publish without the signing key. On 2026-11-24 the owner asked to finish 1.4.0 and was offered
+three ways: generate the key and publish with the updater on, keep the installers local, or publish
+without the updater. The owner chose to publish without it.
+
+**Decision.**
+
+1. **The key decides, in the binary.** A build has an updater only when `tauri.conf.json` carries
+   a real public key; with the placeholder (`OWNER-PUBLIC-KEY-PENDING`), the host's
+   `update_shipped` is false and `update_check` and `update_install` refuse before anything leaves
+   the machine. The rule is `updates::shipped`, tested both ways. Settings → Updates then has no
+   switch and no Check now: it says the copy does not update itself, and opens the Releases page.
+2. **1.4.0 makes no network request**, which is ADR-012 as it was. Nothing else changes: the
+   updater is built, tested, and waiting.
+3. **The workflow follows the key.** A tag builds a release with both halves of the key (the public
+   key in the config and the signing secret) or neither. Both: signed installers, `.sig` files and
+   `latest.json`, as ADR-062 says. Neither: installers and `SHA256SUMS.txt`, no updater. One
+   without the other stops the run, because it would publish updates nobody can install or a key
+   nobody signs with.
+4. **Turning it on is a change of data, not of code.** The owner generates the pair, puts the
+   public key in `tauri.conf.json` and the private key in the two repository secrets; the next
+   release has the updater on by default, as ADR-062 decided.
+5. **The test suite still proves the updater.** Its stand-in endpoint counts as a key, so the
+   update suite runs as before; a session without it shows the copy without an updater, and runs
+   only while the placeholder is in, so it can never ask GitHub.
+
+**Cost accepted.** Copies of 1.4.0 never offer an update: the release that turns the updater on is
+installed over 1.4.0 by hand, once, like every release before it.

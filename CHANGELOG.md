@@ -43,12 +43,12 @@ closed). Forward-only. A 1.3.0 workspace, schema version 18, is migrated on firs
   Tessera does and how, each with a scene that shows it happening and a Try it that goes there,
   and a search across all of it. The same guide is `docs/USER_GUIDE.md` in the repository. Every
   place in the sidebar is now a command in the palette too (ADR-064).
-- **Updates that arrive by themselves, and only when you say.** Once a day Tessera asks GitHub
-  whether a newer release exists. When one does, a bar says which, with its notes, and **Install
-  and restart** installs it after checking it against Tessera's own key. Nothing about you or your
-  work is sent. Settings → Updates turns the check off, and then Tessera makes no network request at
-  all (ADR-062, amending ADR-012). This is the first release that can update itself; 1.3.0 and
-  earlier are updated to 1.4.0 by hand, once.
+- **Updates, built and waiting for the project's key.** The update check of ADR-062 is in the
+  application: once a day, a bar that says which release is newer, and Install and restart after
+  checking it against Tessera's own key. It switches on in the first release signed with that key.
+  1.4.0 is not signed for updates, so it has no updater and makes no network request at all;
+  Settings → Updates points at the Releases page, where 1.4.0 and the releases after it are
+  installed over the old one (ADR-065).
 - **Plan my day, and close it.** Today starts with Your day. In the morning: what was left goes
   to today, tomorrow or done; today's work is weighed against its free time; its blocks go on
   the calendar in one press. At night: what got done, what goes to tomorrow, and a line about

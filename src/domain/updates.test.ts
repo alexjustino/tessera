@@ -17,6 +17,12 @@ describe('the update check, in words (ADR-062)', () => {
     expect(readSettings({ updateCheck: 'no' }).updateCheck).toBe(true);
   });
 
+  it('says a copy without an updater makes no request, and where releases are', () => {
+    expect(describeUpdate({ kind: 'unshipped' }, NOW)).toBe(
+      'This copy does not update itself, and makes no request to the network. New releases are on the Releases page.',
+    );
+  });
+
   it('says off means no request at all', () => {
     expect(describeUpdate({ kind: 'off' }, NOW)).toBe(
       'Off. Tessera makes no request to the network.',
