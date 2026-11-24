@@ -754,9 +754,21 @@ const DAY = 24 * 60 * 60 * 1000;
  * and only while the setting is on. A failure is an answer, not something to
  * retry in a loop.
  */
+/** Whether this copy has an updater at all; fixed for the life of the build. */
+export function useUpdateShipped() {
+  return useQuery({
+    queryKey: ['update-shipped'],
+    queryFn: updatesApi.updateShipped,
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
+}
+
 export function useUpdateCheck() {
   const settings = useSettings();
-  const on = settings.data?.updateCheck === true;
+  const shipped = useUpdateShipped();
+  // A copy without an updater never asks (ADR-065); the host would refuse anyway.
+  const on = settings.data?.updateCheck === true && shipped.data === true;
   return useQuery({
     queryKey: updateKey,
     queryFn: updatesApi.checkForUpdate,

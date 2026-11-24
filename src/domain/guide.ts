@@ -72,7 +72,7 @@ export const GUIDE: readonly GuideChapter[] = [
         title: 'One place for the work, the notes and the time',
         body: [
           'Tessera keeps your tasks, your notes and your calendar in one workspace on your own computer. A task can have a date, a time on the calendar, steps and a page of notes; a meeting can have its notes; and the week shows what all of it adds up to.',
-          'Everything lives in one file under your Windows profile. There is no account and nothing to sign in to. The only request Tessera makes to the internet is a daily check for a newer release, which you can turn off in Settings.',
+          'Everything lives in one file under your Windows profile. There is no account and nothing to sign in to, and this release makes no request to the internet at all.',
         ],
         scene: 'complete',
         tryIt: { label: 'Open Today', place: 'today' },
@@ -362,7 +362,8 @@ export const GUIDE: readonly GuideChapter[] = [
         id: 'updates',
         title: 'Updates',
         body: [
-          'Once a day Tessera asks GitHub whether a newer release exists, and tells you when one does. Nothing is installed until you press Install and restart, and every update is checked against Tessera’s own key first. Settings → Updates turns the check off.',
+          'Tessera 1.4.0 does not update itself and makes no request to the network: new releases are on the Releases page, and install over the old one, keeping your workspace. Settings → Updates opens that page.',
+          'From the first release signed with Tessera’s own key, it asks GitHub once a day whether a newer release exists and tells you when one does. Nothing is installed until you press Install and restart, every update is checked against that key first, and Settings → Updates turns the check off.',
         ],
         tryIt: { label: 'Open Settings', place: 'settings' },
       },

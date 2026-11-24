@@ -73,14 +73,16 @@ can reason about afterwards.
    git push origin vX.Y.Z
    ```
 
-9. The **Release workflow** runs on the tag. It stops at once when the signing
-   secret is missing, when the updater public key in `tauri.conf.json` is still
-   the placeholder, or when the tag is not the version (ADR-062). Then: gates,
-   one build, the bundle check, the signing of the two installers in a step of
-   its own, a check of both signatures against the public key the copies carry
-   (`scripts/verify-update-signature.mjs`), `latest.json` written from them, and
-   a **draft** GitHub Release with the installers, their `.sig` files and
-   `latest.json`. It is a draft on purpose — somebody reads the notes before the
+9. The **Release workflow** runs on the tag. It stops at once when the tag is
+   not the version, or when only one half of the updater key is there: the
+   signing secret without the public key in `tauri.conf.json`, or the public key
+   without the secret (ADR-065). Then: gates, one build, the bundle check, and
+   `SHA256SUMS.txt`. **With both halves** it also signs the two installers in a
+   step of its own, checks both signatures against the public key the copies
+   carry (`scripts/verify-update-signature.mjs`) and writes `latest.json`; the
+   **draft** GitHub Release carries the installers, their `.sig` files,
+   `latest.json` and the checksums. **With neither**, as for 1.4.0, the release
+   has no updater, and the draft carries the installers and the checksums. It is a draft on purpose — somebody reads the notes before the
    world does. Installed copies look for `releases/latest/download/latest.json`,
    which a draft does not serve: nobody is offered the release until it is
    published. The notes the update bar shows are the version's section of

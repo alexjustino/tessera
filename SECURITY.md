@@ -27,11 +27,16 @@ Please do not disclose publicly until a fix is released, or until we agree a dat
 ## Threat model
 
 Tessera is a **single-user, local-first desktop application**. It has no server, no account,
-and no listening network surface. Its one outbound request is the update check.
+and no listening network surface. 1.4.0 makes no outbound request; from the first release
+signed with the project's key, its one outbound request is the update check (ADR-065).
 
 Security properties the project commits to:
 
-- **One outbound request, which can be turned off** (ADR-062). Once a day, and when the person
+- **No updater without the owner's key** (ADR-065). A build that carries the placeholder public
+  key, as 1.4.0 does, has no updater: the host refuses every check and install before anything
+  leaves the machine, and Settings points at the Releases page instead.
+- **One outbound request, which can be turned off** (ADR-062), in a release signed with the
+  project's key. Once a day, and when the person
   presses Check now, the host asks GitHub for the release manifest of `alexjustino/tessera`. The
   request carries no identifier and nothing from the workspace. With Settings → Updates off, the
   host refuses the check and the application makes no outbound request at all. The Tauri content
